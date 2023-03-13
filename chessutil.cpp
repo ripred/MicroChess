@@ -5,7 +5,7 @@ Piece getType(Piece b)
     return Type & b;
 }
 
-unsigned char isEmpty(Piece b) 
+Bool isEmpty(Piece b) 
 {
     return getType(b) == Empty;
 }
@@ -20,17 +20,17 @@ Piece getSide(Piece b)
     return (Side & b) >> 3u; 
 }
 
-unsigned char hasMoved(Piece b) 
+Bool hasMoved(Piece b) 
 { 
     return (Moved & b) == Moved; 
 }
 
-unsigned char inCheck(Piece b) 
+Bool inCheck(Piece b) 
 { 
     return (Check & b) == Check; 
 }
 
-unsigned char isPromoted(Piece b) 
+Bool isPromoted(Piece b) 
 { 
     return (Promoted & b) == Promoted; 
 }
@@ -44,17 +44,17 @@ Piece setSide(Piece b, Piece side) {
     return (b & ~Side) | ((side << 3u) & Side); 
 }
 
-Piece setMoved(Piece b, unsigned char hasMoved) 
+Piece setMoved(Piece b, Bool hasMoved) 
 { 
     return (b & ~Moved) | (hasMoved ? Moved : 0); 
 }
 
-Piece setCheck(Piece b, unsigned char inCheck) 
+Piece setCheck(Piece b, Bool inCheck) 
 { 
     return (b & ~Check) | (inCheck ? Check : 0); 
 }
 
-Piece setPromoted(Piece b, unsigned char promoted) {
+Piece setPromoted(Piece b, Bool promoted) {
     return (b & ~Promoted) | (promoted ? Promoted : 0);
 }
 
@@ -63,6 +63,7 @@ Piece makeSpot(Piece type, Piece side, unsigned char moved, unsigned char inChec
 }
 
 char *getCoords(int index) {
+    // TODO: make PROGMEM
     static char *coords[BOARD_SIZE]
         = {"0,0", "1,0", "2,0", "3,0", "4,0", "5,0", "6,0", "7,0", "0,1", "1,1", "2,1",
            "3,1", "4,1", "5,1", "6,1", "7,1", "0,2", "1,2", "2,2", "3,2", "4,2", "5,2",
@@ -79,6 +80,7 @@ char *getCoords(int file, int rank)
 }
 
 char *getNotate(int const index) {
+    // TODO: make PROGMEM
     static char const * const notations[BOARD_SIZE]
         = {"a8", "b8", "c8", "d8", "e8", "f8", "g8", "h8", "a7", "b7", "c7", "d7", "e7",
            "f7", "g7", "h7", "a6", "b6", "c6", "d6", "e6", "f6", "g6", "h6", "a5", "b5",
@@ -95,8 +97,8 @@ char *getNotate(int file, int rank)
 }
 
 char *getName(Piece b) {
-    static char *names[7]
-        = {"Empty", "Pawn", "Knight", "Bishop", "Rook", "Queen", "King"};
+    // TODO: make PROGMEM
+    static char *names[7] = {"Empty", "Pawn", "Knight", "Bishop", "Rook", "Queen", "King"};
 
     return names[getType(b)];
 }
