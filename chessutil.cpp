@@ -125,3 +125,16 @@ char *addCommas(long int value) {
     }
     return withCommas;
 }
+
+int print(PrintType const mode, char const * const fmt, ...) {
+    if (mode) {
+        char buff[512] = "";
+        va_list argList;
+        va_start(argList, fmt);
+        vsnprintf(buff, sizeof(buff), fmt, argList);
+        va_end( argList );
+        return Serial.write(buff, strlen(buff));
+    }
+
+    return 0;
+}

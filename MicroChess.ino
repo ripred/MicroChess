@@ -17,7 +17,7 @@
 #include "board.h"
 
 void info();
-void show();
+int show();
 
 board_t board;
 
@@ -35,7 +35,8 @@ void loop() {
 
 }
 
-void show()
+[[nodiscard]]
+int show()
 {
     static char const icons[16] = "PNBRQKpnbrqk";
 
@@ -45,14 +46,17 @@ void show()
         for (unsigned char x=0; x < 8; ++x) {
             Piece piece = board.get(y * 8 + x);
             Serial.write(' ');
-            Serial.write((Empty == getType(piece)) ? 
+            char c = (Empty == getType(piece)) ? 
                 ((y ^ x) & 1 ? '*' : '.') : 
-                icons[(getSide(piece) * 6) + getType(piece) - 1]);
+                icons[(getSide(piece) * 6) + getType(piece) - 1];
+            Serial.write(c);
             Serial.write(' ');
         }
         Serial.write('\n');
     }
     Serial.write('\n');
+
+    return 0;
 }
 
 void info() 

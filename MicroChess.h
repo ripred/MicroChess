@@ -19,6 +19,8 @@ typedef unsigned char Color;
 typedef unsigned char Piece;
 typedef unsigned char Bool;
 
+enum PrintType { None, Info, Debug };
+
 #define MAX_VALUE ((long const)( 0b1000000000000)) // half the value of 13 bits - however large the 'value' field in move_t is
 #define MIN_VALUE ((long const)(0 - MAX_VALUE))
 
@@ -97,6 +99,8 @@ char *getNotate(int file, int rank);
 char *getName(Piece b);
 char *getColor(Piece b);
 char *addCommas(long int value);
+
+int print(PrintType const mode, char const * const fmt, ...);
 
 static long const pieceValues[8] = {
     0,          // empty spot value
