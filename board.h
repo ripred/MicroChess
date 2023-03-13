@@ -30,8 +30,8 @@ struct board_t1 {
  */
 struct board_t2 {
     struct row_t {
-        uint64_t  type1 : 3,     // one of the Piece types above
-                 side1 : 1,     // one of the Color types above
+        uint8_t  type1 : 3,     // one of the Piece types
+                 side1 : 1,     // one of the Color types
                 moved1 : 1,     // 1 if moved
                 check1 : 1,     // 1 if in check
              promoted1 : 1,     // 1 if promoted pawn
