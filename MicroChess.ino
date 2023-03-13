@@ -44,15 +44,10 @@ void show()
     for (unsigned char y=0; y < 8; ++y) {
         for (unsigned char x=0; x < 8; ++x) {
             Piece piece = board.get(y * 8 + x);
-            char c = ' ';
-            if (Empty == getType(piece)) {
-                c = ((y & 1) ^ (x & 1)) ? '*' : '.';
-            }
-            else {
-                c = icons[(getSide(piece) * 6) + getType(piece) - 1];
-            }
             Serial.write(' ');
-            Serial.write(c);
+            Serial.write((Empty == getType(piece)) ? 
+                ((y ^ x) & 1 ? '*' : '.') : 
+                icons[(getSide(piece) * 6) + getType(piece) - 1]);
             Serial.write(' ');
         }
         Serial.write('\n');
