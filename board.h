@@ -192,8 +192,8 @@ struct board_t {
         set( 0, makeSpot(  Rook, Black, 0, 0));
         set( 1, makeSpot(Knight, Black, 0, 0));
         set( 2, makeSpot(Bishop, Black, 0, 0));
-        set( 3, makeSpot(  King, Black, 0, 0));
-        set( 4, makeSpot( Queen, Black, 0, 0));
+        set( 3, makeSpot( Queen, Black, 0, 0));
+        set( 4, makeSpot(  King, Black, 0, 0));
         set( 5, makeSpot(Bishop, Black, 0, 0));
         set( 6, makeSpot(Knight, Black, 0, 0));
         set( 7, makeSpot(  Rook, Black, 0, 0));
