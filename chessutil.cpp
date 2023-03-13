@@ -17,7 +17,7 @@ int getValue(Piece b)
 
 Piece getSide(Piece b) 
 { 
-    return (Side & b) >> 4u; 
+    return (Side & b) >> 3u; 
 }
 
 unsigned char hasMoved(Piece b) 
@@ -41,7 +41,7 @@ Piece setType(Piece b, Piece type)
 }
 
 Piece setSide(Piece b, Piece side) {
-    return (b & ~Side) | ((side << 4u) & Side); 
+    return (b & ~Side) | ((side << 3u) & Side); 
 }
 
 Piece setMoved(Piece b, unsigned char hasMoved) 
@@ -73,7 +73,10 @@ char *getCoords(int index) {
     return coords[index];
 }
 
-char *getCoords(int file, int rank) { return getCoords(file + rank * 8); }
+char *getCoords(int file, int rank) 
+{ 
+    return getCoords(file + rank * 8); 
+}
 
 char *getNotate(int const index) {
     static char const * const notations[BOARD_SIZE]
@@ -86,7 +89,10 @@ char *getNotate(int const index) {
 }
 
 [[maybe_unused]] 
-char *getNotate(int file, int rank) { return getNotate(file + rank * 8); }
+char *getNotate(int file, int rank) 
+{ 
+    return getNotate(file + rank * 8); 
+}
 
 char *getName(Piece b) {
     static char *names[7]
@@ -95,7 +101,10 @@ char *getName(Piece b) {
     return names[getType(b)];
 }
 
-char *getColor(Piece b) { return getSide(b) == White ? (char*) "White" : (char*) "Black"; }
+char *getColor(Piece b) 
+{ 
+    return getSide(b) == White ? (char*) "White" : (char*) "Black"; 
+}
 
 char *addCommas(long int value) {
     static char buff[32] = "";

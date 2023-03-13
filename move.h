@@ -4,18 +4,18 @@
 #include "MicroChess.h"
 #include "board.h"
 
-struct Board;
+struct board_t;
 
-struct Move {
+struct move_t {
     unsigned long from : 6,
                     to : 6,
               captured : 7,
                  value;
-//        Move();
-//        Move(unsigned int fromCol, unsigned int fromRow, unsigned int toCol, unsigned int toRow,
-//        Move(Move const &ref) = default;
-//        Move &operator=(Move const &ref) = default;
-//        bool operator==(Move const &move) const;
+//        move_t();
+//        move_t(unsigned int fromCol, unsigned int fromRow, unsigned int toCol, unsigned int toRow,
+//        move_t(move_t const &ref) = default;
+//        move_t &operator=(move_t const &ref) = default;
+//        bool operator==(move_t const &move) const;
 //        [[nodiscard]] unsigned int getFromCol() const;
 //        [[nodiscard]] unsigned int getFromRow() const;
 //        [[nodiscard]] unsigned int getToCol() const;
@@ -31,10 +31,10 @@ struct Move {
 //        [[nodiscard]] bool isValid(Board const &board) const;
 //        [[nodiscard]] char *to_string(unsigned int flag = 0b111u) const;
 
-    Move()
+    move_t()
         : from(0), to(0), captured(Empty), value(0) {}
 
-    Move(unsigned int fromCol, unsigned int fromRow, unsigned int toCol, unsigned int toRow,
+    move_t(unsigned int fromCol, unsigned int fromRow, unsigned int toCol, unsigned int toRow,
                int value)
         : from(fromRow*8+toCol),
           to(toRow*8+toCol),
@@ -58,7 +58,7 @@ struct Move {
     void setValue(int val) { value = val; }
     void setCaptured(Piece p) { captured = p; }
 
-    bool operator==(Move const& move) const {
+    bool operator == (move_t const& move) const {
         if (this == &move) return true;
         return from == move.from && to == move.to;
     }
@@ -90,7 +90,7 @@ struct Move {
 
     bool isValid() const { return from != to; }
 
-    bool isValid(Board const& board) const {
+    bool isValid(board_t const& board) const {
         return (from != to) && (board.getType(from) != Empty);
     }
 };
