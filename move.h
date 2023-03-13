@@ -4,32 +4,11 @@
 #include "MicroChess.h"
 #include "board.h"
 
-struct board_t;
-
 struct move_t {
     unsigned long from : 6,
                     to : 6,
               captured : 7,
                  value;
-//        move_t();
-//        move_t(unsigned int fromCol, unsigned int fromRow, unsigned int toCol, unsigned int toRow,
-//        move_t(move_t const &ref) = default;
-//        move_t &operator=(move_t const &ref) = default;
-//        bool operator==(move_t const &move) const;
-//        [[nodiscard]] unsigned int getFromCol() const;
-//        [[nodiscard]] unsigned int getFromRow() const;
-//        [[nodiscard]] unsigned int getToCol() const;
-//        [[nodiscard]] unsigned int getToRow() const;
-//        [[nodiscard]] unsigned int getFrom() const;
-//        [[nodiscard]] unsigned int getTo() const;
-//        [[nodiscard]] int getValue() const;
-//        [[nodiscard]] Piece getCaptured() const;
-//        [[nodiscard]] bool isCapture() const;
-//        void setValue(int value);
-//        void setCaptured(Piece p);
-//        [[nodiscard]] bool isValid() const;
-//        [[nodiscard]] bool isValid(Board const &board) const;
-//        [[nodiscard]] char *to_string(unsigned int flag = 0b111u) const;
 
     move_t()
         : from(0), to(0), captured(Empty), value(0) {}
@@ -51,7 +30,7 @@ struct move_t {
     unsigned int getToRow() const { return to / 8; }
     unsigned int getFrom() const { return from; }
     unsigned int getTo() const { return to; }
-    int getValue() const { return value; }
+    long getValue() const { return value; }
     Piece getCaptured() const { return captured; }
     bool isCapture() const { return captured != Empty; }
 
