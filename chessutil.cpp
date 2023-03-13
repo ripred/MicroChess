@@ -30,11 +30,6 @@ Bool inCheck(Piece b)
     return (Check & b) == Check; 
 }
 
-Bool isPromoted(Piece b) 
-{ 
-    return (Promoted & b) == Promoted; 
-}
-
 Piece setType(Piece b, Piece type) 
 { 
     return (b & ~Type) | (type & Type); 
@@ -52,10 +47,6 @@ Piece setMoved(Piece b, Bool hasMoved)
 Piece setCheck(Piece b, Bool inCheck) 
 { 
     return (b & ~Check) | (inCheck ? Check : 0); 
-}
-
-Piece setPromoted(Piece b, Bool promoted) {
-    return (b & ~Promoted) | (promoted ? Promoted : 0);
 }
 
 Piece makeSpot(Piece type, Piece side, unsigned char moved, unsigned char inCheck) {

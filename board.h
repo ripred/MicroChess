@@ -34,49 +34,41 @@ struct board_t2 {
                  side1 : 1,     // one of the Color types
                 moved1 : 1,     // 1 if moved
                 check1 : 1,     // 1 if in check
-             promoted1 : 1,     // 1 if promoted pawn
 
                  type2 : 3,
                  side2 : 1,
                 moved2 : 1,
                 check2 : 1,
-             promoted2 : 1,
 
                  type3 : 3,
                  side3 : 1,
                 moved3 : 1,
                 check3 : 1,
-             promoted3 : 1,
 
                  type4 : 3,
                  side4 : 1,
                 moved4 : 1,
                 check4 : 1,
-             promoted4 : 1,
 
                  type5 : 3,
                  side5 : 1,
                 moved5 : 1,
                 check5 : 1,
-             promoted5 : 1,
 
                  type6 : 3,
                  side6 : 1,
                 moved6 : 1,
                 check6 : 1,
-             promoted6 : 1,
 
                  type7 : 3,
                  side7 : 1,
                 moved7 : 1,
                 check7 : 1,
-             promoted7 : 1,
 
                  type8 : 3,
                  side8 : 1,
                 moved8 : 1,
-                check8 : 1,
-             promoted8 : 1;
+                check8 : 1;
 
     } rows[8];
 
@@ -87,14 +79,14 @@ struct board_t2 {
 
         board_t2::row_t const &r = rows[row];
         spot_t const &spot = 
-            0 == col ? spot_t(r.type1, r.side1, r.moved1, r.check1, r.promoted1) :
-            1 == col ? spot_t(r.type2, r.side2, r.moved2, r.check2, r.promoted2) :
-            2 == col ? spot_t(r.type3, r.side3, r.moved3, r.check3, r.promoted3) :
-            3 == col ? spot_t(r.type4, r.side4, r.moved4, r.check4, r.promoted4) :
-            4 == col ? spot_t(r.type5, r.side5, r.moved5, r.check5, r.promoted5) :
-            5 == col ? spot_t(r.type6, r.side6, r.moved6, r.check6, r.promoted6) :
-            6 == col ? spot_t(r.type7, r.side7, r.moved7, r.check7, r.promoted7) :
-                       spot_t(r.type8, r.side8, r.moved8, r.check8, r.promoted8);
+            0 == col ? spot_t(r.type1, r.side1, r.moved1, r.check1) :
+            1 == col ? spot_t(r.type2, r.side2, r.moved2, r.check2) :
+            2 == col ? spot_t(r.type3, r.side3, r.moved3, r.check3) :
+            3 == col ? spot_t(r.type4, r.side4, r.moved4, r.check4) :
+            4 == col ? spot_t(r.type5, r.side5, r.moved5, r.check5) :
+            5 == col ? spot_t(r.type6, r.side6, r.moved6, r.check6) :
+            6 == col ? spot_t(r.type7, r.side7, r.moved7, r.check7) :
+                       spot_t(r.type8, r.side8, r.moved8, r.check8);
 
         return *((Piece*) &spot);
     }
@@ -111,7 +103,6 @@ struct board_t2 {
                 rows[row].side1 = getSide(piece);
                 rows[row].moved1 = hasMoved(piece);
                 rows[row].check1 = inCheck(piece);
-                rows[row].promoted1 = isPromoted(piece);
                 return;
             
             case 1:
@@ -119,7 +110,6 @@ struct board_t2 {
                 rows[row].side2 = getSide(piece);
                 rows[row].moved2 = hasMoved(piece);
                 rows[row].check2 = inCheck(piece);
-                rows[row].promoted2 = isPromoted(piece);
                 return;
             
             case 2:
@@ -127,7 +117,6 @@ struct board_t2 {
                 rows[row].side3 = getSide(piece);
                 rows[row].moved3 = hasMoved(piece);
                 rows[row].check3 = inCheck(piece);
-                rows[row].promoted3 = isPromoted(piece);
                 return;
             
             case 3:
@@ -135,7 +124,6 @@ struct board_t2 {
                 rows[row].side4 = getSide(piece);
                 rows[row].moved4 = hasMoved(piece);
                 rows[row].check4 = inCheck(piece);
-                rows[row].promoted4 = isPromoted(piece);
                 return;
             
             case 4:
@@ -143,7 +131,6 @@ struct board_t2 {
                 rows[row].side5 = getSide(piece);
                 rows[row].moved5 = hasMoved(piece);
                 rows[row].check5 = inCheck(piece);
-                rows[row].promoted5 = isPromoted(piece);
                 return;
             
             case 5:
@@ -151,7 +138,6 @@ struct board_t2 {
                 rows[row].side6 = getSide(piece);
                 rows[row].moved6 = hasMoved(piece);
                 rows[row].check6 = inCheck(piece);
-                rows[row].promoted6 = isPromoted(piece);
                 return;
             
             case 6:
@@ -159,7 +145,6 @@ struct board_t2 {
                 rows[row].side7 = getSide(piece);
                 rows[row].moved7 = hasMoved(piece);
                 rows[row].check7 = inCheck(piece);
-                rows[row].promoted7 = isPromoted(piece);
                 return;
             
             case 7:
@@ -167,7 +152,6 @@ struct board_t2 {
                 rows[row].side8 = getSide(piece);
                 rows[row].moved8 = hasMoved(piece);
                 rows[row].check8 = inCheck(piece);
-                rows[row].promoted8 = isPromoted(piece);
                 return;
         }
     }    

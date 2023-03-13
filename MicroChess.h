@@ -28,7 +28,6 @@ static Piece const Type     = 0b00000111u;
 static Piece const Side     = 0b00001000u;
 static Piece const Moved    = 0b00010000u;
 static Piece const Check    = 0b00100000u;
-static Piece const Promoted = 0b01000000u;
 
 static Color const White = 1u;
 static Color const Black = 0u;
@@ -45,15 +44,13 @@ struct spot_t {
     uint8_t  type : 3,     // one of the Piece types above
              side : 1,     // one of the Color types above
             moved : 1,     // 1 if moved
-            check : 1,     // 1 if in check
-         promoted : 1;     // 1 if promoted pawn
+            check : 1;     // 1 if in check
 
     spot_t() :
         type(Empty), 
         side(Black), 
         moved(0), 
-        check(0), 
-        promoted(0)
+        check(0)
     {
     }
 
@@ -62,12 +59,11 @@ struct spot_t {
         *this = *((spot_t *) &p);
     }
 
-    spot_t(uint8_t t, uint8_t s, uint8_t m, uint8_t c, uint8_t p) :
+    spot_t(uint8_t t, uint8_t s, uint8_t m, uint8_t c) :
         type(t), 
         side(s), 
         moved(m), 
-        check(c), 
-        promoted(p)
+        check(c)
     {
     }
 };
@@ -84,8 +80,6 @@ Bool  hasMoved(Piece b);
 
 Bool  inCheck(Piece b);
 
-Bool  isPromoted(Piece b);
-
 Piece setType(Piece b, Piece type);
 
 Piece setSide(Piece b, Piece side);
@@ -93,8 +87,6 @@ Piece setSide(Piece b, Piece side);
 Piece setMoved(Piece b, Bool hasMoved);
 
 Piece setCheck(Piece b, Bool inCheck);
-
-Piece setPromoted(Piece b, Bool promoted);
 
 Piece makeSpot(Piece type, Piece side, Bool moved, Bool inCheck);
 
