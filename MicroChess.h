@@ -73,18 +73,31 @@ struct spot_t {
 };
 
 Piece getType(Piece b);
-unsigned char isEmpty(Piece b);
-int getValue(Piece b);
+
+Bool  isEmpty(Piece b);
+
+int   getValue(Piece b);
+
 Piece getSide(Piece b);
-unsigned char hasMoved(Piece b);
-unsigned char inCheck(Piece b);
-unsigned char isPromoted(Piece b);
+
+Bool  hasMoved(Piece b);
+
+Bool  inCheck(Piece b);
+
+Bool  isPromoted(Piece b);
+
 Piece setType(Piece b, Piece type);
+
 Piece setSide(Piece b, Piece side);
-Piece setMoved(Piece b, unsigned char hasMoved);
-Piece setCheck(Piece b, unsigned char inCheck);
-Piece setPromoted(Piece b, unsigned char promoted);
-Piece makeSpot(Piece type, Piece side, unsigned char moved, unsigned char inCheck);
+
+Piece setMoved(Piece b, Bool hasMoved);
+
+Piece setCheck(Piece b, Bool inCheck);
+
+Piece setPromoted(Piece b, Bool promoted);
+
+Piece makeSpot(Piece type, Piece side, Bool moved, Bool inCheck);
+
 char *getCoords(int index);
 char *getCoords(int file, int rank);
 char *getNotate(int const index);
