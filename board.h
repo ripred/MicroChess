@@ -3,7 +3,32 @@
 
 #include <math.h>
 
+/***
+ * board_t version 1
+ *
+ */
 struct board_t1 {
+    struct row_t {
+        spot_t  cols[8];
+    } rows[8];
+
+    Piece get(unsigned char index) const 
+    {
+        return *((Piece*) &rows[index / 8].cols[index % 8]);
+    }
+
+    void set(unsigned char index, Piece const piece) 
+    {
+        rows[index / 8].cols[index % 8] = piece;
+    }    
+};
+
+
+/***
+ * board_t version 2
+ *
+ */
+struct board_t2 {
     struct row_t {
         uint64_t  type1 : 3,     // one of the Piece types above
                  side1 : 1,     // one of the Color types above
@@ -60,7 +85,7 @@ struct board_t1 {
         int const row = index / 8;
         int const col = index % 8;
 
-        board_t1::row_t const &r = rows[row];
+        board_t2::row_t const &r = rows[row];
         spot_t const &spot = 
             0 == col ? spot_t(r.type1, r.side1, r.moved1, r.check1, r.promoted1) :
             1 == col ? spot_t(r.type2, r.side2, r.moved2, r.check2, r.promoted2) :
@@ -149,24 +174,9 @@ struct board_t1 {
 
 };
 
-struct board_t2 {
-    struct row_t {
-        spot_t  cols[8];
-    } rows[8];
-
-    Piece get(unsigned char index) const 
-    {
-        return *((Piece*) &rows[index / 8].cols[index % 8]);
-    }
-
-    void set(unsigned char index, Piece const piece) 
-    {
-        rows[index / 8].cols[index % 8] = piece;
-    }    
-};
 
 struct board_t {
-    board_t1  board;
+    board_t2  board;
 
     Piece get(unsigned char index) const 
     {
