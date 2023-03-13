@@ -46,12 +46,14 @@ void show()
             Piece piece = board.get(y * 8 + x);
             char c = ' ';
             if (Empty == getType(piece)) {
-                c = ((y & 1) ^ (x & 1)) ? '.' : ' ';
+                c = ((y & 1) ^ (x & 1)) ? '*' : '.';
             }
             else {
                 c = icons[(getSide(piece) * 6) + getType(piece) - 1];
             }
+            Serial.write(' ');
             Serial.write(c);
+            Serial.write(' ');
         }
         Serial.write('\n');
     }
