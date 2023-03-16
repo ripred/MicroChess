@@ -1,3 +1,7 @@
+/**
+ * board.h
+ * 
+ */
 #ifndef BOARD_INCL
 #define BOARD_INCL
 
@@ -8,10 +12,12 @@
  *
  */
 struct board_t1 {
+private:
     struct row_t {
         spot_t  cols[8];
     } rows[8];
 
+public:
     Piece get(unsigned char index) const 
     {
         return *((Piece*) &rows[index / 8].cols[index % 8]);
@@ -29,6 +35,7 @@ struct board_t1 {
  *
  */
 struct board_t2 {
+private:
     struct row_t {
         uint8_t  type1 : 3,     // one of the Piece types
                  side1 : 1,     // one of the Color types
@@ -72,6 +79,7 @@ struct board_t2 {
 
     } rows[8];
 
+public:
     Piece get(unsigned char index) const 
     {
         int const row = index / 8;
@@ -160,8 +168,10 @@ struct board_t2 {
 
 
 struct board_t {
+private:
     board_t2  board;
 
+public:
     Piece get(unsigned char index) const 
     {
         return board.get(index);

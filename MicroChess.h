@@ -19,10 +19,12 @@ typedef unsigned char Color;
 typedef unsigned char Piece;
 typedef unsigned char Bool;
 
-enum PrintType { None, Info, Debug };
+enum PrintType { Debug1, Debug2, Debug3, None  };
 
-#define MAX_VALUE ((long const)( 0b1000000000000)) // half the value of 13 bits - however large the 'value' field in move_t is
-#define MIN_VALUE ((long const)(0 - MAX_VALUE))
+#define  ARRAYSZ(A) (sizeof(A) / sizeof(*(A)))
+
+#define  MAX_VALUE ((long const)( 0b1000000000000)) // half the value of 13 bits - however large the 'value' field in move_t is
+#define  MIN_VALUE ((long const)(0 - MAX_VALUE))
 
 static unsigned const BOARD_SIZE = 64u;
 
@@ -94,13 +96,13 @@ Piece makeSpot(Piece type, Piece side, Bool moved, Bool inCheck);
 
 char *getCoords(int index);
 char *getCoords(int file, int rank);
-char *getNotate(int const index);
-char *getNotate(int file, int rank);
+char const *getNotate(int const index);
+char const *getNotate(int file, int rank);
 char *getName(Piece b);
 char *getColor(Piece b);
-char *addCommas(long int value);
+const char* addCommas(long int value);
 
-int print(PrintType const mode, char const * const fmt, ...);
+int printf(PrintType const level, PrintType const mode, char const * const fmt, ...);
 
 static long const pieceValues[8] = {
     0,          // empty spot value
