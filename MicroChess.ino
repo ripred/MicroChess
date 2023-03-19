@@ -231,8 +231,13 @@ void show_move(move_t const &move) {
     Color   const oside = getSide(op);
 
     show_piece(p);
-    static char const fmt[] PROGMEM = " from: (%d, %d) to: (%d, %d)";
-    printf(Debug2, level, fmt, col, row, to_col, to_row);
+
+    static char const fmt[] PROGMEM = " from: %d,%d (%c%d) to: %d, %d (%c%d)";
+    printf(Debug2, level, fmt, 
+           col,    row, 
+        (game.last_move.from % 8) + 'A', (game.last_move.from / 8 + 1), 
+        to_col, to_row, 
+        (game.last_move.to   % 8) + 'A', (game.last_move.to   % 8 + 1));
 }
 
 
@@ -665,7 +670,7 @@ void play_game()
     ++game.turn %= 2;
     game.move_num++;
 
-    if (game.move_num >= 4 || game.move_count1 == 0 || game.move_count2 == 0) {
+    if (game.move_num >= 50 || game.move_count1 == 0 || game.move_count2 == 0) {
         static char const fmt[] PROGMEM = "\nsetting game.done = 1\n";
         printf(Debug1, level, fmt);
         game.done = 1;
@@ -679,7 +684,7 @@ void setup()
     Serial.begin(115200); while (!Serial); Serial.write('\n');
 
     // BUGBUG - enable random seed after program is debugged
-    // randomSeed(analogRead(A0) + analogRead(A1));
+    randomSeed(analogRead(A0) + analogRead(A1));
 
     Serial.println("starting..\n");
 
@@ -714,6 +719,7 @@ void show()
     static const char fmt2[] PROGMEM = "%c ";
     static const char fmt3[] PROGMEM = " %c ";
     static const char fmt4[] PROGMEM = "%s";
+    static const char fmt5[] PROGMEM = "    Taken %d: ";
 
     for (unsigned char y = 0; y < 8; ++y) {
         printf(Debug1, level, fmt2, '8' - y);
@@ -728,16 +734,16 @@ void show()
             case 0:
                 if (game.last_move.from != -1 && game.last_move.to != -1) {
                     static char const fmt[] PROGMEM = "    Last Move: %c%d to %c%d";
-                    printf(Debug0, level, fmt, 
+                    printf(Debug1, level, fmt, 
                         (game.last_move.from % 8) + 'A', 
-                        (game.last_move.from / 8), 
-                        (game.last_move.to %8) + 'A', 
-                        (game.last_move.to % 8) );
+                        (game.last_move.from / 8 + 1), 
+                        (game.last_move.to   % 8) + 'A', 
+                        (game.last_move.to   % 8 + 1) );
                 }
                 break;
 
             case 1:
-                Serial.print(F("    Taken 1: "));
+                printf(Debug1, level, fmt5, 1);
                 for (int i = 0; i < game.taken_count1; i++) {
                     char c = icons[(getSide(game.taken1[i]) * 6) + getType(game.taken1[i]) - 1];
                     printf(Debug1, level, fmt2, c);
@@ -745,7 +751,7 @@ void show()
                 break;
 
             case 2:
-                Serial.print(F("    Taken 2: "));
+                printf(Debug1, level, fmt5, 2);
                 for (int i = 0; i < game.taken_count2; i++) {
                     char c = icons[(getSide(game.taken2[i]) * 6) + getType(game.taken2[i]) - 1];
                     printf(Debug1, level, fmt2, c);

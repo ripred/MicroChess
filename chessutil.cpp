@@ -88,7 +88,7 @@ char *getCoords(index_t index)
 
 
 // [[maybe_unused]] 
-char *getCoords(int file, int rank) 
+char *getCoords(index_t file, index_t rank) 
 { 
     return getCoords(file + rank * 8); 
 }
@@ -145,10 +145,10 @@ const char* addCommas(long int value) {
     return buff;
 }
 
-int printf(print_t const mode, print_t const level, char const * const progmem, ...) {
+int printf(print_t const required, print_t const level, char const * const progmem, ...) {
     char fmt[100] = "";
     for (int i = 0; fmt[i] = pgm_read_byte_near(progmem + i), fmt[i] != 0; i++) {}
-    if (mode >= level) {
+    if (level >= required) {
         char buff[100] = "";
         va_list argList;
         va_start(argList, fmt);

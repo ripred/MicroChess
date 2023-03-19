@@ -141,7 +141,7 @@ char *getName(Piece b);
 char *getColor(Piece b);
 const char* addCommas(long int value);
 
-int printf(print_t const mode, print_t const level, char const * const fmt, ...);
+int printf(print_t const required, print_t const level, char const * const fmt, ...);
 
 static long const pieceValues[8] = {
     0,          // empty spot value
