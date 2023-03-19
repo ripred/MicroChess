@@ -42,7 +42,7 @@ Bool isValidTest()
 #ifdef TRACE_FAIL
     auto trace = []() -> int {
         static char const fmt[] PROGMEM = "\nERROR - failed isValidPos(x,y) test 1!\n\n";
-        printf(Debug2, level, fmt);
+        printf(Debug1, level, fmt);
         return 0;
     };
 #else
@@ -83,7 +83,7 @@ void add_move(Color side, index_t from, index_t to, long value)
         }
         else {
             static char const fmt[] PROGMEM = "attempt to add too many move1\n";
-            printf(Debug2, level, fmt);
+            printf(Debug1, level, fmt);
         }
     }
     else {
@@ -92,7 +92,7 @@ void add_move(Color side, index_t from, index_t to, long value)
         }
         else {
             static char const fmt[] PROGMEM = "attempt to add too many move2\n";
-            printf(Debug2, level, fmt);
+            printf(Debug1, level, fmt);
         }
     }
 }
@@ -233,7 +233,7 @@ void show_move(move_t const &move) {
     show_piece(p);
 
     static char const fmt[] PROGMEM = " from: %d,%d (%c%d) to: %d, %d (%c%d)";
-    printf(Debug2, level, fmt, 
+    printf(Debug1, level, fmt, 
            col,    row, 
         (game.last_move.from % 8) + 'A', (game.last_move.from / 8 + 1), 
         to_col, to_row, 
@@ -247,17 +247,17 @@ long make_move(move_t const &move, Bool const restore)
 {
     // lambda func to find the piece index for a given location
     auto find_piece = [](int const index) -> index_t {
-        // static char const fmt[] PROGMEM = "find_piece(index: %d) called\n";
-        // printf(Debug2, level, fmt, index);
+        static char const fmt[] PROGMEM = "find_piece(index: %d) called\n";
+        printf(Debug3, level, fmt, index);
 
         for (int i = 0; i < game.piece_count; i++) {
             point_t const &loc = game.pieces[i];
 
-            // static char const fmt[] PROGMEM = "game.pieces[%2d] = point_t(x:%d, y: %d)\n";
-            // printf(Debug2, level, fmt, i, loc.x, loc.y);
+            static char const fmt[] PROGMEM = "game.pieces[%2d] = point_t(x:%d, y: %d)\n";
+            printf(Debug3, level, fmt, i, loc.x, loc.y);
             if ((loc.x + (loc.y * 8)) == index) {
-                // static char const fmt[] PROGMEM = " returning %d\n";
-                // printf(Debug2, level, fmt, i);
+                static char const fmt[] PROGMEM = " returning %d\n";
+                printf(Debug3, level, fmt, i);
                 return i;
             }
         }
@@ -288,7 +288,7 @@ long make_move(move_t const &move, Bool const restore)
         static char const fmt[] PROGMEM = 
             "error: could not find piece from move_t in pieces list: "
             "col = %d, row = %d\n";
-        printf(Debug2, level, fmt, col, row);
+        printf(Debug1, level, fmt, col, row);
         show();
         show_pieces();
         while ((1)) {}
@@ -392,17 +392,17 @@ void add_all_moves() {
         Piece   const type = getType(p);
         index_t const fwd = (White == side) ? -1 : 1;      // which indexing direction 'forward' is for the current side
 
-        // static char const fmt[] PROGMEM = "game.eval_ndx = %2d of %2d, point = %d,%d, %5s %6s\n";
-        // printf(Debug1, level, fmt, 
-        //     game.eval_ndx, 
-        //     game.piece_count, 
-        //     col, row, 
-        //     getColor(p), getName(p));
+        static char const fmt[] PROGMEM = "game.eval_ndx = %2d of %2d, point = %d,%d, %5s %6s\n";
+        printf(Debug3, level, fmt, 
+            game.eval_ndx, 
+            game.piece_count, 
+            col, row, 
+            getColor(p), getName(p));
 
         if (Empty == type) {
             static char const fmt[] PROGMEM = 
                 "error: Empty piece in piece list: game.eval_ndx = %d, board index = %d\n";
-            printf(Debug2, level, fmt, game.eval_ndx, from);
+            printf(Debug1, level, fmt, game.eval_ndx, from);
             show_pieces();
             show();
             while ((1)) {}
@@ -420,7 +420,7 @@ void add_all_moves() {
             default:
                 {
                     static char const fmt[] PROGMEM = "error: invalid type = %d\n";
-                    printf(Debug2, level, fmt, type);
+                    printf(Debug1, level, fmt, type);
                 }
                 show();
                 while ((1)) {}
@@ -629,7 +629,7 @@ void play_game()
 
     if (move.from == -1 || move.to == -1) {
         static char const fmt[] PROGMEM = "error: invalid move at line %d in %s\n";
-        printf(Debug2, level, fmt, __LINE__, __FILE__);
+        printf(Debug1, level, fmt, __LINE__, __FILE__);
         while ((1)) {}
     }
 
@@ -649,17 +649,17 @@ void play_game()
     Color const oside = getSide(op);
 
     static char const fmt3[] PROGMEM = "\nMove #%d: ";
-    printf(Debug2, level, fmt3, game.move_num + 1);
+    printf(Debug1, level, fmt3, game.move_num + 1);
     show_move(move);
 
     if (Empty != otype) {
         static char const fmt[] PROGMEM = " taking a ";
-        printf(Debug2, level, fmt);
+        printf(Debug1, level, fmt);
         show_piece(op);
     }
 
     static char const fmt4[] PROGMEM = "\n\n";
-    printf(Debug2, level, fmt4);
+    printf(Debug1, level, fmt4);
 
     value = make_move(move, 0);
 
