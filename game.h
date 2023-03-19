@@ -53,7 +53,6 @@ public:
         init();
     }
 
-
     void init()
     {
         // initialize list of pieces in the game

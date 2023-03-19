@@ -17,6 +17,10 @@
 #include <string.h>
 #include <inttypes.h>
 
+typedef unsigned char Color;
+typedef unsigned char Piece;
+typedef unsigned char Bool;
+
 ////////////////////////////////////////////////////////////////////////////////////////
 // limits
 enum 
@@ -44,14 +48,6 @@ static struct knight_offset_t
     { -1, +2 }, 
     { +1, -2 }, // backward
     { -1, -2 }  
-
-    // { 0, 0 }, // BUGBUG - REMOVE AFTER TESTING!
-    // { 0, 0 }, // BUGBUG - REMOVE AFTER TESTING!
-    // { 0, 0 }, // BUGBUG - REMOVE AFTER TESTING!
-    // { 0, 0 }, // BUGBUG - REMOVE AFTER TESTING!
-    // { 0, 0 }, // BUGBUG - REMOVE AFTER TESTING!
-    // { 0, 0 }, // BUGBUG - REMOVE AFTER TESTING!
-    // { 0, 0 }, // BUGBUG - REMOVE AFTER TESTING!
 };
 
 ////////////////////////////////////////////////////////////////////////////////////////
@@ -64,18 +60,15 @@ static struct knight_offset_t
 #endif
 #define  isValidPos(col, row) ((col >= 0 && col < 8 && row >= 0 && row < 8) ? 1 : (TRACE_FAIL,0))
 
-typedef unsigned char Color;
-typedef unsigned char Piece;
-typedef unsigned char Bool;
-
 enum print_t {
-    None,
+    Always = 0,
     Debug0, 
     Debug1, 
     Debug2, 
-    Debug3, 
-    Always = 100
+    Debug3,
 };
+
+extern print_t const level;
 
 #define  ARRAYSZ(A) (sizeof(A) / sizeof(*(A)))
 
@@ -83,11 +76,6 @@ enum print_t {
 #define  MIN_VALUE ((long const)(0 - MAX_VALUE))
 
 static unsigned const BOARD_SIZE = 64u;
-
-static Piece const Type     = 0b00000111u;
-static Piece const Side     = 0b00001000u;
-static Piece const Moved    = 0b00010000u;
-static Piece const Check    = 0b00100000u;
 
 static Color const White = 1u;
 static Color const Black = 0u;
@@ -100,16 +88,16 @@ static Piece const Rook   = 4u;
 static Piece const Queen  = 5u;
 static Piece const King   = 6u;
 
-struct spot_t {
-    uint8_t  type : 3,     // one of the Piece types above
-             side : 1,     // one of the Color types above
-            moved : 1,     // 1 if moved
-            check : 1;     // 1 if in check
+static Piece const Type     = 0b00000111u;
+static Piece const Side     = 0b00001000u;
+static Piece const Moved    = 0b00010000u;
+static Piece const Check    = 0b00100000u;
 
-    spot_t() : type(Empty), side(Black), moved(0), check(0) {}
-    spot_t(Piece p) { *this = *((spot_t *) &p); }
-    spot_t(uint8_t t, uint8_t s, uint8_t m, uint8_t c) : type(t), side(s), moved(m), check(c){}
-};
+void info();
+
+void show();
+
+Bool isValidTest();
 
 Piece getType(Piece b);
 
@@ -134,14 +122,20 @@ Piece setCheck(Piece b, Bool inCheck);
 Piece makeSpot(Piece type, Piece side, Bool moved, Bool inCheck);
 
 char *getCoords(index_t index);
+
 char *getCoords(index_t file, index_t rank);
+
 char const *getNotate(index_t const index);
+
 char const *getNotate(index_t file, index_t rank);
+
 char *getName(Piece b);
+
 char *getColor(Piece b);
+
 const char* addCommas(long int value);
 
-int printf(print_t const required, print_t const level, char const * const fmt, ...);
+int printf(print_t const required, char const * const fmt, ...);
 
 static long const pieceValues[8] = {
     0,          // empty spot value
@@ -153,5 +147,37 @@ static long const pieceValues[8] = {
     MAX_VALUE,  // king value
     0           // padded for alignment and increased L1 and L2 cache hit gains
 };
+
+// a struct to represent all of the extra data about the 
+// starting point and the ending point of a move
+struct moveinfo_t {
+public:
+    index_t     from;
+    index_t     col;
+    index_t     row;
+    Piece       p;
+    Piece       type;
+    Color       side;
+
+    index_t     to;
+    index_t     to_col;
+    index_t     to_row;
+    Piece       op;
+    Piece       otype;
+    Color       oside;
+
+public:
+
+};
+
+#include "board.h"
+#include "move.h"
+#include "game.h"
+
+void show_move(move_t const &move);
+void show_pieces();
+void show_piece(Piece const p);
+
+extern game_t game;
 
 #endif // MICROCHESS_INCL

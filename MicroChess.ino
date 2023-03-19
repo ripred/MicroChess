@@ -25,47 +25,10 @@
 #include <stdlib.h>
 
 #include "MicroChess.h"
-static print_t const level = Debug1;
 
-#include "board.h"
-#include "move.h"
-#include "game.h"
-
-void info();
-void show();
-
+////////////////////////////////////////////////////////////////////////////////////////
+// the game board
 board_t board;
-
-
-Bool isValidTest()
-{
-#ifdef TRACE_FAIL
-    auto trace = []() -> int {
-        static char const fmt[] PROGMEM = "\nERROR - failed isValidPos(x,y) test 1!\n\n";
-        printf(Debug1, level, fmt);
-        return 0;
-    };
-#else
-    auto trace = []() -> int { return 0; };
-#endif
-    for (index_t y=0; y < 8; y++) {
-        for (index_t x=0; x < 8; x++) {
-            if (!isValidPos(x, y)) {
-                return trace();
-            }
-        }
-    }
-
-    if (isValidPos(-1, 0) || isValidPos(0, -1) || isValidPos(8, 0) || isValidPos(0, 8)) {
-        return trace();
-    }
-
-    static char const fmt[] PROGMEM = "passed isValidPos(x,y) tests\n\n";
-    printf(Debug2, level, fmt);
-
-    return 1;
-}
-
 
 ////////////////////////////////////////////////////////////////////////////////////////
 // the currently running game
@@ -75,7 +38,7 @@ game_t game;
 void add_move(Color side, index_t from, index_t to, long value) 
 {
     // static char const fmt[] PROGMEM = "call to add move from %d,%d to %d,%d\n";
-    // printf(Debug1, level, fmt, from%8,from/8, to%8,to/8);
+    // printf(Debug1, fmt, from%8,from/8, to%8,to/8);
 
     if (White == side) {
         if (game.move_count1 < MAX_MOVES) {
@@ -83,7 +46,7 @@ void add_move(Color side, index_t from, index_t to, long value)
         }
         else {
             static char const fmt[] PROGMEM = "attempt to add too many move1\n";
-            printf(Debug1, level, fmt);
+            printf(Debug1, fmt);
         }
     }
     else {
@@ -92,7 +55,7 @@ void add_move(Color side, index_t from, index_t to, long value)
         }
         else {
             static char const fmt[] PROGMEM = "attempt to add too many move2\n";
-            printf(Debug1, level, fmt);
+            printf(Debug1, fmt);
         }
     }
 }
@@ -169,75 +132,13 @@ long evaluate(Color side)
 
     score = materialTotal + centerTotal + mobilityTotal;
 
-    // printf(Debug2, level, "evaluation: %ld" "
+    // printf(Debug2, "evaluation: %ld" "
     //     " = centerTotal: %ld  "
     //     "materialTotal: %ld  "
     //     "mobilityTotal: %ld\n", 
     //     score, centerTotal, materialTotal, mobilityTotal);
 
     return score;
-}
-
-
-void show_piece(Piece const p) 
-{
-    Piece const type = getType(p);
-    Color const side = getSide(p);
-
-    static char const fmt[] PROGMEM = "%5s %6s";
-    printf(Debug1, level, fmt, 
-        (Empty == type ?  "" : (White == side ?  "White" : "Black")), 
-        (Empty == type ?  "Empty" :
-          Pawn == type ?   "Pawn" :
-        Knight == type ? "Knight" :
-        Bishop == type ? "Bishop" :
-          Rook == type ?   "Rook" :
-         Queen == type ?  "Queen" : "King"));
-}
-
-void show_pieces() 
-{
-    static char const fmt1[] PROGMEM = "game.pieces[%2d] = {\n";
-    printf(Debug1, level, fmt1, game.piece_count);
-    for (int i = 0; i < game.piece_count; i++) {
-        point_t const &loc = game.pieces[i];
-        index_t const col = loc.x;
-        index_t const row = loc.y;
-        Piece  const p = board.get(col + row * 8);
-        static char const fmt1[] PROGMEM = "    game.pieces[%2d] = %d, %d: ";
-        printf(Debug1, level, fmt1, i, col, row);
-        show_piece(p);
-        static char const fmt2[] PROGMEM = "\n";
-        printf(Debug1, level, fmt2);
-    }
-    static char const fmt2[] PROGMEM = "};\n";
-    printf(Debug1, level, fmt2);
-}
-
-
-void show_move(move_t const &move) {
-    index_t const col = move.from % 8;
-    index_t const row = move.from / 8;
-    index_t const from = col + row * 8;
-    Piece   const p = board.get(from);
-    Color   const side = getSide(p);
-    Piece   const type = getType(p);
-
-    index_t const to_col = move.to % 8;
-    index_t const to_row = move.to / 8;
-    index_t const to = to_col + to_row * 8;
-    Piece   const op = board.get(to);
-    Piece   const otype = getType(op);
-    Color   const oside = getSide(op);
-
-    show_piece(p);
-
-    static char const fmt[] PROGMEM = " from: %d,%d (%c%d) to: %d, %d (%c%d)";
-    printf(Debug1, level, fmt, 
-           col,    row, 
-        (game.last_move.from % 8) + 'A', (game.last_move.from / 8 + 1), 
-        to_col, to_row, 
-        (game.last_move.to   % 8) + 'A', (game.last_move.to   % 8 + 1));
 }
 
 
@@ -248,16 +149,16 @@ long make_move(move_t const &move, Bool const restore)
     // lambda func to find the piece index for a given location
     auto find_piece = [](int const index) -> index_t {
         static char const fmt[] PROGMEM = "find_piece(index: %d) called\n";
-        printf(Debug3, level, fmt, index);
+        printf(Debug3, fmt, index);
 
         for (int i = 0; i < game.piece_count; i++) {
             point_t const &loc = game.pieces[i];
 
             static char const fmt[] PROGMEM = "game.pieces[%2d] = point_t(x:%d, y: %d)\n";
-            printf(Debug3, level, fmt, i, loc.x, loc.y);
+            printf(Debug3, fmt, i, loc.x, loc.y);
             if ((loc.x + (loc.y * 8)) == index) {
                 static char const fmt[] PROGMEM = " returning %d\n";
-                printf(Debug3, level, fmt, i);
+                printf(Debug3, fmt, i);
                 return i;
             }
         }
@@ -271,7 +172,7 @@ long make_move(move_t const &move, Bool const restore)
     index_t const from = col + row * 8;
     Piece   const p = board.get(from);
     Color   const side = getSide(p);
-    // Piece   const type = getType(p);
+    Piece   const type = getType(p);
 
     index_t const to_col = move.to % 8;
     index_t const to_row = move.to / 8;
@@ -288,11 +189,28 @@ long make_move(move_t const &move, Bool const restore)
         static char const fmt[] PROGMEM = 
             "error: could not find piece from move_t in pieces list: "
             "col = %d, row = %d\n";
-        printf(Debug1, level, fmt, col, row);
+        printf(Debug1, fmt, col, row);
         show();
         show_pieces();
         while ((1)) {}
     }
+
+
+    // TODO: Add checks for en-passant
+    // update the taken pieces list (if necessary)
+
+    // if (type == Pawn && otype == Empty && col != to_col) {  // en-passant capture
+    //     if (White == side) { game.taken1[game.taken_count1++] = p; }
+    //     else { game.taken2[game.taken_count2++] = p; }
+    //     board.set(to_col + row * 8, Empty);
+    // } else {
+    //     if (otype != Empty) {
+    //         // This move captures a piece
+    //         if (White == side) { game.taken1[game.taken_count1++] = p; }
+    //         else { game.taken2[game.taken_count2++] = op; }
+    //     }
+    // }
+
 
     // see if the destination is not empty and not a piece on our side i.e. an opponent's piece
     if (Empty != otype && side != oside) {
@@ -326,7 +244,7 @@ long make_move(move_t const &move, Bool const restore)
             // make sure the location we have is valid
             if (taken.x < 0 || taken.y < 0) {
                 static char const fmt[] PROGMEM = "error: invalid saved point_t\n";
-                printf(Debug1, level, fmt);
+                printf(Debug1, fmt);
                 show_pieces();
                 while ((1)) {}
             }
@@ -349,6 +267,14 @@ long make_move(move_t const &move, Bool const restore)
 
 
 ////////////////////////////////////////////////////////////////////////////////////////
+// Go through both list of moves (game.moves1 and game.moves2) and get a valuation for
+// each move. 
+// 
+// Then sort the lists in descending and ascending order respectively - see Note
+// 
+// Note: We do this because the best move for White is the highest value score whereas
+// the best move for Black is the one with the 'highest' negative value (the lowest value)
+// 
 void evaluate_moves() 
 {
     // fill in and sort game.moves1 in decending order
@@ -381,6 +307,9 @@ void evaluate_moves()
 }
 
 
+////////////////////////////////////////////////////////////////////////////////////////
+// Add all of the available moves for all pieces to the game.moves1 (White) 
+// and game.moves2 (Black) lists
 void add_all_moves() {
     // find all moves available for the current pieces
     for (game.eval_ndx = 0; game.eval_ndx < game.piece_count; game.eval_ndx++) {
@@ -393,7 +322,7 @@ void add_all_moves() {
         index_t const fwd = (White == side) ? -1 : 1;      // which indexing direction 'forward' is for the current side
 
         static char const fmt[] PROGMEM = "game.eval_ndx = %2d of %2d, point = %d,%d, %5s %6s\n";
-        printf(Debug3, level, fmt, 
+        printf(Debug3, fmt, 
             game.eval_ndx, 
             game.piece_count, 
             col, row, 
@@ -402,7 +331,7 @@ void add_all_moves() {
         if (Empty == type) {
             static char const fmt[] PROGMEM = 
                 "error: Empty piece in piece list: game.eval_ndx = %d, board index = %d\n";
-            printf(Debug1, level, fmt, game.eval_ndx, from);
+            printf(Debug1, fmt, game.eval_ndx, from);
             show_pieces();
             show();
             while ((1)) {}
@@ -420,132 +349,130 @@ void add_all_moves() {
             default:
                 {
                     static char const fmt[] PROGMEM = "error: invalid type = %d\n";
-                    printf(Debug1, level, fmt, type);
+                    printf(Debug1, fmt, type);
                 }
                 show();
                 while ((1)) {}
                 break;
 
             case Pawn:
-                if ((1)) {
-                    // see if we can move 1 spot in front of this pawn
-                    to_col = col;
-                    to_row = row + fwd;
-                    to = to_col + (to_row * 8);
+                // see if we can move 1 spot in front of this pawn
+                to_col = col;
+                to_row = row + fwd;
+                to = to_col + (to_row * 8);
 
-                    if (isValidPos(to_col, to_row)) {
-                        op = board.get(to);    // get piece at location 1 spot in front of pawn
-                        if (Empty == op) {
-                            add_move(
-                                side, 
-                                from,   // from
-                                to,     // to
-                                0       // value
-                            );
-                        }
+                if (isValidPos(to_col, to_row)) {
+                    op = board.get(to);    // get piece at location 1 spot in front of pawn
+                    if (Empty == op) {
+                        add_move(
+                            side, 
+                            from,   // from
+                            to,     // to
+                            0       // value
+                        );
                     }
+                }
 
-                    // see if we can move 2 spots in front of this pawn
-                    to_col = col;
-                    to_row = row + fwd + fwd;
-                    to = to_col + (to_row * 8);
-                    if (isValidPos(to_col, to_row)) {
-                        op = board.get(to);    // get piece at location 2 spots in front of pawn
-                        if (Empty == op) {
-                            add_move(
-                                side, 
-                                from,   // from
-                                to,     // to
-                                0       // value
-                            );
-                        }
+                // see if we can move 2 spots in front of this pawn
+                to_col = col;
+                to_row = row + fwd + fwd;
+                to = to_col + (to_row * 8);
+                if (isValidPos(to_col, to_row)) {
+                    op = board.get(to);    // get piece at location 2 spots in front of pawn
+                    if (Empty == op) {
+                        add_move(
+                            side, 
+                            from,   // from
+                            to,     // to
+                            0       // value
+                        );
                     }
+                }
 
-                    // see if we can capture a piece diagonally to the left
-                    to_col = col - 1;
-                    to_row = row + fwd;
-                    to = to_col + (to_row * 8);
-                    if (isValidPos(to_col, to_row)) {
-                        op = board.get(to);    // get piece diagonally to the right
-                        if (Empty != op && getSide(op) != side) {
-                            add_move(
-                                side, 
-                                from,   // from
-                                to,     // to
-                                0       // value
-                            );
-                        }
+                // see if we can capture a piece diagonally to the left
+                to_col = col - 1;
+                to_row = row + fwd;
+                to = to_col + (to_row * 8);
+                if (isValidPos(to_col, to_row)) {
+                    op = board.get(to);    // get piece diagonally to the right
+                    if (Empty != op && getSide(op) != side) {
+                        add_move(
+                            side, 
+                            from,   // from
+                            to,     // to
+                            0       // value
+                        );
                     }
+                }
 
-                    // see if we can capture a piece diagonally to the right
-                    to_col = col + 1;
-                    to_row = row + fwd;
-                    to = to_col + (to_row * 8);
-                    if (isValidPos(to_col, to_row)) {
-                        op = board.get(to);    // get piece diagonally to the right
-                        if (Empty != op && getSide(op) != side) {
-                            add_move(
-                                side, 
-                                from,   // from
-                                to,     // to
-                                0       // value
-                            );
-                        }
+                // see if we can capture a piece diagonally to the right
+                to_col = col + 1;
+                to_row = row + fwd;
+                to = to_col + (to_row * 8);
+                if (isValidPos(to_col, to_row)) {
+                    op = board.get(to);    // get piece diagonally to the right
+                    if (Empty != op && getSide(op) != side) {
+                        add_move(
+                            side, 
+                            from,   // from
+                            to,     // to
+                            0       // value
+                        );
                     }
+                }
 
-                    // en-passant on the left
-                    to_col = col - 1;
-                    to_row = row + fwd;
-                    to = to_col + (to_row * 8);
-                    if (isValidPos(to_col, to_row)) {
-                        op = board.get(to);    // get piece diagonally to the right
-                    }
-                    epx = to_col;
-                    if (isValidPos(to_col, to_row)) {
-                        op = board.get(to);    // get piece diagonally to the right
-                        if (Empty != op && getSide(op) != side) {
-                            index_t last_move_spot_row = game.last_move.from / 8;
-                            index_t last_move_to_col = game.last_move.to % 8;
-                            index_t last_move_to_row = game.last_move.to / 8;
-                            if (last_move_to_col == epx && last_move_to_row == row) {
-                                if (abs(int(last_move_spot_row) - int(last_move_to_row)) > 1) {
-                                    if (getType(op) == Pawn) {
-                                        add_move(
-                                            side, 
-                                            from,   // from
-                                            to,     // to
-                                            0       // value
-                                        );
-                                    }
+                // en-passant on the left
+                to_col = col - 1;
+                to_row = row + fwd;
+                to = to_col + (to_row * 8);
+                if (isValidPos(to_col, to_row)) {
+                    op = board.get(to);    // get piece diagonally to the right
+                }
+                epx = to_col;
+                if (isValidPos(to_col, to_row)) {
+                    op = board.get(to);    // get piece diagonally to the right
+                    if (Empty != op && getSide(op) != side) {
+                        index_t last_move_spot_row = game.last_move.from / 8;
+                        index_t last_move_to_col = game.last_move.to % 8;
+                        index_t last_move_to_row = game.last_move.to / 8;
+                        if (last_move_to_col == epx && last_move_to_row == row) {
+                            if (abs(int(last_move_spot_row) - int(last_move_to_row)) > 1) {
+                                if (getType(op) == Pawn) {
+                                    add_move(
+                                        side, 
+                                        from,   // from
+                                        to,     // to
+                                        0       // value
+                                    );
                                 }
                             }
                         }
                     }
+                }
 
-                    // en-passant on the right
-                    to_col = col - 1;
-                    to_row = row + fwd;
-                    to = to_col + (to_row * 8);
-                    if (isValidPos(to_col, to_row)) {
-                        op = board.get(to);    // get piece diagonally to the right
-                    }
-                    epx = to_col;
-                    if (isValidPos(to_col, to_row)) {
-                        op = board.get(to);    // get piece diagonally to the right
-                        if (Empty != op && getSide(op) != side) {
-                            index_t last_move_spot_row = game.last_move.from / 8;
-                            index_t last_move_to_col = game.last_move.to % 8;
-                            index_t last_move_to_row = game.last_move.to / 8;
-                            if (last_move_to_col == epx && last_move_to_row == row) {
-                                if (abs(int(last_move_spot_row) - int(last_move_to_row)) > 1) {
-                                    if (getType(op) == Pawn) {
-                                        add_move(
-                                            side, 
-                                            from, // from
-                                            to,   // to
-                                            0              // value
-                                        );
-                                    }
+                // en-passant on the right
+                to_col = col - 1;
+                to_row = row + fwd;
+                to = to_col + (to_row * 8);
+                if (isValidPos(to_col, to_row)) {
+                    op = board.get(to);    // get piece diagonally to the right
+                }
+                epx = to_col;
+                if (isValidPos(to_col, to_row)) {
+                    op = board.get(to);    // get piece diagonally to the right
+                    if (Empty != op && getSide(op) != side) {
+                        index_t last_move_spot_row = game.last_move.from / 8;
+                        index_t last_move_to_col = game.last_move.to % 8;
+                        index_t last_move_to_row = game.last_move.to / 8;
+                        if (last_move_to_col == epx && last_move_to_row == row) {
+                            if (abs(int(last_move_spot_row) - int(last_move_to_row)) > 1) {
+                                if (getType(op) == Pawn) {
+                                    add_move(
+                                        side, 
+                                        from, // from
+                                        to,   // to
+                                        0              // value
+                                    );
                                 }
                             }
                         }
@@ -588,7 +515,9 @@ void add_all_moves() {
     }
 }
 
+
 ////////////////////////////////////////////////////////////////////////////////////////
+// play a game until reach a stalemate or checkmate
 void play_game() 
 {
     show();
@@ -597,12 +526,12 @@ void play_game()
     game.move_count1 = 0;
     game.move_count2 = 0;
 
-    // static char const fmt1[] PROGMEM = "\nadding all available moves..\n\n";
-    // printf(Debug1, level, fmt1);
+    static char const fmt1[] PROGMEM = "\nadding all available moves..\n\n";
+    printf(Debug3, fmt1);
     add_all_moves();
 
-    // static char const fmt2[] PROGMEM = "\nevaluating all available moves..\n\n";
-    // printf(Debug1, level, fmt2);
+    static char const fmt2[] PROGMEM = "\nevaluating all available moves..\n\n";
+    printf(Debug3, fmt2);
     evaluate_moves();
 
     // info();
@@ -629,7 +558,7 @@ void play_game()
 
     if (move.from == -1 || move.to == -1) {
         static char const fmt[] PROGMEM = "error: invalid move at line %d in %s\n";
-        printf(Debug1, level, fmt, __LINE__, __FILE__);
+        printf(Debug1, fmt, __LINE__, __FILE__);
         while ((1)) {}
     }
 
@@ -638,32 +567,22 @@ void play_game()
     move.value = value;
 
     // display the move that we made
-    index_t const from = move.from;
-    index_t const  col = from % 8;
-    index_t const  row = from / 8;
-    Piece   const    p = board.get(from);
-    Piece   const type = getType(p);
-    Color   const side = getSide(p);
-
-    index_t const     to = move.to;
-    index_t const to_col = to % 8;
-    index_t const to_row = to / 8;
-    Piece   const     op = board.get(to);
-    Piece   const  otype = getType(op);
-    Color   const  oside = getSide(op);
+    index_t const    to = move.to;
+    Piece   const    op = board.get(to);
+    Piece   const otype = getType(op);
 
     static char const fmt3[] PROGMEM = "\nMove #%d: ";
-    printf(Debug1, level, fmt3, game.move_num + 1);
+    printf(Debug1, fmt3, game.move_num + 1);
     show_move(move);
 
     if (Empty != otype) {
         static char const fmt[] PROGMEM = " taking a ";
-        printf(Debug1, level, fmt);
+        printf(Debug1, fmt);
         show_piece(op);
     }
 
     static char const fmt4[] PROGMEM = "\n\n";
-    printf(Debug1, level, fmt4);
+    printf(Debug1, fmt4);
 
     game.last_move = move;
 
@@ -672,7 +591,7 @@ void play_game()
 
     if (game.move_num >= 50 || game.move_count1 == 0 || game.move_count2 == 0) {
         static char const fmt[] PROGMEM = "\nsetting game.done = 1\n";
-        printf(Debug1, level, fmt);
+        printf(Debug1, fmt);
         game.done = 1;
     }
 }
@@ -684,7 +603,7 @@ void setup()
     Serial.begin(115200); while (!Serial); Serial.write('\n');
 
     // BUGBUG - enable random seed after program is debugged
-    randomSeed(analogRead(A0) + analogRead(A1));
+    // randomSeed(analogRead(A0) + analogRead(A1));
 
     Serial.println("starting..\n");
 
@@ -711,7 +630,7 @@ void loop()
 
 
 ////////////////////////////////////////////////////////////////////////////////////////
-// [[nodiscard]]
+// display the game board
 void show()
 {
     static const char icons[] = "pnbrqkPNBRQK";
@@ -722,10 +641,10 @@ void show()
     static const char fmt5[] PROGMEM = "    Taken %d: ";
 
     for (unsigned char y = 0; y < 8; ++y) {
-        printf(Debug1, level, fmt2, '8' - y);
+        printf(Debug1, fmt2, '8' - y);
         for (unsigned char x = 0; x < 8; ++x) {
             Piece piece = board.get(y * 8 + x);
-            printf(Debug1, level, fmt3, 
+            printf(Debug1, fmt3, 
                 (Empty == getType(piece)) ? ((y ^ x) & 1 ? '*' : '.') :
                 icons[((getSide(piece) * 6) + getType(piece) - 1)]);
         }
@@ -734,7 +653,7 @@ void show()
             case 0:
                 if (game.last_move.from != -1 && game.last_move.to != -1) {
                     static char const fmt[] PROGMEM = "    Last Move: %c%d to %c%d";
-                    printf(Debug1, level, fmt, 
+                    printf(Debug1, fmt, 
                         (game.last_move.from % 8) + 'A', 
                         (game.last_move.from / 8 + 1), 
                         (game.last_move.to   % 8) + 'A', 
@@ -743,126 +662,25 @@ void show()
                 break;
 
             case 1:
-                printf(Debug1, level, fmt5, 1);
+                printf(Debug1, fmt5, 1);
                 for (int i = 0; i < game.taken_count1; i++) {
                     char c = icons[(getSide(game.taken1[i]) * 6) + getType(game.taken1[i]) - 1];
-                    printf(Debug1, level, fmt2, c);
+                    printf(Debug1, fmt2, c);
                 }
                 break;
 
             case 2:
-                printf(Debug1, level, fmt5, 2);
+                printf(Debug1, fmt5, 2);
                 for (int i = 0; i < game.taken_count2; i++) {
                     char c = icons[(getSide(game.taken2[i]) * 6) + getType(game.taken2[i]) - 1];
-                    printf(Debug1, level, fmt2, c);
+                    printf(Debug1, fmt2, c);
                 }
                 break;
+
+            case 3:
+                break;
         }
-        printf(Debug1, level, fmt1, '\n');
+        printf(Debug1, fmt1, '\n');
     }
-    printf(Debug1, level, fmt4, "   A  B  C  D  E  F  G  H\n\n");
-}
-
-
-////////////////////////////////////////////////////////////////////////////////////////
-// display various stats and debug info
-void info() {
-    auto print_moves = [](Color side, move_t *moves, uint8_t count) -> void {
-        static char const fmt[] PROGMEM = "moves%c[%d] = {\n";
-        printf(Debug2, level, fmt, '2' - side, count);
-        for (uint8_t i = 0; i < count; ++i) {
-            index_t const from = moves[i].from;
-            index_t const col = from % 8;
-            index_t const row = from / 8;
-            Piece const p = board.get(from);
-            Piece const type = getType(p);
-            Color const side = getSide(p);
-
-            index_t const to = moves[i].to;
-            index_t const to_col = to % 8;
-            index_t const to_row = to / 8;
-            Piece const op = board.get(to);
-            Piece const otype = getType(op);
-            Color const oside = getSide(op);
-
-            static char const fmt[] PROGMEM = "    moves%c[%2d] = ";
-            printf(Debug2, level, fmt, '2' - side, i);
-            show_move(moves[i]);
-
-            if (Empty != otype) {
-                static char const fmt[] PROGMEM = " (captures %s %6s)";
-                printf(Debug2, level, fmt, 
-                    White == oside ? "White" : "Black",
-                    Empty == otype ?  "Empty" :
-                     Pawn == otype ?   "Pawn" :
-                   Knight == otype ? "Knight" :
-                   Bishop == otype ? "Bishop" :
-                     Rook == otype ?   "Rook" :
-                    Queen == otype ?  "Queen" : 
-                                     "King");
-            }
-
-            static char const fmt2[] PROGMEM = " value: %ld\n";
-            printf(Debug2, level, fmt2, moves[i].value);
-        }
-        static char const fmt2[] PROGMEM = "};\n";
-        printf(Debug2, level, fmt2);
-    };
-
-    print_moves(White, game.moves1, game.move_count1);
-    print_moves(Black, game.moves2, game.move_count2);
-
-//  printMemoryStats();
-}
-
-
-#include <unistd.h>
-
-#ifdef __arm__
-// should use uinstd.h to define sbrk but Due causes a conflict
-extern "C" char* sbrk(int incr);
-#else  // __ARM__
-extern char *__brkval;
-#endif  // __arm__
-
-int freeMemory() {
-    char top;
-#ifdef __arm__
-    return &top - reinterpret_cast<char*>(sbrk(0));
-#elif defined(CORE_TEENSY) || (ARDUINO > 103 && ARDUINO != 151)
-    return &top - __brkval;
-#else  // __arm__
-    return __brkval ? &top - __brkval : &top - __malloc_heap_start;
-#endif  // __arm__
-}
-
-int freeMem() {
-    extern int __heap_start/*, *__brkval */;
-    int v;
-
-    return (int)&v - (__brkval == 0  ? (int)&__heap_start : (int) __brkval);
-}
-
-
-void printMemoryStats() {
-    // ============================================================
-    // startup memory
-    int totalRam = 2048;
-    // int freeRam = freeMem();
-    int freeRam = freeMemory();
-    int usedRam = totalRam - freeRam;
-
-    static char const fmt1[] PROGMEM = "Total SRAM = %d\n";
-    printf(Debug2, level, fmt1, totalRam);
-    static char const fmt2[] PROGMEM = "Free SRAM = %d\n";
-    printf(Debug2, level, fmt2, freeRam);
-    static char const fmt3[] PROGMEM = "Used SRAM = %d\n";
-    printf(Debug2, level, fmt3, usedRam);
-
-    static char const fmt4[] PROGMEM = "sizeof(move_t) = %d\n";
-    printf(Debug2, level, fmt4, sizeof(move_t));
-    static char const fmt5[] PROGMEM = "meaning there is room for %d more move_t entries.\n";
-    printf(Debug2, level, fmt5, freeRam / sizeof(move_t) );
-    static char const fmt6[] PROGMEM = "or %d more move_t entries per move list.\n";
-    printf(Debug2, level, fmt6, ((freeRam / sizeof(move_t)) / 2) );
+    printf(Debug1, fmt4, "   A  B  C  D  E  F  G  H\n\n");
 }

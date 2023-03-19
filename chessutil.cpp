@@ -5,7 +5,41 @@
  * MicroChess utility functions
  * 
  */
+
+#include <stdarg.h>
 #include "MicroChess.h"
+
+print_t const level = Debug1;
+
+Bool isValidTest()
+{
+#ifdef TRACE_FAIL
+    auto trace = []() -> int {
+        static char const fmt[] PROGMEM = "\nERROR - failed isValidPos(x,y) test 1!\n\n";
+        printf(Debug1, fmt);
+        return 0;
+    };
+#else
+    auto trace = []() -> int { return 0; };
+#endif
+    for (index_t y=0; y < 8; y++) {
+        for (index_t x=0; x < 8; x++) {
+            if (!isValidPos(x, y)) {
+                return trace();
+            }
+        }
+    }
+
+    if (isValidPos(-1, 0) || isValidPos(0, -1) || isValidPos(8, 0) || isValidPos(0, 8)) {
+        return trace();
+    }
+
+    static char const fmt[] PROGMEM = "passed isValidPos(x,y) tests\n\n";
+    printf(Debug2, fmt);
+
+    return 1;
+}
+
 
 Piece getType(Piece b) 
 {
@@ -145,7 +179,7 @@ const char* addCommas(long int value) {
     return buff;
 }
 
-int printf(print_t const required, print_t const level, char const * const progmem, ...) {
+int printf(print_t const required, char const * const progmem, ...) {
     char fmt[100] = "";
     for (int i = 0; fmt[i] = pgm_read_byte_near(progmem + i), fmt[i] != 0; i++) {}
     if (level >= required) {
@@ -158,4 +192,157 @@ int printf(print_t const required, print_t const level, char const * const progm
     }
 
     return 0;
+}
+
+#include <unistd.h>
+
+#ifdef __arm__
+// should use uinstd.h to define sbrk but Due causes a conflict
+extern "C" char* sbrk(int incr);
+#else  // __ARM__
+extern char *__brkval;
+#endif  // __arm__
+
+int freeMemory() {
+    char top;
+#ifdef __arm__
+    return &top - reinterpret_cast<char*>(sbrk(0));
+#elif defined(CORE_TEENSY) || (ARDUINO > 103 && ARDUINO != 151)
+    return &top - __brkval;
+#else  // __arm__
+    return __brkval ? &top - __brkval : &top - __malloc_heap_start;
+#endif  // __arm__
+}
+
+int freeMem() {
+    extern int __heap_start/*, *__brkval */;
+    int v;
+
+    return (int)&v - (__brkval == 0  ? (int)&__heap_start : (int) __brkval);
+}
+
+void printMemoryStats() {
+    // ============================================================
+    // startup memory
+    int totalRam = 2048;
+    // int freeRam = freeMem();
+    int freeRam = freeMemory();
+    int usedRam = totalRam - freeRam;
+
+    static char const fmt1[] PROGMEM = "Total SRAM = %d\n";
+    printf(Debug2, fmt1, totalRam);
+    static char const fmt2[] PROGMEM = "Free SRAM = %d\n";
+    printf(Debug2, fmt2, freeRam);
+    static char const fmt3[] PROGMEM = "Used SRAM = %d\n";
+    printf(Debug2, fmt3, usedRam);
+
+    static char const fmt4[] PROGMEM = "sizeof(move_t) = %d\n";
+    printf(Debug2, fmt4, sizeof(move_t));
+    static char const fmt5[] PROGMEM = "meaning there is room for %d more move_t entries.\n";
+    printf(Debug2, fmt5, freeRam / sizeof(move_t) );
+    static char const fmt6[] PROGMEM = "or %d more move_t entries per move list.\n";
+    printf(Debug2, fmt6, ((freeRam / sizeof(move_t)) / 2) );
+}
+
+
+
+////////////////////////////////////////////////////////////////////////////////////////
+// display various stats and debug info
+void info() {
+    auto print_moves = [](Color side, move_t *moves, uint8_t count) -> void {
+        static char const fmt[] PROGMEM = "moves%c[%d] = {\n";
+        printf(Debug2, fmt, '2' - side, count);
+        for (uint8_t i = 0; i < count; ++i) {
+            index_t const from = moves[i].from;
+            Piece const p = board.get(from);
+            Color const side = getSide(p);
+
+            index_t const to = moves[i].to;
+            Piece const op = board.get(to);
+            Piece const otype = getType(op);
+            Color const oside = getSide(op);
+
+            static char const fmt[] PROGMEM = "    moves%c[%2d] = ";
+            printf(Debug2, fmt, '2' - side, i);
+            show_move(moves[i]);
+
+            if (Empty != otype) {
+                static char const fmt[] PROGMEM = " (captures %s %6s)";
+                printf(Debug2, fmt, 
+                    White == oside ? "White" : "Black",
+                    Empty == otype ?  "Empty" :
+                     Pawn == otype ?   "Pawn" :
+                   Knight == otype ? "Knight" :
+                   Bishop == otype ? "Bishop" :
+                     Rook == otype ?   "Rook" :
+                    Queen == otype ?  "Queen" : 
+                                     "King");
+            }
+
+            static char const fmt2[] PROGMEM = " value: %ld\n";
+            printf(Debug2, fmt2, moves[i].value);
+        }
+        static char const fmt2[] PROGMEM = "};\n";
+        printf(Debug2, fmt2);
+    };
+
+    extern game_t game;
+
+    print_moves(White, game.moves1, game.move_count1);
+    print_moves(Black, game.moves2, game.move_count2);
+
+//  printMemoryStats();
+}
+
+
+void show_piece(Piece const p) 
+{
+    Piece const type = getType(p);
+    Color const side = getSide(p);
+
+    static char const fmt[] PROGMEM = "%5s %6s";
+    printf(Debug1, fmt, 
+        (Empty == type ?  "" : (White == side ?  "White" : "Black")), 
+        (Empty == type ?  "Empty" :
+          Pawn == type ?   "Pawn" :
+        Knight == type ? "Knight" :
+        Bishop == type ? "Bishop" :
+          Rook == type ?   "Rook" :
+         Queen == type ?  "Queen" : "King"));
+}
+
+void show_pieces() 
+{
+    static char const fmt1[] PROGMEM = "game.pieces[%2d] = {\n";
+    printf(Debug1, fmt1, game.piece_count);
+    for (int i = 0; i < game.piece_count; i++) {
+        point_t const &loc = game.pieces[i];
+        index_t const col = loc.x;
+        index_t const row = loc.y;
+        Piece  const p = board.get(col + row * 8);
+        static char const fmt1[] PROGMEM = "    game.pieces[%2d] = %d, %d: ";
+        printf(Debug1, fmt1, i, col, row);
+        show_piece(p);
+        static char const fmt2[] PROGMEM = "\n";
+        printf(Debug1, fmt2);
+    }
+    static char const fmt2[] PROGMEM = "};\n";
+    printf(Debug1, fmt2);
+}
+
+
+void show_move(move_t const &move) {
+    index_t const    col = move.from % 8;
+    index_t const    row = move.from / 8;
+    index_t const   from = col + row * 8;
+    Piece   const      p = board.get(from);
+    index_t const to_col = move.to % 8;
+    index_t const to_row = move.to / 8;
+
+    show_piece(p);
+
+    static char const fmt[] PROGMEM = " from: %d,%d (%c%d) to: %d, %d (%c%d)";
+    printf(Debug1, fmt, 
+        col,    row,       col + 'A',    row + 1, 
+        to_col, to_row, to_col + 'A', to_row + 1);
 }
