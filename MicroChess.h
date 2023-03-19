@@ -66,6 +66,7 @@ enum print_t {
     Debug1, 
     Debug2, 
     Debug3,
+    Debug4,
 };
 
 extern print_t const level;

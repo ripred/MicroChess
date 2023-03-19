@@ -20,6 +20,9 @@
  * version 1.5.0
  * Added knight movements
  * 
+ * version 1.6.0
+ * Added move execution
+ * 
  */
 #include <Arduino.h>
 #include <stdlib.h>
@@ -37,8 +40,8 @@ game_t game;
 ////////////////////////////////////////////////////////////////////////////////////////
 void add_move(Color side, index_t from, index_t to, long value) 
 {
-    // static char const fmt[] PROGMEM = "call to add move from %d,%d to %d,%d\n";
-    // printf(Debug1, fmt, from%8,from/8, to%8,to/8);
+    static char const fmt[] PROGMEM = "call to add move from %d,%d to %d,%d\n";
+    printf(Debug3, fmt, from%8,from/8, to%8,to/8);
 
     if (White == side) {
         if (game.move_count1 < MAX_MOVES) {
@@ -65,17 +68,17 @@ void add_move(Color side, index_t from, index_t to, long value)
 /// Evaluate the identity (score) of the board state.
 /// Positive scores indicate an advantage for white and
 /// Negative scores indicate an advantage for black.
-static uint8_t const material = 0x01u;
-static uint8_t const   center = 0x02u;
-static uint8_t const mobility = 0x04u;
-
-// adjust as desired
-static uint8_t const   filter = material | center | mobility;
-
 long evaluate(Color side) 
 {
-    static long const mobilityBonus = 3;
-    static long const   centerBonus = 5;
+    static uint8_t const material = 0x01u;
+    static uint8_t const   center = 0x02u;
+    static uint8_t const mobility = 0x04u;
+
+    // adjust as desired
+    static uint8_t const   filter = material | center | mobility;
+
+    static long const mobilityBonus = 3L;
+    static long const   centerBonus = 5L;
 
     // Material bonus lambda
     // Gives more points for moves leave more or higher value pieces on the board
@@ -83,29 +86,30 @@ long evaluate(Color side)
 
     // Center location bonus lambda
     // Gives more points for moves that are closer the center of the board
-    auto centerEvaluator = [](unsigned int location, Piece piece) -> long {
-         Piece type = getType(piece);
+    auto centerEvaluator = [](index_t location, Piece piece) -> long {
+        Piece type = getType(piece);
         if (type == King)
             return 0;  // let's not encourage the king to wander to the board center mmkay?
 
-        index_t dx = location % 8;
+        uint8_t dx = location % 8;
         if (dx > 3) dx = 7 - dx;
-        index_t dy = location / 8;
+        uint8_t dy = location / 8;
         if (dy > 3) dy = 7 - dy;
 
         return static_cast<long>((dx + dy) * type);
     };
 
-    long materialTotal = 0;
-    long mobilityTotal = 0;
-    long centerTotal = 0;
-    long sideFactor = 1;
-    long score = 0;
+    long materialTotal = 0L;
+    long mobilityTotal = 0L;
+    long centerTotal = 0L;
+    long sideFactor = 1L;
+    long score = 0L;
 
     // enumerate over the pieces on the board if necessary
     if ((filter & material) || (filter & center)) {
-        for (uint8_t ndx = 0; ndx < game.piece_count; ndx++) {
-            Piece const p = board.get(game.pieces[ndx].x + game.pieces[ndx].y * 8);
+        for (uint8_t piece_index = 0; piece_index < game.piece_count; piece_index++) {
+            index_t const board_index = game.pieces[piece_index].x + game.pieces[piece_index].y * 8;
+            Piece const p = board.get(board_index);
             sideFactor = (Black == getSide(p)) ? -1 : 1;
 
             // The score or 'identity property' of the board can include extra points for
@@ -117,7 +121,7 @@ long evaluate(Color side)
             // The score or 'identity property' of the board can include extra points for
             // the "proximity to the center" value of pieces
             if (filter & center) {
-                centerTotal += centerEvaluator(ndx, getType(p)) * centerBonus * sideFactor;
+                centerTotal += centerEvaluator(board_index, p) * centerBonus * sideFactor;
             }
         }
     }
@@ -132,11 +136,13 @@ long evaluate(Color side)
 
     score = materialTotal + centerTotal + mobilityTotal;
 
-    // printf(Debug2, "evaluation: %ld" "
-    //     " = centerTotal: %ld  "
-    //     "materialTotal: %ld  "
-    //     "mobilityTotal: %ld\n", 
-    //     score, centerTotal, materialTotal, mobilityTotal);
+    static char const fmt[] PROGMEM = 
+        "evaluation: %ld"
+        " = centerTotal: %ld  "
+        "materialTotal: %ld  "
+        "mobilityTotal: %ld\n";
+
+    printf(Debug4, fmt, score, centerTotal, materialTotal, mobilityTotal);
 
     return score;
 }
@@ -189,7 +195,7 @@ long make_move(move_t const &move, Bool const restore)
         static char const fmt[] PROGMEM = 
             "error: could not find piece from move_t in pieces list: "
             "col = %d, row = %d\n";
-        printf(Debug1, fmt, col, row);
+        printf(Always, fmt, col, row);
         show();
         show_pieces();
         while ((1)) {}
@@ -244,7 +250,7 @@ long make_move(move_t const &move, Bool const restore)
             // make sure the location we have is valid
             if (taken.x < 0 || taken.y < 0) {
                 static char const fmt[] PROGMEM = "error: invalid saved point_t\n";
-                printf(Debug1, fmt);
+                printf(Always, fmt);
                 show_pieces();
                 while ((1)) {}
             }
@@ -307,6 +313,57 @@ void evaluate_moves()
 }
 
 
+Bool test_evaluate() 
+{
+    long empty_white = 0;
+    long empty_black = 0;
+    long single_white = 0;
+    long single_black = 0;
+
+    for (int i=0; i < BOARD_SIZE; i++) {
+        board.set(i, Empty);
+    }
+    game.piece_count = 0;
+
+    static char const fmt1[] PROGMEM = "empty board value for White = %ld\n";
+    printf(Debug1, fmt1, empty_white = evaluate(White));
+    static char const fmt2[] PROGMEM = "empty board value for Black = %ld\n";
+    printf(Debug1, fmt2, empty_black = evaluate(Black));
+
+    board.set( 0, setType(0, Pawn) | setSide(0, Black));
+    board.set(63, setType(0, Pawn) | setSide(0, White));
+
+    game.pieces[0] = { 0, 0 };
+    game.pieces[1] = { 7, 7 };
+    game.piece_count = 2;
+
+    static char const fmt3[] PROGMEM = "single board value for White = %ld\n";
+    printf(Debug1, fmt3, single_white = evaluate(White));
+    static char const fmt4[] PROGMEM = "single board value for Black = %ld\n";
+    printf(Debug1, fmt4, single_black = evaluate(Black));
+
+    for (int i=0; i < BOARD_SIZE; i++) {
+        board.set(i, Empty);
+    }
+    board.set(63, setType(0, Pawn) | setSide(0, Black));
+    board.set( 0, setType(0, Pawn) | setSide(0, White));
+
+    game.pieces[1] = { 0, 0 };
+    game.pieces[0] = { 7, 7 };
+    game.piece_count = 2;
+
+    static char const fmt5[] PROGMEM = "single board value for White = %ld\n";
+    printf(Debug1, fmt5, single_white = evaluate(White));
+    static char const fmt6[] PROGMEM = "single board value for Black = %ld\n";
+    printf(Debug1, fmt6, single_black = evaluate(Black));
+
+    board.init();
+    game.init();
+
+    return (empty_white + empty_black) == 0 && (single_white == single_black);
+}
+
+
 ////////////////////////////////////////////////////////////////////////////////////////
 // Add all of the available moves for all pieces to the game.moves1 (White) 
 // and game.moves2 (Black) lists
@@ -331,7 +388,7 @@ void add_all_moves() {
         if (Empty == type) {
             static char const fmt[] PROGMEM = 
                 "error: Empty piece in piece list: game.eval_ndx = %d, board index = %d\n";
-            printf(Debug1, fmt, game.eval_ndx, from);
+            printf(Always, fmt, game.eval_ndx, from);
             show_pieces();
             show();
             while ((1)) {}
@@ -349,7 +406,7 @@ void add_all_moves() {
             default:
                 {
                     static char const fmt[] PROGMEM = "error: invalid type = %d\n";
-                    printf(Debug1, fmt, type);
+                    printf(Always, fmt, type);
                 }
                 show();
                 while ((1)) {}
@@ -359,7 +416,7 @@ void add_all_moves() {
                 // see if we can move 1 spot in front of this pawn
                 to_col = col;
                 to_row = row + fwd;
-                to = to_col + (to_row * 8);
+                to = to_col + to_row * 8;
 
                 if (isValidPos(to_col, to_row)) {
                     op = board.get(to);    // get piece at location 1 spot in front of pawn
@@ -376,7 +433,7 @@ void add_all_moves() {
                 // see if we can move 2 spots in front of this pawn
                 to_col = col;
                 to_row = row + fwd + fwd;
-                to = to_col + (to_row * 8);
+                to = to_col + to_row * 8;
                 if (isValidPos(to_col, to_row)) {
                     op = board.get(to);    // get piece at location 2 spots in front of pawn
                     if (Empty == op) {
@@ -392,7 +449,7 @@ void add_all_moves() {
                 // see if we can capture a piece diagonally to the left
                 to_col = col - 1;
                 to_row = row + fwd;
-                to = to_col + (to_row * 8);
+                to = to_col + to_row * 8;
                 if (isValidPos(to_col, to_row)) {
                     op = board.get(to);    // get piece diagonally to the right
                     if (Empty != op && getSide(op) != side) {
@@ -408,7 +465,7 @@ void add_all_moves() {
                 // see if we can capture a piece diagonally to the right
                 to_col = col + 1;
                 to_row = row + fwd;
-                to = to_col + (to_row * 8);
+                to = to_col + to_row * 8;
                 if (isValidPos(to_col, to_row)) {
                     op = board.get(to);    // get piece diagonally to the right
                     if (Empty != op && getSide(op) != side) {
@@ -424,7 +481,7 @@ void add_all_moves() {
                 // en-passant on the left
                 to_col = col - 1;
                 to_row = row + fwd;
-                to = to_col + (to_row * 8);
+                to = to_col + to_row * 8;
                 if (isValidPos(to_col, to_row)) {
                     op = board.get(to);    // get piece diagonally to the right
                 }
@@ -432,11 +489,11 @@ void add_all_moves() {
                 if (isValidPos(to_col, to_row)) {
                     op = board.get(to);    // get piece diagonally to the right
                     if (Empty != op && getSide(op) != side) {
-                        index_t last_move_spot_row = game.last_move.from / 8;
+                        index_t last_move_from_row = game.last_move.from / 8;
                         index_t last_move_to_col = game.last_move.to % 8;
                         index_t last_move_to_row = game.last_move.to / 8;
                         if (last_move_to_col == epx && last_move_to_row == row) {
-                            if (abs(int(last_move_spot_row) - int(last_move_to_row)) > 1) {
+                            if (abs(int(last_move_from_row) - int(last_move_to_row)) > 1) {
                                 if (getType(op) == Pawn) {
                                     add_move(
                                         side, 
@@ -453,7 +510,7 @@ void add_all_moves() {
                 // en-passant on the right
                 to_col = col - 1;
                 to_row = row + fwd;
-                to = to_col + (to_row * 8);
+                to = to_col + to_row * 8;
                 if (isValidPos(to_col, to_row)) {
                     op = board.get(to);    // get piece diagonally to the right
                 }
@@ -461,11 +518,11 @@ void add_all_moves() {
                 if (isValidPos(to_col, to_row)) {
                     op = board.get(to);    // get piece diagonally to the right
                     if (Empty != op && getSide(op) != side) {
-                        index_t last_move_spot_row = game.last_move.from / 8;
+                        index_t last_move_from_row = game.last_move.from / 8;
                         index_t last_move_to_col = game.last_move.to % 8;
                         index_t last_move_to_row = game.last_move.to / 8;
                         if (last_move_to_col == epx && last_move_to_row == row) {
-                            if (abs(int(last_move_spot_row) - int(last_move_to_row)) > 1) {
+                            if (abs(int(last_move_from_row) - int(last_move_to_row)) > 1) {
                                 if (getType(op) == Pawn) {
                                     add_move(
                                         side, 
@@ -558,13 +615,9 @@ void play_game()
 
     if (move.from == -1 || move.to == -1) {
         static char const fmt[] PROGMEM = "error: invalid move at line %d in %s\n";
-        printf(Debug1, fmt, __LINE__, __FILE__);
+        printf(Always, fmt, __LINE__, __FILE__);
         while ((1)) {}
     }
-
-    value = make_move(move, 0);
-
-    move.value = value;
 
     // display the move that we made
     index_t const    to = move.to;
@@ -584,14 +637,17 @@ void play_game()
     static char const fmt4[] PROGMEM = "\n\n";
     printf(Debug1, fmt4);
 
+    value = make_move(move, 0);
+    move.value = value;
+
     game.last_move = move;
 
     ++game.turn %= 2;
     game.move_num++;
 
     if (game.move_num >= 50 || game.move_count1 == 0 || game.move_count2 == 0) {
-        static char const fmt[] PROGMEM = "\nsetting game.done = 1\n";
-        printf(Debug1, fmt);
+        static char const fmt[] PROGMEM = "\n%s: setting game.done = 1\n";
+        printf(Debug1, fmt, game.move_num >= 50 ? "reached 50 moves" : game.move_count1 == 0 ? "White has no moves" : "Black has no moves");
         game.done = 1;
     }
 }
@@ -613,6 +669,12 @@ void setup()
     if (!isValidTest()) {
         while ((1)) {}
     }
+
+    // if (!test_evaluate()) {
+    //     static char const fmt[] PROGMEM = "failed evaluation test\n";
+    //     printf(Debug1, fmt);
+    //     while ((1)) {}
+    // }
 
     while (!game.done) {
         play_game();
@@ -639,6 +701,9 @@ void show()
     static const char fmt3[] PROGMEM = " %c ";
     static const char fmt4[] PROGMEM = "%s";
     static const char fmt5[] PROGMEM = "    Taken %d: ";
+    static const char fmt6[] PROGMEM = "    Board value: %8ld : %s";
+
+    long value = 0;
 
     for (unsigned char y = 0; y < 8; ++y) {
         printf(Debug1, fmt2, '8' - y);
@@ -650,17 +715,19 @@ void show()
         }
 
         switch (y) {
+            // display the last move made if available
             case 0:
                 if (game.last_move.from != -1 && game.last_move.to != -1) {
-                    static char const fmt[] PROGMEM = "    Last Move: %c%d to %c%d";
+                    static char const fmt[] PROGMEM = "    Last Move: %c%c to %c%c";
                     printf(Debug1, fmt, 
                         (game.last_move.from % 8) + 'A', 
-                        (game.last_move.from / 8 + 1), 
+                        '8' - (game.last_move.from / 8), 
                         (game.last_move.to   % 8) + 'A', 
-                        (game.last_move.to   % 8 + 1) );
+                        '8' - (game.last_move.to   / 8) );
                 }
                 break;
 
+            // display the pieces taken by White
             case 1:
                 printf(Debug1, fmt5, 1);
                 for (int i = 0; i < game.taken_count1; i++) {
@@ -669,6 +736,7 @@ void show()
                 }
                 break;
 
+            // display the pieces taken by Black
             case 2:
                 printf(Debug1, fmt5, 2);
                 for (int i = 0; i < game.taken_count2; i++) {
@@ -677,7 +745,14 @@ void show()
                 }
                 break;
 
+            // display the current score
             case 3:
+                value = evaluate(game.turn);
+                printf(Debug1, fmt6, 
+                value, 
+                (value == 0) ? "" : 
+                (value  < 0) ? "Black's favor" : 
+                                "White's favor");
                 break;
         }
         printf(Debug1, fmt1, '\n');

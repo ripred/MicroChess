@@ -1,4 +1,3 @@
-#include <avr/pgmspace.h>
 /**
  * chessutil.cpp
  * 
@@ -6,8 +5,10 @@
  * 
  */
 
-#include <stdarg.h>
+#include <Arduino.h>
+#include <avr/pgmspace.h>
 #include "MicroChess.h"
+#include <stdarg.h>
 
 print_t const level = Debug1;
 
@@ -15,8 +16,8 @@ Bool isValidTest()
 {
 #ifdef TRACE_FAIL
     auto trace = []() -> int {
-        static char const fmt[] PROGMEM = "\nERROR - failed isValidPos(x,y) test 1!\n\n";
-        printf(Debug1, fmt);
+        static char const fmt[] PROGMEM = "\nerror: failed isValidPos(x,y) test 1!\n\n";
+        printf(Always, fmt);
         return 0;
     };
 #else
@@ -341,8 +342,8 @@ void show_move(move_t const &move) {
 
     show_piece(p);
 
-    static char const fmt[] PROGMEM = " from: %d,%d (%c%d) to: %d, %d (%c%d)";
+    static char const fmt[] PROGMEM = " from: %d,%d (%c%c) to: %d,%d (%c%c)";
     printf(Debug1, fmt, 
-        col,    row,       col + 'A',    row + 1, 
-        to_col, to_row, to_col + 'A', to_row + 1);
+        col,    row,       col + 'A', '8' -    row, 
+        to_col, to_row, to_col + 'A', '8' - to_row);
 }
