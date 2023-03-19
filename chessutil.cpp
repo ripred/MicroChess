@@ -1,3 +1,4 @@
+#include <avr/pgmspace.h>
 /**
  * chessutil.cpp
  * 
@@ -69,7 +70,7 @@ Piece makeSpot(Piece type, Piece side, unsigned char moved, unsigned char inChec
 }
 
 
-char *getCoords(int index) 
+char *getCoords(index_t index) 
 {
     static const char *const coords[BOARD_SIZE] PROGMEM = {
         "0,0", "1,0", "2,0", "3,0", "4,0", "5,0", "6,0", "7,0",
@@ -86,12 +87,13 @@ char *getCoords(int index)
 }
 
 
+// [[maybe_unused]] 
 char *getCoords(int file, int rank) 
 { 
     return getCoords(file + rank * 8); 
 }
 
-char const *getNotate(int const index) {
+char const *getNotate(index_t const index) {
     static char const PROGMEM notations[BOARD_SIZE][3] = {
         "a8", "b8", "c8", "d8", "e8", "f8", "g8", "h8",
         "a7", "b7", "c7", "d7", "e7", "f7", "g7", "h7",
@@ -106,15 +108,15 @@ char const *getNotate(int const index) {
 }
 
 
-[[maybe_unused]] 
-char const *getNotate(int file, int rank) 
+// [[maybe_unused]] 
+char const *getNotate(index_t file, index_t rank) 
 { 
     return getNotate(file + rank * 8);
 }
 
 char *getName(Piece b) {
     static char const * names[] = {"Empty", "Pawn", "Knight", "Bishop", "Rook", "Queen", "King"};
-    static const int num_names = sizeof(names) / sizeof(names[0]);
+    static const int num_names = ARRAYSZ(names);
     static const int type_offset = 0;
 
     int const type = getType(b);
@@ -143,14 +145,15 @@ const char* addCommas(long int value) {
     return buff;
 }
 
-
-int printf(PrintType const mode, PrintType const level, char const * const fmt, ...) {
-    if (level >= mode) {
+int printf(print_t const mode, print_t const level, char const * const progmem, ...) {
+    char fmt[100] = "";
+    for (int i = 0; fmt[i] = pgm_read_byte_near(progmem + i), fmt[i] != 0; i++) {}
+    if (mode >= level) {
         char buff[100] = "";
         va_list argList;
         va_start(argList, fmt);
         vsnprintf(buff, ARRAYSZ(buff), fmt, argList);
-        va_end( argList );
+        va_end(argList);
         return Serial.write(buff, strlen(buff));
     }
 

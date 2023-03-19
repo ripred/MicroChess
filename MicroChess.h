@@ -1,6 +1,8 @@
 /**
  * MicroChess.h
  * 
+ * header file for MicroChess
+ * 
  */
 #ifndef MICROCHESS_INCL
 #define MICROCHESS_INCL
@@ -15,11 +17,65 @@
 #include <string.h>
 #include <inttypes.h>
 
+////////////////////////////////////////////////////////////////////////////////////////
+// limits
+enum 
+{
+    MAX_PIECES    = 32,
+    MAX_MOVES     = 64,
+
+    NUM_BITS_PT   = 5,
+    NUM_BITS_SPOT = 7,
+};
+
+typedef   int8_t   index_t;
+
+////////////////////////////////////////////////////////////////////////////////////////
+// the offsets a knight can move to
+static struct knight_offset_t 
+{
+    index_t x, y;
+} const knight_offsets[8] = {
+    { -2, +1 }, // left
+    { -2, -1 }, 
+    { +2, +1 }, // right
+    { +2, -1 }, 
+    { +1, +2 }, // forward
+    { -1, +2 }, 
+    { +1, -2 }, // backward
+    { -1, -2 }  
+
+    // { 0, 0 }, // BUGBUG - REMOVE AFTER TESTING!
+    // { 0, 0 }, // BUGBUG - REMOVE AFTER TESTING!
+    // { 0, 0 }, // BUGBUG - REMOVE AFTER TESTING!
+    // { 0, 0 }, // BUGBUG - REMOVE AFTER TESTING!
+    // { 0, 0 }, // BUGBUG - REMOVE AFTER TESTING!
+    // { 0, 0 }, // BUGBUG - REMOVE AFTER TESTING!
+    // { 0, 0 }, // BUGBUG - REMOVE AFTER TESTING!
+};
+
+////////////////////////////////////////////////////////////////////////////////////////
+// macro to validate a location
+// #define DEBUG_TRACE
+#ifdef DEBUG_TRACE
+#define TRACE_FAIL (printf(Debug3, level, "Failed isValidPos(...) at line: %d in %s\n", __LINE__, __FILE__),0)
+#else
+#define TRACE_FAIL 1
+#endif
+#define  isValidPos(col, row) ((col >= 0 && col < 8 && row >= 0 && row < 8) ? 1 : (TRACE_FAIL,0))
+
 typedef unsigned char Color;
 typedef unsigned char Piece;
 typedef unsigned char Bool;
 
-enum PrintType { Debug1, Debug2, Debug3, None  };
+enum print_t {
+    None,
+    Debug0, 
+    Debug1, 
+    Debug2, 
+    Debug3, 
+    Always = 100
+};
 
 #define  ARRAYSZ(A) (sizeof(A) / sizeof(*(A)))
 
@@ -50,26 +106,9 @@ struct spot_t {
             moved : 1,     // 1 if moved
             check : 1;     // 1 if in check
 
-    spot_t() :
-        type(Empty), 
-        side(Black), 
-        moved(0), 
-        check(0)
-    {
-    }
-
-    spot_t(Piece p) 
-    {
-        *this = *((spot_t *) &p);
-    }
-
-    spot_t(uint8_t t, uint8_t s, uint8_t m, uint8_t c) :
-        type(t), 
-        side(s), 
-        moved(m), 
-        check(c)
-    {
-    }
+    spot_t() : type(Empty), side(Black), moved(0), check(0) {}
+    spot_t(Piece p) { *this = *((spot_t *) &p); }
+    spot_t(uint8_t t, uint8_t s, uint8_t m, uint8_t c) : type(t), side(s), moved(m), check(c){}
 };
 
 Piece getType(Piece b);
@@ -94,15 +133,15 @@ Piece setCheck(Piece b, Bool inCheck);
 
 Piece makeSpot(Piece type, Piece side, Bool moved, Bool inCheck);
 
-char *getCoords(int index);
-char *getCoords(int file, int rank);
-char const *getNotate(int const index);
-char const *getNotate(int file, int rank);
+char *getCoords(index_t index);
+char *getCoords(index_t file, index_t rank);
+char const *getNotate(index_t const index);
+char const *getNotate(index_t file, index_t rank);
 char *getName(Piece b);
 char *getColor(Piece b);
 const char* addCommas(long int value);
 
-int printf(PrintType const level, PrintType const mode, char const * const fmt, ...);
+int printf(print_t const mode, print_t const level, char const * const fmt, ...);
 
 static long const pieceValues[8] = {
     0,          // empty spot value
