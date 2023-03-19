@@ -25,18 +25,18 @@ typedef unsigned char Bool;
 // limits
 enum 
 {
-    MAX_PIECES    = 32,
-    MAX_MOVES     = 64,
+    MAX_PIECES    =  32,
+    MAX_MOVES     = 106,   // R:11 N:8 B:11 Q:22 K:8 B:11 N:8 R:11 P:16
 
-    NUM_BITS_PT   = 5,
-    NUM_BITS_SPOT = 7,
+    NUM_BITS_PT   =   5,
+    NUM_BITS_SPOT =   7,
 };
 
 typedef   int8_t   index_t;
 
 ////////////////////////////////////////////////////////////////////////////////////////
 // the offsets a knight can move to
-static struct knight_offset_t 
+static struct 
 {
     index_t x, y;
 } const knight_offsets[8] = {
@@ -61,6 +61,7 @@ static struct knight_offset_t
 #define  isValidPos(col, row) ((col >= 0 && col < 8 && row >= 0 && row < 8) ? 1 : (TRACE_FAIL,0))
 
 enum print_t {
+    Error  = 0, 
     Always = 0,
     Debug0, 
     Debug1, 
@@ -139,14 +140,14 @@ const char* addCommas(long int value);
 int printf(print_t const required, char const * const fmt, ...);
 
 static long const pieceValues[8] = {
-    0,          // empty spot value
-    10000,      // pawn value
-    30000,      // knight value
-    30000,      // bishop value
-    50000,      // rook value
-    90000,      // queen value
+            0,  // empty spot value
+        10000,  // pawn value
+        30000,  // knight value
+        30000,  // bishop value
+        50000,  // rook value
+        90000,  // queen value
     MAX_VALUE,  // king value
-    0           // padded for alignment and increased L1 and L2 cache hit gains
+            0   // padded for alignment and increased L1 and L2 cache hit gains
 };
 
 // a struct to represent all of the extra data about the 

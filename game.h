@@ -40,6 +40,7 @@ public:
     uint8_t   piece_count;
     uint8_t   move_count1;
     uint8_t   move_count2;
+    uint8_t   max_moves;
     uint8_t   taken_count1;
     uint8_t   taken_count2;
     uint8_t   eval_ndx,     // board index being currently evaluated
@@ -66,6 +67,8 @@ public:
 
         move_count1 = 0;
         move_count2 = 0;
+
+        max_moves = 0;
 
         taken_count1 = 0;
         taken_count2 = 0;
