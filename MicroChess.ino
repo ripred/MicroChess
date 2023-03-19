@@ -633,20 +633,24 @@ void play_game()
         while ((1)) {}
     }
 
+    value = make_move(move, 0);
+
+    move.value = value;
+
     // display the move that we made
     index_t const from = move.from;
-    index_t const col = from % 8;
-    index_t const row = from / 8;
-    Piece const p = board.get(from);
-    Piece const type = getType(p);
-    Color const side = getSide(p);
+    index_t const  col = from % 8;
+    index_t const  row = from / 8;
+    Piece   const    p = board.get(from);
+    Piece   const type = getType(p);
+    Color   const side = getSide(p);
 
-    index_t const to = move.to;
+    index_t const     to = move.to;
     index_t const to_col = to % 8;
     index_t const to_row = to / 8;
-    Piece const op = board.get(to);
-    Piece const otype = getType(op);
-    Color const oside = getSide(op);
+    Piece   const     op = board.get(to);
+    Piece   const  otype = getType(op);
+    Color   const  oside = getSide(op);
 
     static char const fmt3[] PROGMEM = "\nMove #%d: ";
     printf(Debug1, level, fmt3, game.move_num + 1);
@@ -660,10 +664,6 @@ void play_game()
 
     static char const fmt4[] PROGMEM = "\n\n";
     printf(Debug1, level, fmt4);
-
-    value = make_move(move, 0);
-
-    move.value = value;
 
     game.last_move = move;
 
