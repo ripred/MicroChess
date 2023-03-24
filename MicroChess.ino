@@ -76,25 +76,27 @@ void add_move(Color side, index_t from, index_t to, long value)
 /// Negative scores indicate an advantage for black.
 long evaluate(Color side) 
 {
+    // flags choices for which attributes are included in the board score
     static uint8_t const material = 0x01u;
     static uint8_t const   center = 0x02u;
     static uint8_t const mobility = 0x04u;
 
-    // adjust as desired
-    // *NOTE* don't include mobility unless you are prepared to evaluate all moves
-    // for both sides multiple times. On the first pass when neither side has any moved
-    // this gives favor to White when theBlack moves have not been counted yet
+    // Adjust as desired
+    // 
+    // Note: Do not include mobility unless you are prepared to evaluate all moves
+    // for both sides for future plies. On the first pass when neither side has any moved
+    // this gives favor to White when the Black response moves have not been counted yet
 //  static uint8_t const   filter = material | center | mobility;
     static uint8_t const   filter = material | center;
 
     static long const mobilityBonus = 3L;
     static long const   centerBonus = 5L;
 
-    // Material bonus lambda
+    // Material bonus lambda function
     // Gives more points for moves leave more or higher value pieces on the board
     auto materialEvaluator = [](Piece p) -> long { return getValue(p) / 100; };
 
-    // Center location bonus lambda
+    // Center location bonus lambda function
     // Gives more points for moves that are closer the center of the board
     auto centerEvaluator = [](index_t location, Piece piece) -> long {
         Piece type = getType(piece);
@@ -138,8 +140,8 @@ long evaluate(Color side)
 
     // The score or 'identity property' of the board can include extra points for
     // how many total moves (mobility) the remaining pieces can make
-    sideFactor = (Black == side) ? -1 : 1;
     if (filter & mobility) {
+        sideFactor = (Black == side) ? -1 : 1;
         mobilityTotal += static_cast<long>(game.move_count1 * mobilityBonus * sideFactor);
         mobilityTotal -= static_cast<long>(game.move_count2 * mobilityBonus * sideFactor);
     }
@@ -148,7 +150,6 @@ long evaluate(Color side)
 
     static char const fmt[] PROGMEM = 
         "evaluation: %ld = centerTotal: %ld  materialTotal: %ld  mobilityTotal: %ld\n";
-
     printf(Debug4, fmt, score, centerTotal, materialTotal, mobilityTotal);
 
     return score;
@@ -183,7 +184,9 @@ index_t find_piece(int const index) {
 
 
 ////////////////////////////////////////////////////////////////////////////////////////
-// move a piece on the board, taking a piece if necessary
+// move a piece on the board, taking a piece if necessary.
+// If 'restore' != 0 then we put the piece(s) bac after evaluating the move value
+// 
 long make_move(move_t const &move, Bool const restore) 
 {
     index_t const col = move.from % 8;
@@ -197,7 +200,7 @@ long make_move(move_t const &move, Bool const restore)
     index_t const to_col = move.to % 8;
     index_t const to_row = move.to / 8;
     index_t const to = to_col + to_row * 8;
-    Piece   const op = board.get(to);
+    Piece         op = board.get(to);
     Piece   const otype = getType(op);
     Color   const oside = getSide(op);
 
@@ -284,8 +287,16 @@ long make_move(move_t const &move, Bool const restore)
         }
 
         // put the pieces back where they were on the board
-        board.set(from,    setMoved(p, moved));
-        board.set(  to,   op);
+        board.set(from, setMoved(p, moved));
+
+        // put any piece back that we took and set it to being in check
+        if (Empty == otype) {
+            board.set(to, Empty);
+        }
+        else if (side != oside) {
+            op = setCheck(op, 1);
+            board.set(to, op);
+        }
 
         // restore the position of the piece we moved in the piece list
         game.pieces[piece_index] = { col, row };
@@ -404,23 +415,25 @@ void add_all_moves() {
                 // see if we can move 1 spot in front of this pawn
                 to_col = col;
                 to_row = row + fwd;
-                to = to_col + to_row * 8;
 
                 if (isValidPos(to_col, to_row)) {
                     // get piece at location 1 spot in front of pawn
+                    to = to_col + to_row * 8;
                     op = board.get(to);
                     if (Empty == getType(op)) {
                         add_move(side, from, to, 0);
 
                         // see if we can move 2 spots in front of this pawn
-                        to_col = col;
-                        to_row = row + fwd + fwd;
-                        to = to_col + to_row * 8;
-                        if (isValidPos(to_col, to_row) && !hasMoved(p)) {
-                            // get piece at location 2 spots in front of pawn
-                            op = board.get(to);
-                            if (Empty == getType(op)) {
-                                add_move(side, from, to, 0);
+                        if (!hasMoved(p)) {
+                            to_col = col;
+                            to_row = row + fwd + fwd;
+                            if (isValidPos(to_col, to_row)) {
+                                // get piece at location 2 spots in front of pawn
+                                to = to_col + to_row * 8;
+                                op = board.get(to);
+                                if (Empty == getType(op)) {
+                                    add_move(side, from, to, 0);
+                                }
                             }
                         }
                     }
@@ -556,10 +569,11 @@ void play_game()
 
     evaluate_moves();
 
-    // track the max number of space we need for moves for debugging
+    // track the max number of move entries we need for debugging
     if (game.move_count1 > game.max_moves) {
         game.max_moves = game.move_count1;
     }
+
     if (game.move_count2 > game.max_moves) {
         game.max_moves = game.move_count2;
     }
@@ -601,11 +615,11 @@ void play_game()
         game.done = 1;
 
         if (0 == game.move_count1) {
-            static char const fmt[] PROGMEM = "\nWhite as no moves.\nBlack win!\n";
+            static char const fmt[] PROGMEM = "\nWhite as no moves.\nBlack wins!\n";
             printf(Debug1, fmt);
         }
         else if (0 == game.move_count2) {
-            static char const fmt[] PROGMEM = "\nBlack as no moves.\nWhite win!\n";
+            static char const fmt[] PROGMEM = "\nBlack as no moves.\nWhite wins!\n";
             printf(Debug1, fmt);
         } 
 

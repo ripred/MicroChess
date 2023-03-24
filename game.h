@@ -36,6 +36,8 @@ public:
     move_t    moves2[MAX_MOVES];
     Piece     taken1[16];
     Piece     taken2[16];
+    Bool      white_king_in_check;
+    Bool      black_king_in_check;
     move_t    last_move;
     uint8_t   piece_count;
     uint8_t   move_count1;
@@ -74,6 +76,9 @@ public:
         taken_count2 = 0;
 
         last_move = { -1, -1, 0 };
+
+        white_king_in_check = 0;
+        black_king_in_check = 0;
 
         turn = White;
         move_num = 0;
