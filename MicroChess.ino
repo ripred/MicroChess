@@ -90,7 +90,7 @@ void add_move(Color side, index_t from, index_t to, long value)
 
 ////////////////////////////////////////////////////////////////////////////////////////
 /// Evaluate the identity (score) of the board state.
-`/// Positive scores indicate an advantage for white and
+/// Positive scores indicate an advantage for white and
 /// Negative scores indicate an advantage for black.
 long evaluate(Color side) 
 {
