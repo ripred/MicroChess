@@ -392,7 +392,7 @@ void add_all_moves() {
         Piece   const type = getType(p);
         index_t const fwd = (White == side) ? -1 : 1;      // which indexing direction 'forward' is for the current side
 
-        static char const fmt[] PROGMEM = "game.eval_ndx = %2d of %2d, point = %d,%d, %5s %6s\n";
+        static char const fmt[] PROGMEM = "game.eval_ndx = %2d of %2d, point = %d,%d, %5s %s\n";
         printf(Debug3, fmt, 
             game.eval_ndx, 
             game.piece_count, 
@@ -401,17 +401,17 @@ void add_all_moves() {
 
         if (Empty == type) {
             static char const fmt[] PROGMEM = 
-                "warning: Empty piece in piece list: game.eval_ndx = %d, board index = %d\n";
+                "error: Empty piece in piece list: game.eval_ndx = %d, board index = %d\n";
             printf(Error, fmt, game.eval_ndx, from);
 
-            continue;
-            // show_pieces();
-            // show();
-            // {
-            //     static const char fmt[] PROGMEM = "max move count = %d\n";
-            //     printf(Debug1, fmt, game.max_moves);
-            // }
-            // while ((1)) {}
+            // continue;
+            show_pieces();
+            show();
+            {
+                static const char fmt[] PROGMEM = "max move count = %d\n";
+                printf(Debug1, fmt, game.max_moves);
+            }
+            while ((1)) {}
         }
 
         index_t epx = col;
@@ -676,9 +676,14 @@ void play_game()
     ++game.turn %= 2;
     game.move_num++;
 
-    if (game.move_num >= 50 || game.move_count1 == 0 || game.move_count2 == 0) {
+    // if (game.move_num >= 50 || game.move_count1 == 0 || game.move_count2 == 0) {
+    //     static char const fmt[] PROGMEM = "\n%s: setting game.done = 1\n";
+    //     printf(Debug1, fmt, game.move_num >= 50 ? "reached 50 moves" : game.move_count1 == 0 ? "White has no moves" : "Black has no moves");
+    //     game.done = 1;
+    // }
+    if (game.move_count1 == 0 || game.move_count2 == 0) {
         static char const fmt[] PROGMEM = "\n%s: setting game.done = 1\n";
-        printf(Debug1, fmt, game.move_num >= 50 ? "reached 50 moves" : game.move_count1 == 0 ? "White has no moves" : "Black has no moves");
+        printf(Debug1, fmt, game.move_count1 == 0 ? "White has no moves" : "Black has no moves");
         game.done = 1;
     }
 }

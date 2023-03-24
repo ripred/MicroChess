@@ -268,7 +268,7 @@ void info() {
             show_move(moves[i]);
 
             if (Empty != otype) {
-                static char const fmt[] PROGMEM = " (captures %s %6s)";
+                static char const fmt[] PROGMEM = " (captures %s %s)";
                 printf(Debug2, fmt, 
                     White == oside ? "White" : "Black",
                     Empty == otype ?  "Empty" :
@@ -301,7 +301,7 @@ void show_piece(Piece const p)
     Piece const type = getType(p);
     Color const side = getSide(p);
 
-    static char const fmt[] PROGMEM = "%5s %6s";
+    static char const fmt[] PROGMEM = "%5s %s";
     printf(Debug1, fmt, 
         (Empty == type ?  "" : (White == side ?  "White" : "Black")), 
         (Empty == type ?  "Empty" :
