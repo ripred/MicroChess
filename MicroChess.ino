@@ -105,7 +105,6 @@ long evaluate(Color side)
     // Note: Do not include mobility unless you are prepared to evaluate all moves
     // for both sides for future plies. On the first pass when neither side has any moved
     // this gives favor to White when the Black response moves have not been counted yet
-//  static uint8_t const   filter = material | center | mobility;
     static uint8_t const   filter = material | center;
 
     static long const mobilityBonus = 3L;
