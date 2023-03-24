@@ -1,7 +1,8 @@
 /**
  * ArduinoChess.ino
  * 
- * March 2023 - Trent M. Wyatt
+ * written March 2023 - Trent M. Wyatt
+ * 
  * version 1.0.0
  *   First base
  * 
@@ -101,7 +102,6 @@ long evaluate(Color side)
     static uint8_t const mobility = 0x04u;
 
     // Adjust as desired
-    // 
     // Note: Do not include mobility unless you are prepared to evaluate all moves
     // for both sides for future plies. On the first pass when neither side has any moved
     // this gives favor to White when the Black response moves have not been counted yet
@@ -197,7 +197,6 @@ index_t find_piece(int const index) {
         }
     }
 
-    // return an invalid position -> the index one past the available number
     return -1;
 };
 
@@ -376,6 +375,10 @@ void evaluate_moves()
         return (move_a.value == move_b.value) ?  0 :
             (move_a.value  < move_b.value) ? -1 : +1;
     };
+
+    // reset the king-in-check flags
+    game.white_king_in_check = 0;
+    game.black_king_in_check = 0;
 
     // fill in and sort game.moves1 in decending order
     for (uint8_t ndx=0; ndx < game.move_count1; ++ndx) {
