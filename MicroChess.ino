@@ -327,57 +327,6 @@ void evaluate_moves()
 }
 
 
-Bool test_evaluate() 
-{
-    long empty_white = 0;
-    long empty_black = 0;
-    long single_white = 0;
-    long single_black = 0;
-
-    for (int i=0; i < BOARD_SIZE; i++) {
-        board.set(i, Empty);
-    }
-    game.piece_count = 0;
-
-    static char const fmt1[] PROGMEM = "empty board value for White = %ld\n";
-    printf(Debug1, fmt1, empty_white = evaluate(White));
-    static char const fmt2[] PROGMEM = "empty board value for Black = %ld\n";
-    printf(Debug1, fmt2, empty_black = evaluate(Black));
-
-    board.set( 0, setType(0, Pawn) | setSide(0, Black));
-    board.set(63, setType(0, Pawn) | setSide(0, White));
-
-    game.pieces[0] = { 0, 0 };
-    game.pieces[1] = { 7, 7 };
-    game.piece_count = 2;
-
-    static char const fmt3[] PROGMEM = "single board value for White = %ld\n";
-    printf(Debug1, fmt3, single_white = evaluate(White));
-    static char const fmt4[] PROGMEM = "single board value for Black = %ld\n";
-    printf(Debug1, fmt4, single_black = evaluate(Black));
-
-    for (int i=0; i < BOARD_SIZE; i++) {
-        board.set(i, Empty);
-    }
-    board.set(63, setType(0, Pawn) | setSide(0, Black));
-    board.set( 0, setType(0, Pawn) | setSide(0, White));
-
-    game.pieces[1] = { 0, 0 };
-    game.pieces[0] = { 7, 7 };
-    game.piece_count = 2;
-
-    static char const fmt5[] PROGMEM = "single board value for White = %ld\n";
-    printf(Debug1, fmt5, single_white = evaluate(White));
-    static char const fmt6[] PROGMEM = "single board value for Black = %ld\n";
-    printf(Debug1, fmt6, single_black = evaluate(Black));
-
-    board.init();
-    game.init();
-
-    return (empty_white + empty_black) == 0 && (single_white == single_black);
-}
-
-
 ////////////////////////////////////////////////////////////////////////////////////////
 // Add all of the available moves for all pieces to the game.moves1 (White) 
 // and game.moves2 (Black) lists
@@ -662,25 +611,13 @@ void play_game()
     static char const fmt4[] PROGMEM = "\n\n";
     printf(Debug1, fmt4);
 
-    // static char const fmt4[] PROGMEM = "\n\n";
-    // static char const fmt4[] PROGMEM = "\nabout to call make_move() with final move\n";
-    // printf(Debug1, fmt4);
-
     move.value = make_move(move, 0);
-
-    // static char const fmt5[] PROGMEM = "back from call to make_move()\n\n";
-    // printf(Debug1, fmt5);
 
     game.last_move = move;
 
     ++game.turn %= 2;
     game.move_num++;
 
-    // if (game.move_num >= 50 || game.move_count1 == 0 || game.move_count2 == 0) {
-    //     static char const fmt[] PROGMEM = "\n%s: setting game.done = 1\n";
-    //     printf(Debug1, fmt, game.move_num >= 50 ? "reached 50 moves" : game.move_count1 == 0 ? "White has no moves" : "Black has no moves");
-    //     game.done = 1;
-    // }
     if (game.move_count1 == 0 || game.move_count2 == 0) {
         static char const fmt[] PROGMEM = "\n%s: setting game.done = 1\n";
         printf(Debug1, fmt, game.move_count1 == 0 ? "White has no moves" : "Black has no moves");
@@ -705,12 +642,6 @@ void setup()
     if (!isValidTest()) {
         while ((1)) {}
     }
-
-    // if (!test_evaluate()) {
-    //     static char const fmt[] PROGMEM = "failed evaluation test\n";
-    //     printf(Debug1, fmt);
-    //     while ((1)) {}
-    // }
 
     while (!game.done) {
         play_game();
