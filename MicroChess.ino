@@ -200,8 +200,8 @@ long make_move(move_t const &move, Bool const restore)
             "col = %d, row = %d\n\n";
         printf(Error, fmt, col, row);
 
-        // show();
-        // while ((1));
+        show();
+        while ((1));
     }
 
     // TODO: Add checks for en-passant
@@ -657,10 +657,10 @@ void play_game()
         static char const fmt[] PROGMEM = " taking a ";
         printf(Debug1, fmt);
         show_piece(op);
-
-        static char const fmt1[] PROGMEM = "\n\n";
-        printf(Debug1, fmt1);
     }
+
+    static char const fmt4[] PROGMEM = "\n\n";
+    printf(Debug1, fmt4);
 
     // static char const fmt4[] PROGMEM = "\n\n";
     // static char const fmt4[] PROGMEM = "\nabout to call make_move() with final move\n";
@@ -690,7 +690,7 @@ void setup()
     Serial.begin(115200); while (!Serial); Serial.write('\n');
 
     // BUGBUG - enable random seed after program is debugged
-    // randomSeed(analogRead(A0) + analogRead(A1));
+    randomSeed(analogRead(A0) + analogRead(A1));
 
     Serial.println("starting..\n");
 
