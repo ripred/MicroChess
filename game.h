@@ -83,5 +83,4 @@ public:
 
 };  // game_t
 
-
 #endif // GAME_INCL

@@ -192,6 +192,7 @@ long make_move(move_t const &move, Bool const restore)
     Piece   const p = board.get(from);
     Color   const side = getSide(p);
     Piece   const type = getType(p);
+    Bool    const moved = hasMoved(p);
 
     index_t const to_col = move.to % 8;
     index_t const to_row = move.to / 8;
@@ -257,7 +258,7 @@ long make_move(move_t const &move, Bool const restore)
 
     // move our piece on the board
     board.set(from, Empty);
-    board.set(  to,     p);
+    board.set(to, setMoved(p, 1));
 
     // move our piece in the piece list
     game.pieces[piece_index] = { to_col, to_row };
@@ -283,7 +284,7 @@ long make_move(move_t const &move, Bool const restore)
         }
 
         // put the pieces back where they were on the board
-        board.set(from,    p);
+        board.set(from,    setMoved(p, moved));
         board.set(  to,   op);
 
         // restore the position of the piece we moved in the piece list
@@ -372,16 +373,15 @@ void add_all_moves() {
                 "error: Empty piece in piece list: game.eval_ndx = %d, board index = %d\n";
             printf(Error, fmt, game.eval_ndx, from);
 
-            // continue;
             show_pieces();
             show();
-            {
-                static const char fmt[] PROGMEM = "max move count = %d\n";
-                printf(Debug1, fmt, game.max_moves);
-            }
+            static const char fmt1[] PROGMEM = "max move count = %d\n";
+            printf(Debug1, fmt1, game.max_moves);
+
             while ((1)) {}
         }
 
+        // en-passant column (if applicable)
         index_t epx = col;
 
         index_t to_col = 0;
@@ -389,8 +389,7 @@ void add_all_moves() {
         index_t to = 0;
         Piece op = Empty;
 
-        switch (type) 
-        {
+        switch (type) {
             default:
                 {
                     static char const fmt[] PROGMEM = "error: invalid type = %d\n";
@@ -401,14 +400,15 @@ void add_all_moves() {
                 break;
 
             case Pawn:
-            if ((0)) {
+            if ((1)) {
                 // see if we can move 1 spot in front of this pawn
                 to_col = col;
                 to_row = row + fwd;
                 to = to_col + to_row * 8;
 
                 if (isValidPos(to_col, to_row)) {
-                    op = board.get(to);    // get piece at location 1 spot in front of pawn
+                    // get piece at location 1 spot in front of pawn
+                    op = board.get(to);
                     if (Empty == getType(op)) {
                         add_move(side, from, to, 0);
 
@@ -416,8 +416,9 @@ void add_all_moves() {
                         to_col = col;
                         to_row = row + fwd + fwd;
                         to = to_col + to_row * 8;
-                        if (isValidPos(to_col, to_row)) {
-                            op = board.get(to);    // get piece at location 2 spots in front of pawn
+                        if (isValidPos(to_col, to_row) && !hasMoved(p)) {
+                            // get piece at location 2 spots in front of pawn
+                            op = board.get(to);
                             if (Empty == getType(op)) {
                                 add_move(side, from, to, 0);
                             }
@@ -430,7 +431,8 @@ void add_all_moves() {
                 to_row = row + fwd;
                 to = to_col + to_row * 8;
                 if (isValidPos(to_col, to_row)) {
-                    op = board.get(to);    // get piece diagonally to the right
+                    // get piece diagonally to the right
+                    op = board.get(to);
                     if (Empty != getType(op) && getSide(op) != side) {
                         add_move(side, from, to, 0);
                     }
@@ -441,7 +443,8 @@ void add_all_moves() {
                 to_row = row + fwd;
                 to = to_col + to_row * 8;
                 if (isValidPos(to_col, to_row)) {
-                    op = board.get(to);    // get piece diagonally to the right
+                    // get piece diagonally to the right
+                    op = board.get(to);
                     if (Empty != op && getSide(op) != side) {
                         add_move(side, from, to, 0);
                     }
@@ -452,11 +455,13 @@ void add_all_moves() {
                 to_row = row + fwd;
                 to = to_col + to_row * 8;
                 if (isValidPos(to_col, to_row)) {
-                    op = board.get(to);    // get piece diagonally to the right
+                    // get piece diagonally to the right
+                    op = board.get(to);
                 }
                 epx = to_col;
                 if (isValidPos(to_col, to_row)) {
-                    op = board.get(to);    // get piece diagonally to the right
+                    // get piece diagonally to the right
+                    op = board.get(to);
                     if (Empty != getType(op) && getSide(op) != side) {
                         index_t last_move_from_row = game.last_move.from / 8;
                         index_t last_move_to_col = game.last_move.to % 8;
@@ -476,11 +481,13 @@ void add_all_moves() {
                 to_row = row + fwd;
                 to = to_col + to_row * 8;
                 if (isValidPos(to_col, to_row)) {
-                    op = board.get(to);    // get piece diagonally to the right
+                    // get piece diagonally to the right
+                    op = board.get(to);
                 }
                 epx = to_col;
                 if (isValidPos(to_col, to_row)) {
-                    op = board.get(to);    // get piece diagonally to the right
+                    // get piece diagonally to the right
+                    op = board.get(to);
                     if (Empty != getType(op) && getSide(op) != side) {
                         index_t last_move_from_row = game.last_move.from / 8;
                         index_t last_move_to_col = game.last_move.to % 8;
@@ -498,7 +505,7 @@ void add_all_moves() {
                 break;
 
             case Knight:
-            if ((1)) {
+            if ((0)) {
                 for (unsigned i=0; i < 8; i++) {
                     to_col = col + knight_offsets[i].x * fwd;
                     to_row = row + knight_offsets[i].y * fwd;
@@ -549,6 +556,7 @@ void play_game()
 
     evaluate_moves();
 
+    // track the max number of space we need for moves for debugging
     if (game.move_count1 > game.max_moves) {
         game.max_moves = game.move_count1;
     }
@@ -581,37 +589,58 @@ void play_game()
     } while ((move.from == -1 || move.to == -1) && game.move_count1 > 0 && game.move_count2 > 0);
 
     // see if the game has been won:
-    if (game.move_count1 == 0 || game.move_count2 == 0) {
-        static char const fmt[] PROGMEM = "\n%s as no moves.: setting game.done = 1\n";
-        printf(Debug1, fmt, game.move_count1 == 0 ? "White" : "Black");
+    if (0 == game.move_count1 && 0 == game.move_count2) {
+        static char const fmt[] PROGMEM = "\nStalemate!\n";
+        printf(Debug1, fmt);
         game.done = 1;
+        return;
     }
-    else {
-        // display the move that we made
-        index_t const    to = move.to;
-        Piece   const    op = board.get(to);
-        Piece   const otype = getType(op);
+    else if (0 == game.move_count1 || 0 == game.move_count2) {
+        static char const fmt[] PROGMEM = "\nCheckmate!\n";
+        printf(Debug1, fmt);
+        game.done = 1;
 
-        static char const fmt3[] PROGMEM = "\nMove #%d: ";
-        printf(Debug1, fmt3, game.move_num + 1);
-        show_move(move);
-
-        if (Empty != otype) {
-            static char const fmt[] PROGMEM = " taking a ";
+        if (0 == game.move_count1) {
+            static char const fmt[] PROGMEM = "\nWhite as no moves.\nBlack win!\n";
             printf(Debug1, fmt);
-            show_piece(op);
         }
+        else if (0 == game.move_count2) {
+            static char const fmt[] PROGMEM = "\nBlack as no moves.\nWhite win!\n";
+            printf(Debug1, fmt);
+        } 
 
-        static char const fmt4[] PROGMEM = "\n\n";
-        printf(Debug1, fmt4);
-
-        move.value = make_move(move, 0);
-
-        game.last_move = move;
-
-        ++game.turn %= 2;
-        game.move_num++;
+        return;
     }
+
+    // Display the move that we chose:
+    index_t const    to = move.to;
+    Piece   const    op = board.get(to);
+    Piece   const otype = getType(op);
+
+    static char const fmt3[] PROGMEM = "\nMove #%d: ";
+    printf(Debug1, fmt3, game.move_num + 1);
+    show_move(move);
+
+    if (Empty != otype) {
+        static char const fmt[] PROGMEM = " taking a ";
+        printf(Debug1, fmt);
+        show_piece(op);
+    }
+
+    static char const fmt4[] PROGMEM = "\n\n";
+    printf(Debug1, fmt4);
+
+    // Make the move:
+    move.value = make_move(move, 0);
+
+    // remember the last move made
+    game.last_move = move;
+
+    // toggle whose turn it is
+    ++game.turn %= 2;
+
+    // increase the game moves counter
+    game.move_num++;
 }
 
 
@@ -620,21 +649,23 @@ void setup()
 {
     Serial.begin(115200); while (!Serial); Serial.write('\n');
 
-    // BUGBUG - enable random seed after program is debugged
+    // Enable random seed when program is debugged.
+    // Disable random seed to reproduce issues.
     randomSeed(analogRead(A0) + analogRead(A1));
 
     Serial.println("starting..\n");
 
+    // initialize the board and the game:
     board.init();
     game.init();
 
-    if (!isValidTest()) {
-        while ((1)) {}
-    }
+    // if (!isValidTest()) {
+    //     while ((1)) {}
+    // }
 
-    while (!game.done) {
+    do {
         play_game();
-    }
+    } while (!game.done);
 
     show();
 

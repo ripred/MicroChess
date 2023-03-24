@@ -99,7 +99,7 @@ void info();
 
 void show();
 
-Bool isValidTest();
+// Bool isValidTest();
 
 Piece getType(Piece b);
 

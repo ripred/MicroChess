@@ -12,34 +12,34 @@
 
 print_t const level = Debug1;
 
-Bool isValidTest()
-{
-#ifdef TRACE_FAIL
-    auto trace = []() -> int {
-        static char const fmt[] PROGMEM = "\nerror: failed isValidPos(x,y) test 1!\n\n";
-        printf(Always, fmt);
-        return 0;
-    };
-#else
-    auto trace = []() -> int { return 0; };
-#endif
-    for (index_t y=0; y < 8; y++) {
-        for (index_t x=0; x < 8; x++) {
-            if (!isValidPos(x, y)) {
-                return trace();
-            }
-        }
-    }
+// Bool isValidTest()
+// {
+// #ifdef TRACE_FAIL
+//     auto trace = []() -> int {
+//         static char const fmt[] PROGMEM = "\nerror: failed isValidPos(x,y) test 1!\n\n";
+//         printf(Always, fmt);
+//         return 0;
+//     };
+// #else
+//     auto trace = []() -> int { return 0; };
+// #endif
+//     for (index_t y=0; y < 8; y++) {
+//         for (index_t x=0; x < 8; x++) {
+//             if (!isValidPos(x, y)) {
+//                 return trace();
+//             }
+//         }
+//     }
 
-    if (isValidPos(-1, 0) || isValidPos(0, -1) || isValidPos(8, 0) || isValidPos(0, 8)) {
-        return trace();
-    }
+//     if (isValidPos(-1, 0) || isValidPos(0, -1) || isValidPos(8, 0) || isValidPos(0, 8)) {
+//         return trace();
+//     }
 
-    static char const fmt[] PROGMEM = "passed isValidPos(x,y) tests\n\n";
-    printf(Debug2, fmt);
+//     static char const fmt[] PROGMEM = "passed isValidPos(x,y) tests\n\n";
+//     printf(Debug2, fmt);
 
-    return 1;
-}
+//     return 1;
+// }
 
 
 Piece getType(Piece b) 
