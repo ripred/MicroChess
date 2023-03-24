@@ -38,6 +38,8 @@ board_t board;
 game_t game;
 
 ////////////////////////////////////////////////////////////////////////////////////////
+// add a move to the move list: game.moves1 (White) or game.moves2 (Black), 
+// depending on the color of the piece.
 void add_move(Color side, index_t from, index_t to, long value) 
 {
     static char const fmt[] PROGMEM = "call to add move from %d,%d to %d,%d\n";
@@ -75,6 +77,9 @@ long evaluate(Color side)
     static uint8_t const mobility = 0x04u;
 
     // adjust as desired
+    // *NOTE* don't include mobility unless you are prepared to evaluate all moves
+    // for both sides multiple times. On the first pass when neither side has any moved
+    // this gives favor to White when theBlack moves have not been counted yet
 //  static uint8_t const   filter = material | center | mobility;
     static uint8_t const   filter = material | center;
 
@@ -146,6 +151,7 @@ long evaluate(Color side)
 }
 
 
+////////////////////////////////////////////////////////////////////////////////////////
 // find the piece index for a given board index
 index_t find_piece(int const index) {
     // print_t dbg = game.move_num == 7 ? Debug1 : Debug3;
@@ -237,8 +243,12 @@ long make_move(move_t const &move, Bool const restore)
         }
 
         // add the piece to the list of taken pieces
-        if (White == side) { game.taken1[game.taken_count1++] = op; }
-        else { game.taken2[game.taken_count2++] = op; }
+        if (White == side) {
+            game.taken1[game.taken_count1++] = op;
+        }
+        else {
+            game.taken2[game.taken_count2++] = op;
+        }
     }
 
     // move our piece on the board
@@ -260,14 +270,19 @@ long make_move(move_t const &move, Bool const restore)
             game.pieces[taken_index] = { to_col, to_row };
 
             // remove the piece from the taken pieces list
-            if (White == side) { game.taken_count1--; }
-            else { game.taken_count2--; }
+            if (White == side) {
+                game.taken_count1--;
+            }
+            else {
+                game.taken_count2--;
+            }
         }
 
         // put the pieces back where they were on the board
         board.set(from,    p);
         board.set(  to,   op);
 
+        // restore the position of the piece we moved in the piece list
         game.pieces[piece_index] = { col, row };
 
         if (orig_piece_count != game.piece_count) {
@@ -390,13 +405,7 @@ void add_all_moves() {
                 if (isValidPos(to_col, to_row)) {
                     op = board.get(to);    // get piece at location 1 spot in front of pawn
                     if (Empty == op) {
-                        add_move(
-                            side, 
-                            from,   // from
-                            to,     // to
-                            0       // value
-                        );
-
+                        add_move(side, from, to, 0);
 
                         // see if we can move 2 spots in front of this pawn
                         to_col = col;
@@ -405,12 +414,7 @@ void add_all_moves() {
                         if (isValidPos(to_col, to_row)) {
                             op = board.get(to);    // get piece at location 2 spots in front of pawn
                             if (Empty == op) {
-                                add_move(
-                                    side, 
-                                    from,   // from
-                                    to,     // to
-                                    0       // value
-                                );
+                                add_move(side, from, to, 0);
                             }
                         }
                     }
@@ -423,12 +427,7 @@ void add_all_moves() {
                 if (isValidPos(to_col, to_row)) {
                     op = board.get(to);    // get piece diagonally to the right
                     if (Empty != op && getSide(op) != side) {
-                        add_move(
-                            side, 
-                            from,   // from
-                            to,     // to
-                            0       // value
-                        );
+                        add_move(side, from, to, 0);
                     }
                 }
 
@@ -439,16 +438,11 @@ void add_all_moves() {
                 if (isValidPos(to_col, to_row)) {
                     op = board.get(to);    // get piece diagonally to the right
                     if (Empty != op && getSide(op) != side) {
-                        add_move(
-                            side, 
-                            from,   // from
-                            to,     // to
-                            0       // value
-                        );
+                        add_move(side, from, to, 0);
                     }
                 }
 
-                // en-passant on the left
+                // check for en-passant on the left
                 to_col = col - 1;
                 to_row = row + fwd;
                 to = to_col + to_row * 8;
@@ -465,19 +459,14 @@ void add_all_moves() {
                         if (last_move_to_col == epx && last_move_to_row == row) {
                             if (abs(int(last_move_from_row) - int(last_move_to_row)) > 1) {
                                 if (getType(op) == Pawn) {
-                                    add_move(
-                                        side, 
-                                        from,   // from
-                                        to,     // to
-                                        0       // value
-                                    );
+                                    add_move(side, from, to, 0);
                                 }
                             }
                         }
                     }
                 }
 
-                // en-passant on the right
+                // check for en-passant on the right
                 to_col = col - 1;
                 to_row = row + fwd;
                 to = to_col + to_row * 8;
@@ -494,19 +483,13 @@ void add_all_moves() {
                         if (last_move_to_col == epx && last_move_to_row == row) {
                             if (abs(int(last_move_from_row) - int(last_move_to_row)) > 1) {
                                 if (getType(op) == Pawn) {
-                                    add_move(
-                                        side, 
-                                        from, // from
-                                        to,   // to
-                                        0              // value
-                                    );
+                                    add_move(side, from, to, 0);
                                 }
                             }
                         }
                     }
                 }
                 break;
-
 
             case Knight:
                 for (unsigned i=0; i < 8; i++) {
@@ -516,12 +499,7 @@ void add_all_moves() {
                     if (isValidPos(to_col, to_row)) {
                         Piece const op = board.get(to);
                         if (Empty == getType(op) || getSide(op) != side) {
-                            add_move(
-                                side, 
-                                from,   // from
-                                to,     // to
-                                0       // value
-                            );
+                            add_move(side, from, to, 0);
                         }
                     }
                 }
@@ -573,6 +551,7 @@ void play_game()
     // info();
 
     move_t move(-1, -1, 0);
+
     // pick our next move
     do {
         if (White == game.turn) {
@@ -688,6 +667,7 @@ void show()
                 icons[((getSide(piece) * 6) + getType(piece) - 1)]);
         }
 
+        // display the extra status info on certain lines:
         switch (y) {
             // display the last move made if available
             case offset + 0:
