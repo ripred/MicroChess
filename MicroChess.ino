@@ -564,18 +564,18 @@ void play_game()
     do {
         if (White == game.turn) {
             if (game.move_count1 > 0) {
-                int best = 0;
-                for (best = 0; (best + 1 < game.move_count1) && game.moves1[best].value == game.moves1[best + 1].value; best++) {};
-                int r = random(0, best);
-                move = game.moves1[r];
+                index_t top = 0;
+                for top = 0; (top + 1 < game.move_count1) && game.moves1[top].value == game.moves1[top + 1].value; top++) {};
+                index_t random_move = random(0, top);
+                move = game.moves1[random_move];
             }
         }
         else {
             if (game.move_count2 > 0) {
-                int best = 0;
-                for (best = 0; (best + 1 < game.move_count2) && game.moves2[best].value == game.moves2[best + 1].value; best++) {};
-                int r = random(0, best);
-                move = game.moves2[r];
+                index_t top = 0;
+                for top = 0; (top + 1 < game.move_count2) && game.moves2[top].value == game.moves2[top + 1].value; top++) {};
+                index_t random_move = random(0, top);
+                move = game.moves2[random_move];
             }
         }
     } while ((move.from == -1 || move.to == -1) && game.move_count1 > 0 && game.move_count2 > 0);
@@ -606,8 +606,8 @@ void play_game()
     game.move_num++;
 
     if (game.move_count1 == 0 || game.move_count2 == 0) {
-        static char const fmt[] PROGMEM = "\n%s: setting game.done = 1\n";
-        printf(Debug1, fmt, game.move_count1 == 0 ? "White has no moves" : "Black has no moves");
+        static char const fmt[] PROGMEM = "\n%s as no moves.: setting game.done = 1\n";
+        printf(Debug1, fmt, game.move_count1 == 0 ? "White" : "Black");
         game.done = 1;
     }
 }
