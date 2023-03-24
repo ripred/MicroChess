@@ -4,7 +4,43 @@
  * MicroChess utility functions
  * 
  */
+
+#include <Arduino.h>
+#include <avr/pgmspace.h>
 #include "MicroChess.h"
+#include <stdarg.h>
+
+print_t const level = Debug1;
+
+// Bool isValidTest()
+// {
+// #ifdef TRACE_FAIL
+//     auto trace = []() -> int {
+//         static char const fmt[] PROGMEM = "\nerror: failed isValidPos(x,y) test 1!\n\n";
+//         printf(Always, fmt);
+//         return 0;
+//     };
+// #else
+//     auto trace = []() -> int { return 0; };
+// #endif
+//     for (index_t y=0; y < 8; y++) {
+//         for (index_t x=0; x < 8; x++) {
+//             if (!isValidPos(x, y)) {
+//                 return trace();
+//             }
+//         }
+//     }
+
+//     if (isValidPos(-1, 0) || isValidPos(0, -1) || isValidPos(8, 0) || isValidPos(0, 8)) {
+//         return trace();
+//     }
+
+//     static char const fmt[] PROGMEM = "passed isValidPos(x,y) tests\n\n";
+//     printf(Debug2, fmt);
+
+//     return 1;
+// }
+
 
 Piece getType(Piece b) 
 {
@@ -69,52 +105,9 @@ Piece makeSpot(Piece type, Piece side, unsigned char moved, unsigned char inChec
 }
 
 
-char *getCoords(int index) 
-{
-    static const char *const coords[BOARD_SIZE] PROGMEM = {
-        "0,0", "1,0", "2,0", "3,0", "4,0", "5,0", "6,0", "7,0",
-        "0,1", "1,1", "2,1", "3,1", "4,1", "5,1", "6,1", "7,1",
-        "0,2", "1,2", "2,2", "3,2", "4,2", "5,2", "6,2", "7,2",
-        "0,3", "1,3", "2,3", "3,3", "4,3", "5,3", "6,3", "7,3",
-        "0,4", "1,4", "2,4", "3,4", "4,4", "5,4", "6,4", "7,4",
-        "0,5", "1,5", "2,5", "3,5", "4,5", "5,5", "6,5", "7,5",
-        "0,6", "1,6", "2,6", "3,6", "4,6", "5,6", "6,6", "7,6",
-        "0,7", "1,7", "2,7", "3,7", "4,7", "5,7", "6,7", "7,7"
-    };
-
-    return (char *) pgm_read_word(&(coords[index]));
-}
-
-
-char *getCoords(int file, int rank) 
-{ 
-    return getCoords(file + rank * 8); 
-}
-
-char const *getNotate(int const index) {
-    static char const PROGMEM notations[BOARD_SIZE][3] = {
-        "a8", "b8", "c8", "d8", "e8", "f8", "g8", "h8",
-        "a7", "b7", "c7", "d7", "e7", "f7", "g7", "h7",
-        "a6", "b6", "c6", "d6", "e6", "f6", "g6", "h6",
-        "a5", "b5", "c5", "d5", "e5", "f5", "g5", "h5",
-        "a4", "b4", "c4", "d4", "e4", "f4", "g4", "h4",
-        "a3", "b3", "c3", "d3", "e3", "f3", "g3", "h3",
-        "a2", "b2", "c2", "d2", "e2", "f2", "g2", "h2",
-        "a1", "b1", "c1", "d1", "e1", "f1", "g1", "h1"
-    };
-    return &notations[index][0];
-}
-
-
-[[maybe_unused]] 
-char const *getNotate(int file, int rank) 
-{ 
-    return getNotate(file + rank * 8);
-}
-
 char *getName(Piece b) {
     static char const * names[] = {"Empty", "Pawn", "Knight", "Bishop", "Rook", "Queen", "King"};
-    static const int num_names = sizeof(names) / sizeof(names[0]);
+    static const int num_names = ARRAYSZ(names);
     static const int type_offset = 0;
 
     int const type = getType(b);
@@ -143,16 +136,120 @@ const char* addCommas(long int value) {
     return buff;
 }
 
-
-int printf(PrintType const mode, PrintType const level, char const * const fmt, ...) {
-    if (level >= mode) {
+int printf(print_t const required, char const * const progmem, ...) {
+    char fmt[100] = "";
+    for (int i = 0; fmt[i] = pgm_read_byte_near(progmem + i), fmt[i] != 0; i++) {}
+    if (level >= required) {
         char buff[100] = "";
         va_list argList;
         va_start(argList, fmt);
         vsnprintf(buff, ARRAYSZ(buff), fmt, argList);
-        va_end( argList );
+        va_end(argList);
         return Serial.write(buff, strlen(buff));
     }
 
     return 0;
+}
+
+#include <unistd.h>
+
+#ifdef __arm__
+// should use uinstd.h to define sbrk but Due causes a conflict
+extern "C" char* sbrk(int incr);
+#else  // __ARM__
+extern char *__brkval;
+#endif  // __arm__
+
+int freeMemory() {
+    char top;
+#ifdef __arm__
+    return &top - reinterpret_cast<char*>(sbrk(0));
+#elif defined(CORE_TEENSY) || (ARDUINO > 103 && ARDUINO != 151)
+    return &top - __brkval;
+#else  // __arm__
+    return __brkval ? &top - __brkval : &top - __malloc_heap_start;
+#endif  // __arm__
+}
+
+int freeMem() {
+    extern int __heap_start/*, *__brkval */;
+    int v;
+
+    return (int)&v - (__brkval == 0  ? (int)&__heap_start : (int) __brkval);
+}
+
+void printMemoryStats() {
+    // ============================================================
+    // startup memory
+    int totalRam = 2048;
+    // int freeRam = freeMem();
+    int freeRam = freeMemory();
+    int usedRam = totalRam - freeRam;
+
+    static char const fmt1[] PROGMEM = "Total SRAM = %d\n";
+    printf(Debug2, fmt1, totalRam);
+    static char const fmt2[] PROGMEM = "Free SRAM = %d\n";
+    printf(Debug2, fmt2, freeRam);
+    static char const fmt3[] PROGMEM = "Used SRAM = %d\n";
+    printf(Debug2, fmt3, usedRam);
+
+    static char const fmt4[] PROGMEM = "sizeof(move_t) = %d\n";
+    printf(Debug2, fmt4, sizeof(move_t));
+    static char const fmt5[] PROGMEM = "meaning there is room for %d more move_t entries.\n";
+    printf(Debug2, fmt5, freeRam / sizeof(move_t) );
+    static char const fmt6[] PROGMEM = "or %d more move_t entries per move list.\n";
+    printf(Debug2, fmt6, ((freeRam / sizeof(move_t)) / 2) );
+}
+
+
+void show_piece(Piece const p) 
+{
+    Piece const type = getType(p);
+    Color const side = getSide(p);
+
+    static char const fmt[] PROGMEM = "%5s %s";
+    printf(Debug1, fmt, 
+        (Empty == type ?  "" : (White == side ?  "White" : "Black")), 
+        (Empty == type ?  "Empty" :
+          Pawn == type ?   "Pawn" :
+        Knight == type ? "Knight" :
+        Bishop == type ? "Bishop" :
+          Rook == type ?   "Rook" :
+         Queen == type ?  "Queen" : "King"));
+}
+
+void show_pieces() 
+{
+    static char const fmt1[] PROGMEM = "game.pieces[%2d] = {\n";
+    printf(Debug1, fmt1, game.piece_count);
+    for (int i = 0; i < game.piece_count; i++) {
+        point_t const &loc = game.pieces[i];
+        index_t const col = loc.x;
+        index_t const row = loc.y;
+        Piece  const p = board.get(col + row * 8);
+        static char const fmt1[] PROGMEM = "    game.pieces[%2d] = %d, %d: ";
+        printf(Debug1, fmt1, i, col, row);
+        show_piece(p);
+        static char const fmt2[] PROGMEM = "\n";
+        printf(Debug1, fmt2);
+    }
+    static char const fmt2[] PROGMEM = "};\n";
+    printf(Debug1, fmt2);
+}
+
+
+void show_move(move_t const &move) {
+    index_t const    col = move.from % 8;
+    index_t const    row = move.from / 8;
+    index_t const   from = col + row * 8;
+    Piece   const      p = board.get(from);
+    index_t const to_col = move.to % 8;
+    index_t const to_row = move.to / 8;
+
+    show_piece(p);
+
+    static char const fmt[] PROGMEM = " from: %d,%d (%c%c) to: %d,%d (%c%c)";
+    printf(Debug1, fmt, 
+        col,    row,       col + 'A', '8' -    row, 
+        to_col, to_row, to_col + 'A', '8' - to_row);
 }
