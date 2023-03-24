@@ -26,6 +26,24 @@
  * version 1.7.0
  * Major bug fixes in piece tracking and move generation
  * 
+ * version 1.8.0
+ * Added Rook, Bishop, Queen, and King move generation
+ * Added 'in check' attributes
+ * Added 'has moved' attributes
+ * 
+ * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+ * TODO:
+ * 
+ *  [ ] move the offsets into PROGMEM. add accessor functions.
+ *  [ ] add pawn promotion when they reach the last row.
+ *  [ ] add reading and writing of FEN notation.
+ *  [ ] move the move generation for each Piece type into it's own function.
+ *  [ ] add ply level awareness and minimax algorithm.
+ *  [ ] add alpha-beta pruning.
+ *  [ ] 
+ * 
+ * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+ * 
  */
 #include <Arduino.h>
 #include <stdlib.h>
@@ -72,7 +90,7 @@ void add_move(Color side, index_t from, index_t to, long value)
 
 ////////////////////////////////////////////////////////////////////////////////////////
 /// Evaluate the identity (score) of the board state.
-/// Positive scores indicate an advantage for white and
+`/// Positive scores indicate an advantage for white and
 /// Negative scores indicate an advantage for black.
 long evaluate(Color side) 
 {
@@ -410,7 +428,7 @@ void add_all_moves() {
         index_t to = 0;
         Piece op = Empty;
 
-        static Bool const   enable_pawns = 0;
+        static Bool const   enable_pawns = 1;
         static Bool const enable_knights = 0;
         static Bool const enable_bishops = 0;
         static Bool const   enable_rooks = 0;
@@ -833,7 +851,7 @@ void add_all_moves() {
                             }
                         }
                         else
-                        if (xoff > 0 && yoff > 0 && continue_nw) { // going NE
+                        if (xoff > 0 && yoff > 0 && continue_ne) { // going NE
                             to = to_col + (to_row * 8);
                             Piece const op = board.get(to);
                             if (Empty == getType(op)) {
@@ -850,7 +868,7 @@ void add_all_moves() {
                             }
                         }
                         else
-                        if (xoff < 0 && yoff < 0 && continue_nw) { // going SW
+                        if (xoff < 0 && yoff < 0 && continue_sw) { // going SW
                             to = to_col + (to_row * 8);
                             Piece const op = board.get(to);
                             if (Empty == getType(op)) {
@@ -867,7 +885,7 @@ void add_all_moves() {
                             }
                         }
                         else
-                        if (xoff > 0 && yoff < 0 && continue_nw) { // going SE
+                        if (xoff > 0 && yoff < 0 && continue_se) { // going SE
                             to = to_col + (to_row * 8);
                             Piece const op = board.get(to);
                             if (Empty == getType(op)) {

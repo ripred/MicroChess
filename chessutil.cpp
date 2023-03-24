@@ -105,50 +105,6 @@ Piece makeSpot(Piece type, Piece side, unsigned char moved, unsigned char inChec
 }
 
 
-char *getCoords(index_t index) 
-{
-    static const char *const coords[BOARD_SIZE] PROGMEM = {
-        "0,0", "1,0", "2,0", "3,0", "4,0", "5,0", "6,0", "7,0",
-        "0,1", "1,1", "2,1", "3,1", "4,1", "5,1", "6,1", "7,1",
-        "0,2", "1,2", "2,2", "3,2", "4,2", "5,2", "6,2", "7,2",
-        "0,3", "1,3", "2,3", "3,3", "4,3", "5,3", "6,3", "7,3",
-        "0,4", "1,4", "2,4", "3,4", "4,4", "5,4", "6,4", "7,4",
-        "0,5", "1,5", "2,5", "3,5", "4,5", "5,5", "6,5", "7,5",
-        "0,6", "1,6", "2,6", "3,6", "4,6", "5,6", "6,6", "7,6",
-        "0,7", "1,7", "2,7", "3,7", "4,7", "5,7", "6,7", "7,7"
-    };
-
-    return (char *) pgm_read_word(&(coords[index]));
-}
-
-
-// [[maybe_unused]] 
-char *getCoords(index_t file, index_t rank) 
-{ 
-    return getCoords(file + rank * 8); 
-}
-
-char const *getNotate(index_t const index) {
-    static char const PROGMEM notations[BOARD_SIZE][3] = {
-        "a8", "b8", "c8", "d8", "e8", "f8", "g8", "h8",
-        "a7", "b7", "c7", "d7", "e7", "f7", "g7", "h7",
-        "a6", "b6", "c6", "d6", "e6", "f6", "g6", "h6",
-        "a5", "b5", "c5", "d5", "e5", "f5", "g5", "h5",
-        "a4", "b4", "c4", "d4", "e4", "f4", "g4", "h4",
-        "a3", "b3", "c3", "d3", "e3", "f3", "g3", "h3",
-        "a2", "b2", "c2", "d2", "e2", "f2", "g2", "h2",
-        "a1", "b1", "c1", "d1", "e1", "f1", "g1", "h1"
-    };
-    return &notations[index][0];
-}
-
-
-// [[maybe_unused]] 
-char const *getNotate(index_t file, index_t rank) 
-{ 
-    return getNotate(file + rank * 8);
-}
-
 char *getName(Piece b) {
     static char const * names[] = {"Empty", "Pawn", "Knight", "Bishop", "Rook", "Queen", "King"};
     static const int num_names = ARRAYSZ(names);

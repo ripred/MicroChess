@@ -26,10 +26,16 @@ typedef unsigned char Bool;
 enum 
 {
     MAX_PIECES    =  32,
-    MAX_MOVES     = 106,   // R:11 N:8 B:11 Q:22 K:8 B:11 N:8 R:11 P:16
+    MAX_MOVES     = 106,        // R:11 N:8 B:11 Q:22 K:8 B:11 N:8 R:11 P:16
 
-    NUM_BITS_PT   =   5,
-    NUM_BITS_SPOT =   7,
+    NUM_BITS_PT   =   5,        // bits per field in point_t struct
+    NUM_BITS_SPOT =   7,        // bits per field in move_t struct
+
+    NUM_KNIGHT_OFFSETS =  8,    // number of offsets to check for knight moves
+    NUM_BISHOP_OFFSETS = 28,    // number of offsets to check for bishop moves
+    NUM_ROOK_OFFSETS   = 28,    // number of offsets to check for rook moves
+    NUM_QUEEN_OFFSETS  = 56,    // number of offsets to check for queen moves
+    NUM_KING_OFFSETS   =  8,    // number of offsets to check for king moves
 };
 
 typedef   int8_t   index_t;
@@ -42,7 +48,7 @@ struct offset_t {
 
 ////////////////////////////////////////////////////////////////////////////////////////
 // the offsets a knight can move to
-static offset_t const knight_offsets[8] = {
+static offset_t const knight_offsets[NUM_KNIGHT_OFFSETS] = {
     { -2, +1 }, // W
     { -2, -1 }, 
     { +2, +1 }, // E
@@ -55,7 +61,7 @@ static offset_t const knight_offsets[8] = {
 
 ////////////////////////////////////////////////////////////////////////////////////////
 // the offsets a rook can move to
-static offset_t const rook_offsets[28] = {
+static offset_t const rook_offsets[NUM_ROOK_OFFSETS] = {
     { -1,  0 }, // W
     { -2,  0 },
     { -3,  0 },
@@ -88,7 +94,7 @@ static offset_t const rook_offsets[28] = {
 
 ////////////////////////////////////////////////////////////////////////////////////////
 // the offsets a bishop can move to
-static offset_t const bishop_offsets[28] = {
+static offset_t const bishop_offsets[NUM_BISHOP_OFFSETS] = {
     { -1, +1 }, // NW
     { -2, +2 },
     { -3, +3 },
@@ -121,7 +127,7 @@ static offset_t const bishop_offsets[28] = {
 
 ////////////////////////////////////////////////////////////////////////////////////////
 // the offsets a queen can move to
-static offset_t const queen_offsets[56] = {
+static offset_t const queen_offsets[NUM_QUEEN_OFFSETS] = {
     { -1,  0 }, // W
     { -2,  0 },
     { -3,  0 },
@@ -182,7 +188,7 @@ static offset_t const queen_offsets[56] = {
 
 ////////////////////////////////////////////////////////////////////////////////////////
 // the offsets a king can move to
-static offset_t const king_offsets[8] = {
+static offset_t const king_offsets[NUM_KING_OFFSETS] = {
     { -1,  0 }, // W
     { -1, +1 }, // NW
     { +1,  0 }, // E
@@ -203,28 +209,37 @@ static offset_t const king_offsets[8] = {
 #endif
 #define  isValidPos(col, row) ((col >= 0 && col < 8 && row >= 0 && row < 8) ? 1 : (TRACE_FAIL,0))
 
+// print_t is used to set and control the output printing level
 enum print_t {
-    Error  = 0, 
-    Always = 0,
+    Error  =  0,        // always display
+    Always =  0,
     Debug0, 
     Debug1, 
     Debug2, 
     Debug3,
     Debug4,
+    Never  = 99,        // never display
+    None   = 99,
 };
 
+// the global setting that affects the level of output detail
 extern print_t const level;
 
+// macro to return the number of elements in an array of any data type
 #define  ARRAYSZ(A) (sizeof(A) / sizeof(*(A)))
 
-#define  MAX_VALUE ((long const)( 0b1000000000000)) // half the value of 13 bits - however large the 'value' field in move_t is
+// The max and min range for piece values
+#define  MAX_VALUE ((long const)( 0b00000010000000))    // half the value of number of bits the 'value' field in move_t has
 #define  MIN_VALUE ((long const)(0 - MAX_VALUE))
 
+// the number of locations on the game board
 static unsigned const BOARD_SIZE = 64u;
 
+// The two sides
 static Color const White = 1u;
 static Color const Black = 0u;
 
+// The Piece types
 static Piece const Empty  = 0u;
 static Piece const Pawn   = 1u;
 static Piece const Knight = 2u;
@@ -233,52 +248,59 @@ static Piece const Rook   = 4u;
 static Piece const Queen  = 5u;
 static Piece const King   = 6u;
 
+// the masks for the Piece bit fields
 static Piece const Type     = 0b00000111u;
 static Piece const Side     = 0b00001000u;
 static Piece const Moved    = 0b00010000u;
 static Piece const Check    = 0b00100000u;
 
+// display runtime stats
 void info();
 
+// show the game board
 void show();
 
+// test the validation macro
 // Bool isValidTest();
 
+// get the Type of a Piece
 Piece getType(Piece b);
 
+// see if a Piece is Empty
 Bool  isEmpty(Piece b);
 
+// get the value of a piece
 int   getValue(Piece b);
 
+// get the side for a Piece
 Piece getSide(Piece b);
 
+// see if a Piece has moved
 Bool  hasMoved(Piece b);
 
+// see if a Piece is in check
 Bool  inCheck(Piece b);
 
+// set the Type of a Piece
 Piece setType(Piece b, Piece type);
 
+// set the Color of a Piece
 Piece setSide(Piece b, Piece side);
 
+// set or reset the flag indicating a Piece as moved
 Piece setMoved(Piece b, Bool hasMoved);
 
+// set or reset the flag indicating a Piece is in check
 Piece setCheck(Piece b, Bool inCheck);
 
+// construct a Piece value
 Piece makeSpot(Piece type, Piece side, Bool moved, Bool inCheck);
-
-char *getCoords(index_t index);
-
-char *getCoords(index_t file, index_t rank);
-
-char const *getNotate(index_t const index);
-
-char const *getNotate(index_t file, index_t rank);
 
 char *getName(Piece b);
 
 char *getColor(Piece b);
 
-const char* addCommas(long int value);
+// const char* addCommas(long int value);
 
 int printf(print_t const required, char const * const fmt, ...);
 
@@ -291,28 +313,6 @@ static long const pieceValues[8] = {
         90000,  // queen value
     MAX_VALUE,  // king value
             0   // padded for alignment and increased L1 and L2 cache hit gains
-};
-
-// a struct to represent all of the extra data about the 
-// starting point and the ending point of a move
-struct moveinfo_t {
-public:
-    index_t     from;
-    index_t     col;
-    index_t     row;
-    Piece       p;
-    Piece       type;
-    Color       side;
-
-    index_t     to;
-    index_t     to_col;
-    index_t     to_row;
-    Piece       op;
-    Piece       otype;
-    Color       oside;
-
-public:
-
 };
 
 #include "board.h"
