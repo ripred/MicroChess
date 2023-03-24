@@ -23,6 +23,9 @@
  * version 1.6.0
  * Added move execution
  * 
+ * version 1.7.0
+ * Major bug fixes in piece tracking and move generation
+ * 
  */
 #include <Arduino.h>
 #include <stdlib.h>
@@ -36,6 +39,7 @@ board_t board;
 ////////////////////////////////////////////////////////////////////////////////////////
 // the currently running game
 game_t game;
+
 
 ////////////////////////////////////////////////////////////////////////////////////////
 // add a move to the move list: game.moves1 (White) or game.moves2 (Black), 
@@ -397,6 +401,7 @@ void add_all_moves() {
                 break;
 
             case Pawn:
+            if ((0)) {
                 // see if we can move 1 spot in front of this pawn
                 to_col = col;
                 to_row = row + fwd;
@@ -404,7 +409,7 @@ void add_all_moves() {
 
                 if (isValidPos(to_col, to_row)) {
                     op = board.get(to);    // get piece at location 1 spot in front of pawn
-                    if (Empty == op) {
+                    if (Empty == getType(op)) {
                         add_move(side, from, to, 0);
 
                         // see if we can move 2 spots in front of this pawn
@@ -413,7 +418,7 @@ void add_all_moves() {
                         to = to_col + to_row * 8;
                         if (isValidPos(to_col, to_row)) {
                             op = board.get(to);    // get piece at location 2 spots in front of pawn
-                            if (Empty == op) {
+                            if (Empty == getType(op)) {
                                 add_move(side, from, to, 0);
                             }
                         }
@@ -426,7 +431,7 @@ void add_all_moves() {
                 to = to_col + to_row * 8;
                 if (isValidPos(to_col, to_row)) {
                     op = board.get(to);    // get piece diagonally to the right
-                    if (Empty != op && getSide(op) != side) {
+                    if (Empty != getType(op) && getSide(op) != side) {
                         add_move(side, from, to, 0);
                     }
                 }
@@ -452,7 +457,7 @@ void add_all_moves() {
                 epx = to_col;
                 if (isValidPos(to_col, to_row)) {
                     op = board.get(to);    // get piece diagonally to the right
-                    if (Empty != op && getSide(op) != side) {
+                    if (Empty != getType(op) && getSide(op) != side) {
                         index_t last_move_from_row = game.last_move.from / 8;
                         index_t last_move_to_col = game.last_move.to % 8;
                         index_t last_move_to_row = game.last_move.to / 8;
@@ -476,7 +481,7 @@ void add_all_moves() {
                 epx = to_col;
                 if (isValidPos(to_col, to_row)) {
                     op = board.get(to);    // get piece diagonally to the right
-                    if (Empty != op && getSide(op) != side) {
+                    if (Empty != getType(op) && getSide(op) != side) {
                         index_t last_move_from_row = game.last_move.from / 8;
                         index_t last_move_to_col = game.last_move.to % 8;
                         index_t last_move_to_row = game.last_move.to / 8;
@@ -489,20 +494,23 @@ void add_all_moves() {
                         }
                     }
                 }
+            }
                 break;
 
             case Knight:
+            if ((1)) {
                 for (unsigned i=0; i < 8; i++) {
                     to_col = col + knight_offsets[i].x * fwd;
                     to_row = row + knight_offsets[i].y * fwd;
-                    to = to_col + (to_row * 8);
                     if (isValidPos(to_col, to_row)) {
+                        to = to_col + (to_row * 8);
                         Piece const op = board.get(to);
                         if (Empty == getType(op) || getSide(op) != side) {
                             add_move(side, from, to, 0);
                         }
                     }
                 }
+            }
                 break;
 
             case Bishop:
