@@ -565,7 +565,7 @@ void play_game()
         if (White == game.turn) {
             if (game.move_count1 > 0) {
                 index_t top = 0;
-                for top = 0; (top + 1 < game.move_count1) && game.moves1[top].value == game.moves1[top + 1].value; top++) {};
+                for (top = 0; (top + 1 < game.move_count1) && game.moves1[top].value == game.moves1[top + 1].value; top++) {};
                 index_t random_move = random(0, top);
                 move = game.moves1[random_move];
             }
@@ -573,42 +573,44 @@ void play_game()
         else {
             if (game.move_count2 > 0) {
                 index_t top = 0;
-                for top = 0; (top + 1 < game.move_count2) && game.moves2[top].value == game.moves2[top + 1].value; top++) {};
+                for (top = 0; (top + 1 < game.move_count2) && game.moves2[top].value == game.moves2[top + 1].value; top++) {};
                 index_t random_move = random(0, top);
                 move = game.moves2[random_move];
             }
         }
     } while ((move.from == -1 || move.to == -1) && game.move_count1 > 0 && game.move_count2 > 0);
 
-    // display the move that we made
-    index_t const    to = move.to;
-    Piece   const    op = board.get(to);
-    Piece   const otype = getType(op);
-
-    static char const fmt3[] PROGMEM = "\nMove #%d: ";
-    printf(Debug1, fmt3, game.move_num + 1);
-    show_move(move);
-
-    if (Empty != otype) {
-        static char const fmt[] PROGMEM = " taking a ";
-        printf(Debug1, fmt);
-        show_piece(op);
-    }
-
-    static char const fmt4[] PROGMEM = "\n\n";
-    printf(Debug1, fmt4);
-
-    move.value = make_move(move, 0);
-
-    game.last_move = move;
-
-    ++game.turn %= 2;
-    game.move_num++;
-
+    // see if the game has been won:
     if (game.move_count1 == 0 || game.move_count2 == 0) {
         static char const fmt[] PROGMEM = "\n%s as no moves.: setting game.done = 1\n";
         printf(Debug1, fmt, game.move_count1 == 0 ? "White" : "Black");
         game.done = 1;
+    }
+    else {
+        // display the move that we made
+        index_t const    to = move.to;
+        Piece   const    op = board.get(to);
+        Piece   const otype = getType(op);
+
+        static char const fmt3[] PROGMEM = "\nMove #%d: ";
+        printf(Debug1, fmt3, game.move_num + 1);
+        show_move(move);
+
+        if (Empty != otype) {
+            static char const fmt[] PROGMEM = " taking a ";
+            printf(Debug1, fmt);
+            show_piece(op);
+        }
+
+        static char const fmt4[] PROGMEM = "\n\n";
+        printf(Debug1, fmt4);
+
+        move.value = make_move(move, 0);
+
+        game.last_move = move;
+
+        ++game.turn %= 2;
+        game.move_num++;
     }
 }
 
