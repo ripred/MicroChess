@@ -296,6 +296,15 @@ long make_move(move_t const &move, Bool const restore)
         else if (side != oside) {
             op = setCheck(op, 1);
             board.set(to, op);
+
+            if (King == otype) {
+                if (White == oside) {
+                    game.white_king_in_check = 1;
+                }
+                else {
+                    game.black_king_in_check = 1;
+                }
+            }
         }
 
         // restore the position of the piece we moved in the piece list
@@ -326,7 +335,7 @@ long make_move(move_t const &move, Bool const restore)
 // 
 void evaluate_moves() 
 {
-    // lambda to fill in and sort game.moves1 in decending order
+    // lambda compatator to fill in and sort game.moves1 in decending order
     auto compare = [](const void *a, const void *b) -> int {
         move_t const move_a = *((move_t*) a);
         move_t const move_b = *((move_t*) b);
@@ -334,7 +343,7 @@ void evaluate_moves()
             0 : (move_a.value  < move_b.value) ? +1 : -1;
     };
 
-    // lambda to fill in and sort game.moves1 in decending order
+    // lambda compatator to fill in and sort game.moves2 in decending order
     auto reverse_compare = [](const void *a, const void *b) -> int {
         move_t const move_a = *((move_t*) a);
         move_t const move_b = *((move_t*) b);
@@ -362,7 +371,7 @@ void evaluate_moves()
 // Add all of the available moves for all pieces to the game.moves1 (White) 
 // and game.moves2 (Black) lists
 void add_all_moves() {
-    // find all moves available for the current pieces
+    // walk through the pieces list and generate all moves for each piece
     for (game.eval_ndx = 0; game.eval_ndx < game.piece_count; game.eval_ndx++) {
         index_t const col = game.pieces[game.eval_ndx].x;
         index_t const row = game.pieces[game.eval_ndx].y;
@@ -395,6 +404,7 @@ void add_all_moves() {
         // en-passant column (if applicable)
         index_t epx = col;
 
+        // variables to hold the destination spot and any piece that might be there
         index_t to_col = 0;
         index_t to_row = 0;
         index_t to = 0;
@@ -519,7 +529,7 @@ void add_all_moves() {
 
             case Knight:
             if ((0)) {
-                for (unsigned i=0; i < 8; i++) {
+                for (unsigned i=0; i < ARRAYSZ(knight_offsets); i++) {
                     to_col = col + knight_offsets[i].x * fwd;
                     to_row = row + knight_offsets[i].y * fwd;
                     if (isValidPos(to_col, to_row)) {
@@ -534,15 +544,357 @@ void add_all_moves() {
                 break;
 
             case Bishop:
+            if ((0)) {
+                Bool continue_nw = 1;
+                Bool continue_ne = 1;
+                Bool continue_sw = 1;
+                Bool continue_se = 1;
+
+                for (unsigned i=0; i < ARRAYSZ(bishop_offsets); i++) {
+                    index_t xoff = bishop_offsets[i].x * fwd;
+                    index_t yoff = bishop_offsets[i].y * fwd;
+                    to_col = col + xoff;
+                    to_row = row + yoff;
+                    if (isValidPos(to_col, to_row)) {
+                        if (xoff < 0 && yoff > 0 && continue_nw) { // going NW
+                            to = to_col + (to_row * 8);
+                            Piece const op = board.get(to);
+                            if (Empty == getType(op)) {
+                                add_move(side, from, to, 0);
+                            }
+                            else {
+                                // there is a piece there
+                                continue_nw = 0;
+
+                                // if it is the other side then capture it
+                                if (side != getType(op)) {
+                                    add_move(side, from, to, 0);
+                                }
+                            }
+                        }
+                        else
+                        if (xoff > 0 && yoff > 0 && continue_nw) { // going NE
+                            to = to_col + (to_row * 8);
+                            Piece const op = board.get(to);
+                            if (Empty == getType(op)) {
+                                add_move(side, from, to, 0);
+                            }
+                            else {
+                                // there is a piece there
+                                continue_ne = 0;
+
+                                // if it is the other side then capture it
+                                if (side != getType(op)) {
+                                    add_move(side, from, to, 0);
+                                }
+                            }
+                        }
+                        else
+                        if (xoff < 0 && yoff < 0 && continue_nw) { // going SW
+                            to = to_col + (to_row * 8);
+                            Piece const op = board.get(to);
+                            if (Empty == getType(op)) {
+                                add_move(side, from, to, 0);
+                            }
+                            else {
+                                // there is a piece there
+                                continue_sw = 0;
+
+                                // if it is the other side then capture it
+                                if (side != getType(op)) {
+                                    add_move(side, from, to, 0);
+                                }
+                            }
+                        }
+                        else
+                        if (xoff > 0 && yoff < 0 && continue_nw) { // going SE
+                            to = to_col + (to_row * 8);
+                            Piece const op = board.get(to);
+                            if (Empty == getType(op)) {
+                                add_move(side, from, to, 0);
+                            }
+                            else {
+                                // there is a piece there
+                                continue_se = 0;
+
+                                // if it is the other side then capture it
+                                if (side != getType(op)) {
+                                    add_move(side, from, to, 0);
+                                }
+                            }
+                        }
+                    }
+
+                    if (isValidPos(to_col, to_row)) {
+                        to = to_col + (to_row * 8);
+                        Piece const op = board.get(to);
+                        if (Empty == getType(op) || getSide(op) != side) {
+                            add_move(side, from, to, 0);
+                        }
+                        if (Empty == getType(op) || getSide(op) != side) {
+                            add_move(side, from, to, 0);
+                        }
+                    }
+                }
+            }
                 break;
 
             case Rook:
+            if ((0)) {
+                Bool continue_n = 1;
+                Bool continue_s = 1;
+                Bool continue_e = 1;
+                Bool continue_w = 1;
+
+                for (unsigned i=0; i < ARRAYSZ(rook_offsets); i++) {
+                    index_t xoff = rook_offsets[i].x * fwd;
+                    index_t yoff = rook_offsets[i].y * fwd;
+                    to_col = col + xoff;
+                    to_row = row + yoff;
+                    if (isValidPos(to_col, to_row)) {
+                        if (xoff == 0 && yoff > 0 && continue_n) { // going N
+                            to = to_col + (to_row * 8);
+                            Piece const op = board.get(to);
+                            if (Empty == getType(op)) {
+                                add_move(side, from, to, 0);
+                            }
+                            else {
+                                // there is a piece there
+                                continue_n = 0;
+
+                                // if it is the other side then capture it
+                                if (side != getType(op)) {
+                                    add_move(side, from, to, 0);
+                                }
+                            }
+                        }
+                        else
+                        if (xoff == 0 && yoff < 0 && continue_s) { // going S
+                            to = to_col + (to_row * 8);
+                            Piece const op = board.get(to);
+                            if (Empty == getType(op)) {
+                                add_move(side, from, to, 0);
+                            }
+                            else {
+                                // there is a piece there
+                                continue_s = 0;
+
+                                // if it is the other side then capture it
+                                if (side != getType(op)) {
+                                    add_move(side, from, to, 0);
+                                }
+                            }
+                        }
+                        else
+                        if (xoff < 0 && yoff == 0 && continue_w) { // going W
+                            to = to_col + (to_row * 8);
+                            Piece const op = board.get(to);
+                            if (Empty == getType(op)) {
+                                add_move(side, from, to, 0);
+                            }
+                            else {
+                                // there is a piece there
+                                continue_w = 0;
+
+                                // if it is the other side then capture it
+                                if (side != getType(op)) {
+                                    add_move(side, from, to, 0);
+                                }
+                            }
+                        }
+                        else
+                        if (xoff > 0 && yoff == 0 && continue_e) { // going E
+                            to = to_col + (to_row * 8);
+                            Piece const op = board.get(to);
+                            if (Empty == getType(op)) {
+                                add_move(side, from, to, 0);
+                            }
+                            else {
+                                // there is a piece there
+                                continue_e = 0;
+
+                                // if it is the other side then capture it
+                                if (side != getType(op)) {
+                                    add_move(side, from, to, 0);
+                                }
+                            }
+                        }
+                    }
+                }
+            }                
                 break;
 
             case Queen:
+            if ((0)) {
+                Bool continue_n = 1;
+                Bool continue_s = 1;
+                Bool continue_e = 1;
+                Bool continue_w = 1;
+                Bool continue_nw = 1;
+                Bool continue_ne = 1;
+                Bool continue_sw = 1;
+                Bool continue_se = 1;
+
+                for (unsigned i=0; i < ARRAYSZ(queen_offsets); i++) {
+                    index_t xoff = queen_offsets[i].x * fwd;
+                    index_t yoff = queen_offsets[i].y * fwd;
+                    to_col = col + xoff;
+                    to_row = row + yoff;
+                    if (isValidPos(to_col, to_row)) {
+                        if (xoff == 0 && yoff > 0 && continue_n) { // going N
+                            to = to_col + (to_row * 8);
+                            Piece const op = board.get(to);
+                            if (Empty == getType(op)) {
+                                add_move(side, from, to, 0);
+                            }
+                            else {
+                                // there is a piece there
+                                continue_n = 0;
+
+                                // if it is the other side then capture it
+                                if (side != getType(op)) {
+                                    add_move(side, from, to, 0);
+                                }
+                            }
+                        }
+                        else
+                        if (xoff == 0 && yoff < 0 && continue_s) { // going S
+                            to = to_col + (to_row * 8);
+                            Piece const op = board.get(to);
+                            if (Empty == getType(op)) {
+                                add_move(side, from, to, 0);
+                            }
+                            else {
+                                // there is a piece there
+                                continue_s = 0;
+
+                                // if it is the other side then capture it
+                                if (side != getType(op)) {
+                                    add_move(side, from, to, 0);
+                                }
+                            }
+                        }
+                        else
+                        if (xoff < 0 && yoff == 0 && continue_w) { // going W
+                            to = to_col + (to_row * 8);
+                            Piece const op = board.get(to);
+                            if (Empty == getType(op)) {
+                                add_move(side, from, to, 0);
+                            }
+                            else {
+                                // there is a piece there
+                                continue_w = 0;
+
+                                // if it is the other side then capture it
+                                if (side != getType(op)) {
+                                    add_move(side, from, to, 0);
+                                }
+                            }
+                        }
+                        else
+                        if (xoff > 0 && yoff == 0 && continue_e) { // going E
+                            to = to_col + (to_row * 8);
+                            Piece const op = board.get(to);
+                            if (Empty == getType(op)) {
+                                add_move(side, from, to, 0);
+                            }
+                            else {
+                                // there is a piece there
+                                continue_e = 0;
+
+                                // if it is the other side then capture it
+                                if (side != getType(op)) {
+                                    add_move(side, from, to, 0);
+                                }
+                            }
+                        }
+                        else
+                        if (xoff < 0 && yoff > 0 && continue_nw) { // going NW
+                            to = to_col + (to_row * 8);
+                            Piece const op = board.get(to);
+                            if (Empty == getType(op)) {
+                                add_move(side, from, to, 0);
+                            }
+                            else {
+                                // there is a piece there
+                                continue_nw = 0;
+
+                                // if it is the other side then capture it
+                                if (side != getType(op)) {
+                                    add_move(side, from, to, 0);
+                                }
+                            }
+                        }
+                        else
+                        if (xoff > 0 && yoff > 0 && continue_nw) { // going NE
+                            to = to_col + (to_row * 8);
+                            Piece const op = board.get(to);
+                            if (Empty == getType(op)) {
+                                add_move(side, from, to, 0);
+                            }
+                            else {
+                                // there is a piece there
+                                continue_ne = 0;
+
+                                // if it is the other side then capture it
+                                if (side != getType(op)) {
+                                    add_move(side, from, to, 0);
+                                }
+                            }
+                        }
+                        else
+                        if (xoff < 0 && yoff < 0 && continue_nw) { // going SW
+                            to = to_col + (to_row * 8);
+                            Piece const op = board.get(to);
+                            if (Empty == getType(op)) {
+                                add_move(side, from, to, 0);
+                            }
+                            else {
+                                // there is a piece there
+                                continue_sw = 0;
+
+                                // if it is the other side then capture it
+                                if (side != getType(op)) {
+                                    add_move(side, from, to, 0);
+                                }
+                            }
+                        }
+                        else
+                        if (xoff > 0 && yoff < 0 && continue_nw) { // going SE
+                            to = to_col + (to_row * 8);
+                            Piece const op = board.get(to);
+                            if (Empty == getType(op)) {
+                                add_move(side, from, to, 0);
+                            }
+                            else {
+                                // there is a piece there
+                                continue_se = 0;
+
+                                // if it is the other side then capture it
+                                if (side != getType(op)) {
+                                    add_move(side, from, to, 0);
+                                }
+                            }
+                        }
+                    }
+                }
+            }                
                 break;
 
             case King:
+            if ((0)) {
+                for (unsigned i=0; i < ARRAYSZ(king_offsets); i++) {
+                    to_col = col + king_offsets[i].x * fwd;
+                    to_row = row + king_offsets[i].y * fwd;
+                    if (isValidPos(to_col, to_row)) {
+                        to = to_col + (to_row * 8);
+                        Piece const op = board.get(to);
+                        if (Empty == getType(op) || getSide(op) != side) {
+                            add_move(side, from, to, 0);
+                        }
+                    }
+                }
+            }
                 break;
         }
     }
