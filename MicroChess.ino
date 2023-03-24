@@ -410,6 +410,13 @@ void add_all_moves() {
         index_t to = 0;
         Piece op = Empty;
 
+        static Bool const   enable_pawns = 0;
+        static Bool const enable_knights = 0;
+        static Bool const enable_bishops = 0;
+        static Bool const   enable_rooks = 0;
+        static Bool const  enable_queens = 0;
+        static Bool const   enable_kings = 0;
+
         switch (type) {
             default:
                 {
@@ -421,7 +428,7 @@ void add_all_moves() {
                 break;
 
             case Pawn:
-            if ((1)) {
+            if ((enable_pawns)) {
                 // see if we can move 1 spot in front of this pawn
                 to_col = col;
                 to_row = row + fwd;
@@ -528,7 +535,7 @@ void add_all_moves() {
                 break;
 
             case Knight:
-            if ((0)) {
+            if ((enable_knights)) {
                 for (unsigned i=0; i < ARRAYSZ(knight_offsets); i++) {
                     to_col = col + knight_offsets[i].x * fwd;
                     to_row = row + knight_offsets[i].y * fwd;
@@ -544,7 +551,7 @@ void add_all_moves() {
                 break;
 
             case Bishop:
-            if ((0)) {
+            if ((enable_bishops)) {
                 Bool continue_nw = 1;
                 Bool continue_ne = 1;
                 Bool continue_sw = 1;
@@ -640,7 +647,7 @@ void add_all_moves() {
                 break;
 
             case Rook:
-            if ((0)) {
+            if ((enable_rooks)) {
                 Bool continue_n = 1;
                 Bool continue_s = 1;
                 Bool continue_e = 1;
@@ -725,7 +732,7 @@ void add_all_moves() {
                 break;
 
             case Queen:
-            if ((0)) {
+            if ((enable_queens)) {
                 Bool continue_n = 1;
                 Bool continue_s = 1;
                 Bool continue_e = 1;
@@ -882,7 +889,7 @@ void add_all_moves() {
                 break;
 
             case King:
-            if ((0)) {
+            if ((enable_kings)) {
                 for (unsigned i=0; i < ARRAYSZ(king_offsets); i++) {
                     to_col = col + king_offsets[i].x * fwd;
                     to_row = row + king_offsets[i].y * fwd;
