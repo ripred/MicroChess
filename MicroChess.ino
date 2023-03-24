@@ -32,12 +32,13 @@
  * Added 'has moved' attributes
  * 
  * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
- * TODO:
+ * TODO: for version 1.9.0
  * 
  *  [+] move the offsets into PROGMEM. add accessor functions.
- *  [ ] add pawn promotion when they reach the last row.
+ *  [+] add pawn promotion when they reach the last row.
+ *  [+] move the move generation for each Piece type into it's own function.
+ *  [+] create a separate file for each piece
  *  [ ] add reading and writing of FEN notation.
- *  [ ] move the move generation for each Piece type into it's own function.
  *  [ ] add ply level awareness and minimax algorithm.
  *  [ ] add alpha-beta pruning.
  *  [ ] 
@@ -188,10 +189,10 @@ index_t find_piece(int const index) {
         index_t const board_index = loc.x + (loc.y * 8);
 
         static char const fmt[] PROGMEM = "game.pieces[%2d] = point_t(x:%d, y: %d) (%2d)\n";
-        printf(dbg + 1, fmt, piece_index, loc.x, loc.y, board_index);
+        printf(print_t(dbg + 1), fmt, piece_index, loc.x, loc.y, board_index);
         if (board_index == index) {
             static char const fmt[] PROGMEM = " returning %d\n";
-            printf(dbg + 1, fmt, piece_index);
+            printf(print_t(dbg + 1), fmt, piece_index);
             return piece_index;
         }
     }
@@ -212,7 +213,6 @@ long make_move(move_t const &move, Bool const restore)
     index_t const from = col + row * 8;
     Piece   const p = board.get(from);
     Color   const side = getSide(p);
-    Piece   const type = getType(p);
     Bool    const moved = hasMoved(p);
 
     index_t const to_col = move.to % 8;
@@ -237,7 +237,7 @@ long make_move(move_t const &move, Bool const restore)
         while ((1));
     }
 
-    // TODO: implement the way the other moves are implemented.
+    // TODO: implement en-passant captures the way the other moves are implemented.
     // checks for en-passant:
 
     // if (type == Pawn && otype == Empty && col != to_col) {  // en-passant capture
@@ -280,7 +280,14 @@ long make_move(move_t const &move, Bool const restore)
 
     // move our piece on the board
     board.set(from, Empty);
-    board.set(to, setMoved(p, 1));
+
+    // promote the pawn to a queen if it reached the back row
+    if (Pawn == getType(p) && (to_row == ((White == side) ? index_t(0) : index_t(7)))) {
+        board.set(to, setMoved(setType(p, Queen), 1));
+    }
+    else {
+        board.set(to, setMoved(p, 1));
+    }
 
     // move our piece in the piece list
     game.pieces[piece_index] = { to_col, to_row };
