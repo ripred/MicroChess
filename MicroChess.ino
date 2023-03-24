@@ -75,7 +75,8 @@ long evaluate(Color side)
     static uint8_t const mobility = 0x04u;
 
     // adjust as desired
-    static uint8_t const   filter = material | center | mobility;
+//  static uint8_t const   filter = material | center | mobility;
+    static uint8_t const   filter = material | center;
 
     static long const mobilityBonus = 3L;
     static long const   centerBonus = 5L;
@@ -145,31 +146,36 @@ long evaluate(Color side)
 }
 
 
+// find the piece index for a given board index
+index_t find_piece(int const index) {
+    // print_t dbg = game.move_num == 7 ? Debug1 : Debug3;
+    print_t dbg = Debug3;
+
+    static char const fmt[] PROGMEM = "find_piece(index: %2d) called, %2d total pieces\n";
+    printf(dbg, fmt, index, game.piece_count);
+
+    for (index_t piece_index = 0; piece_index < game.piece_count; piece_index++) {
+        point_t const &loc = game.pieces[piece_index];
+        index_t const board_index = loc.x + (loc.y * 8);
+
+        static char const fmt[] PROGMEM = "game.pieces[%2d] = point_t(x:%d, y: %d) (%2d)\n";
+        printf(dbg + 1, fmt, piece_index, loc.x, loc.y, board_index);
+        if (board_index == index) {
+            static char const fmt[] PROGMEM = " returning %d\n";
+            printf(dbg + 1, fmt, piece_index);
+            return piece_index;
+        }
+    }
+
+    // return an invalid position -> the index one past the available number
+    return -1;
+};
+
+
 ////////////////////////////////////////////////////////////////////////////////////////
 // move a piece on the board, taking a piece if necessary
 long make_move(move_t const &move, Bool const restore) 
 {
-    // lambda func to find the piece index for a given location
-    auto find_piece = [](int const index) -> index_t {
-        static char const fmt[] PROGMEM = "find_piece(index: %d) called\n";
-        printf(Debug3, fmt, index);
-
-        for (int i = 0; i < game.piece_count; i++) {
-            point_t const &loc = game.pieces[i];
-
-            static char const fmt[] PROGMEM = "game.pieces[%2d] = point_t(x:%d, y: %d)\n";
-            printf(Debug3, fmt, i, loc.x, loc.y);
-            if ((loc.x + (loc.y * 8)) == index) {
-                static char const fmt[] PROGMEM = " returning %d\n";
-                printf(Debug3, fmt, i);
-                return i;
-            }
-        }
-
-        // return an invalid position -> the index one past the available number
-        return game.piece_count;
-    };
-
     index_t const col = move.from % 8;
     index_t const row = move.from / 8;
     index_t const from = col + row * 8;
@@ -184,26 +190,22 @@ long make_move(move_t const &move, Bool const restore)
     Piece   const otype = getType(op);
     Color   const oside = getSide(op);
 
-    Bool piece_taken = 0;
+    index_t const orig_piece_count = game.piece_count;
+
+    // find piece in the list of pieces:
     index_t const piece_index = find_piece(from);
-
-    if (piece_index >= game.piece_count) {
+    if (piece_index < 0) {
         static char const fmt[] PROGMEM = 
-            "warning: could not find piece from move_t in pieces list: "
-            "col = %d, row = %d: assuming deleted \n\n";
-        printf(Debug1, fmt, col, row);
+            "error: could not find piece from move_t in pieces list: "
+            "col = %d, row = %d\n\n";
+        printf(Error, fmt, col, row);
 
-        return 0;
         // show();
-        // show_pieces();
-        // while ((1)) {}
+        // while ((1));
     }
 
-    point_t const taken = game.pieces[piece_index];
-
-
     // TODO: Add checks for en-passant
-    // update the taken pieces list (if necessary)
+    // Update the taken pieces list (if necessary)
 
     // if (type == Pawn && otype == Empty && col != to_col) {  // en-passant capture
     //     if (White == side) { game.taken1[game.taken_count1++] = p; }
@@ -217,18 +219,21 @@ long make_move(move_t const &move, Bool const restore)
     //     }
     // }
 
-
-    // see if the destination is not empty and not a piece on our side.
+    // See if the destination is not empty and not a piece on our side.
     // i.e. an opponent's piece.
+    index_t taken_index = -1;
     if (Empty != otype && side != oside) {
-        // store away the piece that is there now
-        game.piece_count--;
-        piece_taken = 1;
+        // remember the piece index of the piece being taken
+        taken_index = find_piece(to);
 
-        // replace the piece in the list of pieces with the
-        // last piece on the list (if this isn't the last):
-        if (game.piece_count != piece_index) {
-            game.pieces[piece_index] = game.pieces[game.piece_count];
+        // Decrement the piece count to point to the last entry
+        game.piece_count--;
+
+        // replace the taken piece in the piece list with the last piece
+        // in the piece list (remove it).
+        // ONLY if it is NOT the last piece in the list (that we just moved in the list)
+        if (taken_index != piece_index) {
+            game.pieces[taken_index] = game.pieces[game.piece_count];
         }
 
         // add the piece to the list of taken pieces
@@ -243,36 +248,36 @@ long make_move(move_t const &move, Bool const restore)
     // move our piece in the piece list
     game.pieces[piece_index] = { to_col, to_row };
 
-    // get the value of the current board
+    // get the value of the board after the move
     long const value = evaluate(side);
 
     // if this move is just being evaluated then put the pieces back
     if (restore) {
-        if (piece_taken) {
-            // printf(Debug2, level, "value for spot %d,%d is %ld\n", col, row, value);
-
-            // make sure the location we have is valid
-            if (taken.x < 0 || taken.y < 0) {
-                static char const fmt[] PROGMEM = "error: invalid saved point_t\n";
-                printf(Error, fmt);
-                show_pieces();
-                while ((1)) {}
-            }
-
+        // if we took a piece then restore it
+        if (taken_index != -1) {
             // restore the last piece in the piece list
-            game.pieces[game.piece_count++] = game.pieces[piece_index];
+            game.pieces[game.piece_count++] = game.pieces[taken_index];
+            game.pieces[taken_index] = { to_col, to_row };
 
-            // remove the piece from the takenpieces list
+            // remove the piece from the taken pieces list
             if (White == side) { game.taken_count1--; }
             else { game.taken_count2--; }
         }
 
-        // restore our piece in the piece list
-        game.pieces[piece_index] = taken;
-
         // put the pieces back where they were on the board
         board.set(from,    p);
         board.set(  to,   op);
+
+        game.pieces[piece_index] = { col, row };
+
+        if (orig_piece_count != game.piece_count) {
+            static char const fmt[] PROGMEM = 
+                "error: orig_piece_count: %d != game.piece_count: %d\n\n";
+            printf(Error, fmt, orig_piece_count, game.piece_count);
+
+            show();
+            while ((1));
+        }
     }
 
     return value;
@@ -290,14 +295,15 @@ long make_move(move_t const &move, Bool const restore)
 // 
 void evaluate_moves() 
 {
-    // fill in and sort game.moves1 in decending order
+    // lambda to fill in and sort game.moves1 in decending order
     auto compare = [](const void *a, const void *b) -> int {
         move_t const move_a = *((move_t*) a);
         move_t const move_b = *((move_t*) b);
-        return (move_a.value == move_b.value) ?  0 :
-            (move_a.value  < move_b.value) ? +1 : -1;
+        return (move_a.value == move_b.value) ?  
+            0 : (move_a.value  < move_b.value) ? +1 : -1;
     };
 
+    // lambda to fill in and sort game.moves1 in decending order
     auto reverse_compare = [](const void *a, const void *b) -> int {
         move_t const move_a = *((move_t*) a);
         move_t const move_b = *((move_t*) b);
@@ -305,6 +311,7 @@ void evaluate_moves()
             (move_a.value  < move_b.value) ? -1 : +1;
     };
 
+    // fill in and sort game.moves1 in decending order
     for (uint8_t ndx=0; ndx < game.move_count1; ++ndx) {
         move_t &move = game.moves1[ndx];
         move.value = make_move(move, 1);
@@ -440,22 +447,23 @@ void add_all_moves() {
                             to,     // to
                             0       // value
                         );
-                    }
-                }
 
-                // see if we can move 2 spots in front of this pawn
-                to_col = col;
-                to_row = row + fwd + fwd;
-                to = to_col + to_row * 8;
-                if (isValidPos(to_col, to_row)) {
-                    op = board.get(to);    // get piece at location 2 spots in front of pawn
-                    if (Empty == op) {
-                        add_move(
-                            side, 
-                            from,   // from
-                            to,     // to
-                            0       // value
-                        );
+
+                        // see if we can move 2 spots in front of this pawn
+                        to_col = col;
+                        to_row = row + fwd + fwd;
+                        to = to_col + to_row * 8;
+                        if (isValidPos(to_col, to_row)) {
+                            op = board.get(to);    // get piece at location 2 spots in front of pawn
+                            if (Empty == op) {
+                                add_move(
+                                    side, 
+                                    from,   // from
+                                    to,     // to
+                                    0       // value
+                                );
+                            }
+                        }
                     }
                 }
 
@@ -616,8 +624,6 @@ void play_game()
     // info();
 
     move_t move(-1, -1, 0);
-    long value = 0;
-
     // pick our next move
     do {
         if (White == game.turn) {
@@ -636,14 +642,6 @@ void play_game()
                 move = game.moves2[r];
             }
         }
-
-        if (move.from == -1 || move.to == -1) {
-            static char const fmt[] PROGMEM = "warning: invalid move at line %d in %s\n";
-            printf(Error, fmt, __LINE__, __FILE__);
-
-
-            // while ((1)) {}
-        }    
     } while ((move.from == -1 || move.to == -1) && game.move_count1 > 0 && game.move_count2 > 0);
 
     // display the move that we made
@@ -659,13 +657,19 @@ void play_game()
         static char const fmt[] PROGMEM = " taking a ";
         printf(Debug1, fmt);
         show_piece(op);
+
+        static char const fmt1[] PROGMEM = "\n\n";
+        printf(Debug1, fmt1);
     }
 
-    static char const fmt4[] PROGMEM = "\n\n";
-    printf(Debug1, fmt4);
+    // static char const fmt4[] PROGMEM = "\n\n";
+    // static char const fmt4[] PROGMEM = "\nabout to call make_move() with final move\n";
+    // printf(Debug1, fmt4);
 
-    value = make_move(move, 0);
-    move.value = value;
+    move.value = make_move(move, 0);
+
+    // static char const fmt5[] PROGMEM = "back from call to make_move()\n\n";
+    // printf(Debug1, fmt5);
 
     game.last_move = move;
 
@@ -686,7 +690,7 @@ void setup()
     Serial.begin(115200); while (!Serial); Serial.write('\n');
 
     // BUGBUG - enable random seed after program is debugged
-    randomSeed(analogRead(A0) + analogRead(A1));
+    // randomSeed(analogRead(A0) + analogRead(A1));
 
     Serial.println("starting..\n");
 
@@ -731,14 +735,16 @@ void show()
     static const char fmt3[] PROGMEM = " %c ";
     static const char fmt4[] PROGMEM = "%s";
     static const char fmt5[] PROGMEM = "    Taken %d: ";
-    static const char fmt6[] PROGMEM = "    Board value: %8ld : %s";
+    static const char fmt6[] PROGMEM = "    Board value: %8ld %s";
+
+    static const bool dev = true;
 
     long value = 0;
 
     index_t const offset = 1;
 
     for (unsigned char y = 0; y < 8; ++y) {
-        printf(Debug1, fmt2, '8' - y);
+        printf(Debug1, fmt2, dev ? ('0' + y) : ('8' - y));
         for (unsigned char x = 0; x < 8; ++x) {
             Piece const piece = board.get(y * 8 + x);
             printf(Debug1, fmt3, 
@@ -789,5 +795,6 @@ void show()
         }
         printf(Debug1, fmt1, '\n');
     }
-    printf(Debug1, fmt4, "   A  B  C  D  E  F  G  H\n\n");
+    printf(Debug1, fmt4, 
+        dev ? "   0  1  2  3  4  5  6  7\n\n" : "   A  B  C  D  E  F  G  H\n");
 }
