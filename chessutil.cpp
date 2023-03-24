@@ -202,56 +202,6 @@ void printMemoryStats() {
 }
 
 
-
-////////////////////////////////////////////////////////////////////////////////////////
-// display various stats and debug info
-void info() {
-    auto print_moves = [](Color side, move_t *moves, uint8_t count) -> void {
-        static char const fmt[] PROGMEM = "moves%c[%d] = {\n";
-        printf(Debug2, fmt, '2' - side, count);
-        for (uint8_t i = 0; i < count; ++i) {
-            index_t const from = moves[i].from;
-            Piece const p = board.get(from);
-            Color const side = getSide(p);
-
-            index_t const to = moves[i].to;
-            Piece const op = board.get(to);
-            Piece const otype = getType(op);
-            Color const oside = getSide(op);
-
-            static char const fmt[] PROGMEM = "    moves%c[%2d] = ";
-            printf(Debug2, fmt, '2' - side, i);
-            show_move(moves[i]);
-
-            if (Empty != otype) {
-                static char const fmt[] PROGMEM = " (captures %s %s)";
-                printf(Debug2, fmt, 
-                    White == oside ? "White" : "Black",
-                    Empty == otype ?  "Empty" :
-                     Pawn == otype ?   "Pawn" :
-                   Knight == otype ? "Knight" :
-                   Bishop == otype ? "Bishop" :
-                     Rook == otype ?   "Rook" :
-                    Queen == otype ?  "Queen" : 
-                                     "King");
-            }
-
-            static char const fmt2[] PROGMEM = " value: %ld\n";
-            printf(Debug2, fmt2, moves[i].value);
-        }
-        static char const fmt2[] PROGMEM = "};\n";
-        printf(Debug2, fmt2);
-    };
-
-    extern game_t game;
-
-    print_moves(White, game.moves1, game.move_count1);
-    print_moves(Black, game.moves2, game.move_count2);
-
-//  printMemoryStats();
-}
-
-
 void show_piece(Piece const p) 
 {
     Piece const type = getType(p);
