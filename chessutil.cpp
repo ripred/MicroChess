@@ -14,6 +14,8 @@
 
 print_t print_level = Debug1;
 
+// test case for the in-place isValidPos(...) macro
+// 
 // Bool isValidTest()
 // {
 // #ifdef TRACE_FAIL
@@ -44,64 +46,76 @@ print_t print_level = Debug1;
 // }
 
 
+// get the Type of a Piece
 Piece getType(Piece b) 
 {
     return Type & b;
 }
 
+
+// see if a Piece is Empty
 Bool isEmpty(Piece b) 
 {
     return getType(b) == Empty;
 }
 
 
+// get the value of a piece
 int getValue(Piece b) 
 {
     return pieceValues[getType(b)]; 
 }
 
 
+// get the side for a Piece
 Piece getSide(Piece b) 
 { 
     return (Side & b) >> 3u; 
 }
 
 
+// see if a Piece has moved
 Bool hasMoved(Piece b) 
 { 
     return (Moved & b) == Moved; 
 }
 
 
+// see if a Piece is in check
 Bool inCheck(Piece b) 
 { 
     return (Check & b) == Check; 
 }
 
 
+// set the Type of a Piece
 Piece setType(Piece b, Piece type) 
 { 
     return (b & ~Type) | (type & Type); 
 }
 
 
+// set the Color of a Piece
 Piece setSide(Piece b, Piece side) {
     return (b & ~Side) | ((side << 3u) & Side); 
 }
 
 
+// set or reset the flag indicating a Piece as moved
 Piece setMoved(Piece b, Bool hasMoved) 
 { 
     return (b & ~Moved) | (hasMoved ? Moved : 0); 
 }
 
 
+// set or reset the flag indicating a Piece is in check
 Piece setCheck(Piece b, Bool inCheck) 
 { 
     return (b & ~Check) | (inCheck ? Check : 0); 
 }
 
 
+// construct a Piece value
 Piece makeSpot(Piece type, Piece side, unsigned char moved, unsigned char inCheck) {
     return setType(0, type) | setSide(0, side) | setMoved(0, moved) | setCheck(0, inCheck);
 }
@@ -128,15 +142,15 @@ char *getColor(Piece b)
 }
 
 
-const char* addCommas(long int value) {
-    static char buff[16];
-    snprintf(buff, 16, "%ld", value);
-    for (int i = strlen(buff) - 3; i > 0; i -= 3) {
-        memmove(&buff[i + 1], &buff[i], strlen(buff) - i);
-        buff[i] = ',';
-    }
-    return buff;
-}
+// const char* addCommas(long int value) {
+//     static char buff[32];
+//     snprintf(buff, 32, "%ld", value);
+//     for (int i = strlen(buff) - 3; i > 0; i -= 3) {
+//         memmove(&buff[i + 1], &buff[i], strlen(buff) - i);
+//         buff[i] = ',';
+//     }
+//     return buff;
+// }
 
 int printf(print_t const required, char const * const progmem, ...) {
     char fmt[100] = "";
@@ -153,6 +167,7 @@ int printf(print_t const required, char const * const progmem, ...) {
     return 0;
 }
 
+// runtime memory usage functions
 #include <unistd.h>
 
 #ifdef __arm__
@@ -171,13 +186,6 @@ int freeMemory() {
 #else  // __arm__
     return __brkval ? &top - __brkval : &top - __malloc_heap_start;
 #endif  // __arm__
-}
-
-int freeMem() {
-    extern int __heap_start/*, *__brkval */;
-    int v;
-
-    return (int)&v - (__brkval == 0  ? (int)&__heap_start : (int) __brkval);
 }
 
 void printMemoryStats() {

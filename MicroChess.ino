@@ -37,13 +37,20 @@
  * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
  * TODO: for version 1.9.0
  * 
- *  [ ] add the ability turn off all output in order to time 
- *      the engine without waiting on serial i/o
- *  [ ] add castling
- *  [+] move the offsets into PROGMEM. add accessor functions.
+ *  [+] add the ability turn off all output in order to profile 
+ *      the engine without waiting on serial i/o.
+ *  [+] move the offsets into PROGMEM.
  *  [+] add pawn promotion to queen when reaching the last row.
  *  [+] move the move generation for each Piece type into it's own function.
- *  [+] create a separate file for each piece
+ *  [+] create a separate file for each piece.
+ *  [ ] add castling.
+ *  [ ] update the show_move(...) function to properly display when a pawn executes 
+ *      an en-passant capture.
+ *  [ ] 
+ * 
+ * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+ * TODO: for version 1.nn.0
+ * 
  *  [ ] add reading and writing of FEN notation.
  *  [ ] add ply level awareness and minimax algorithm.
  *  [ ] add alpha-beta pruning.
@@ -52,7 +59,6 @@
  * BUGBUGS: to fix!
  * 
  *  [ ] fix and test the new Rook, Bishop, Queen, and King pieces
- *  [ ] 
  *  [ ] 
  * 
  * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
@@ -668,18 +674,18 @@ void setup()
     static const char gtime[] PROGMEM = "total game time: %ld ms\n";
     printf(Debug1, gtime, game.stats.game_time);
 
-    static const char mmoves[] PROGMEM = "max move count = %d\n";
+    static const char mmoves[] PROGMEM = "max move count: %d\n";
     printf(Debug1, mmoves, game.stats.max_moves);
 
-    static const char gmoves[] PROGMEM = "total game moves = %d\n";
+    static const char gmoves[] PROGMEM = "total game moves evaluated: %d\n";
     printf(Debug1, gmoves, game.stats.moves_gen_game);
 
     char fstr[16]= "";
     double fmoves = game.stats.moves_gen_game;
     double ftime = game.stats.game_time;
-    dtostrf(fmoves / (ftime / 1000), 7, 3, fstr);
+    dtostrf(fmoves / (ftime / 1000), 8, 4, fstr);
 
-    static const char movessec[] PROGMEM = "moves per second = %s %s\n";
+    static const char movessec[] PROGMEM = "moves per second: %s %s\n";
     printf(Debug1, movessec, fstr, profiling ? "" : "(this includes waiting on the serial output)\n");
 }
 
