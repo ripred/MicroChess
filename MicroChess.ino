@@ -37,9 +37,11 @@
  * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
  * TODO: for version 1.9.0
  * 
+ *  [ ] add the ability turn off all output in order to time 
+ *      the engine without waiting on serial i/o
  *  [ ] add castling
  *  [+] move the offsets into PROGMEM. add accessor functions.
- *  [+] add pawn promotion when they reach the last row.
+ *  [+] add pawn promotion to queen when reaching the last row.
  *  [+] move the move generation for each Piece type into it's own function.
  *  [+] create a separate file for each piece
  *  [ ] add reading and writing of FEN notation.
@@ -608,8 +610,10 @@ void setup()
     Serial.begin(115200); while (!Serial); Serial.write('\n');
 
     // Enable random seed when program is debugged.
-    // Disable random seed to reproduce issues.
-    randomSeed(analogRead(A0) + analogRead(A1));
+    // Disable random seed to reproduce issues or to profile.
+    // randomSeed(analogRead(A0) + analogRead(A1) + micros());
+
+    level = None;
 
     Serial.println("starting..\n");
 
@@ -629,6 +633,8 @@ void setup()
 
     static const char fmt[] PROGMEM = "max move count = %d\n";
     printf(Debug1, fmt, game.max_moves);
+
+    Serial.println("finished.\n");
 }
 
 

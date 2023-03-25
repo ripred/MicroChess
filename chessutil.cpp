@@ -12,7 +12,7 @@
 #include "MicroChess.h"
 #include <stdarg.h>
 
-print_t const level = Debug1;
+print_t level = Debug1;
 
 // Bool isValidTest()
 // {

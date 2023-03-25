@@ -117,7 +117,7 @@ enum print_t {
 };
 
 // the global setting that affects the level of output detail
-extern print_t const level;
+extern print_t level;
 
 // macro to return the number of elements in an array of any data type
 #define  ARRAYSZ(A) (sizeof(A) / sizeof(*(A)))
@@ -223,8 +223,5 @@ void add_bishop_moves(index_t from, index_t col, index_t row, index_t fwd, Color
 void add_rook_moves(index_t from, index_t col, index_t row, index_t fwd, Color side);
 void add_queen_moves(index_t from, index_t col, index_t row, index_t fwd, Color side);
 void add_king_moves(index_t from, index_t col, index_t row, index_t fwd, Color side);
-
-
-
 
 #endif // MICROCHESS_INCL
