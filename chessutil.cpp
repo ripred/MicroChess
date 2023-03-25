@@ -12,7 +12,7 @@
 #include "MicroChess.h"
 #include <stdarg.h>
 
-print_t level = Debug1;
+print_t print_level = Debug1;
 
 // Bool isValidTest()
 // {
@@ -141,7 +141,7 @@ const char* addCommas(long int value) {
 int printf(print_t const required, char const * const progmem, ...) {
     char fmt[100] = "";
     for (int i = 0; fmt[i] = pgm_read_byte_near(progmem + i), fmt[i] != 0; i++) {}
-    if (level >= required) {
+    if (print_level >= required) {
         char buff[100] = "";
         va_list argList;
         va_start(argList, fmt);

@@ -630,14 +630,14 @@ void setup()
 
     if (profiling) {
         randomSeed(0);
-        level = None;
+        print_level = None;
 
         static const char proffmt[] PROGMEM = "profiling...\n";
         printf(Debug1, proffmt);
     } 
     else {
         randomSeed(analogRead(A0) + analogRead(A1) + micros());
-        level = Debug1;
+        print_level = Debug1;
     }
 
     Serial.println("starting..\n");
@@ -660,7 +660,7 @@ void setup()
 
     Serial.println("finished.\n");
 
-    level = Debug1;
+    print_level = Debug1;
 
     show();
 
@@ -679,8 +679,8 @@ void setup()
     double ftime = game.stats.game_time;
     dtostrf(fmoves / (ftime / 1000), 7, 3, fstr);
 
-    static const char movessec[] PROGMEM = "moves per second = %s\n";
-    printf(Debug1, movessec, fstr);
+    static const char movessec[] PROGMEM = "moves per second = %s %s\n";
+    printf(Debug1, movessec, fstr, profiling ? "" : "(this includes waiting on the serial output)\n");
 }
 
 

@@ -107,16 +107,17 @@ enum print_t {
     Never  =  0,        // never display
     None   =  0,
     Debug0, 
-    Debug1, 
-    Debug2, 
+    Debug1,             // Normal game output
+    Debug2,             // more verbose ..
     Debug3,
     Debug4,
-    Error  = 99,        // always display
-    Always = 99,
+    Error      = 99,    // always display
+    Always     = 99,
+    Everything = 99,
 };
 
 // the global setting that affects the level of output detail
-extern print_t level;
+extern print_t print_level;
 
 // macro to return the number of elements in an array of any data type
 #define  ARRAYSZ(A) (sizeof(A) / sizeof(*(A)))
