@@ -47,7 +47,6 @@ struct offset_t {
     index_t x, y;
 };
 
-
 ////////////////////////////////////////////////////////////////////////////////////////
 // the offsets a knight can move to
 static offset_t const knight_offsets[NUM_KNIGHT_OFFSETS] PROGMEM = {
@@ -70,7 +69,7 @@ static offset_t const bishop_offsets[NUM_BISHOP_OFFSETS] PROGMEM = {
     { -1, +1 }, { -2, +2 }, { -3, +3 }, { -4, +4 }, { -5, +5 }, { -6, +6 }, { -7, +7 },     // NW
     { +1, +1 }, { +2, +2 }, { +3, +3 }, { +4, +4 }, { +5, +5 }, { +6, +6 }, { +7, +7 },     // NE
     { -1, -1 }, { -2, -2 }, { -3, -3 }, { -4, -4 }, { -5, -5 }, { -6, -6 }, { -7, -7 },     // SW
-    { -1, +1 }, { -2, +2 }, { -3, +3 }, { -4, +4 }, { -5, +5 }, { -6, +6 }, { -7, +7 }      // SE
+    { +1, -1 }, { +2, -2 }, { +3, -3 }, { +4, -4 }, { +5, -5 }, { +6, -6 }, { +7, -7 }      // SE
 };
 
 ////////////////////////////////////////////////////////////////////////////////////////
@@ -83,7 +82,7 @@ static offset_t const queen_offsets[NUM_QUEEN_OFFSETS] = {
     { -1, +1 }, { -2, +2 }, { -3, +3 }, { -4, +4 }, { -5, +5 }, { -6, +6 }, { -7, +7 },     // NW
     { +1, +1 }, { +2, +2 }, { +3, +3 }, { +4, +4 }, { +5, +5 }, { +6, +6 }, { +7, +7 },     // NE
     { -1, -1 }, { -2, -2 }, { -3, -3 }, { -4, -4 }, { -5, -5 }, { -6, -6 }, { -7, -7 },     // SW
-    { -1, +1 }, { -2, +2 }, { -3, +3 }, { -4, +4 }, { -5, +5 }, { -6, +6 }, { -7, +7 }      // SE
+    { +1, -1 }, { +2, -2 }, { +3, -3 }, { +4, -4 }, { +5, -5 }, { +6, -6 }, { +7, -7 }      // SE
 };
 
 ////////////////////////////////////////////////////////////////////////////////////////
@@ -105,15 +104,15 @@ static offset_t const king_offsets[NUM_KING_OFFSETS] PROGMEM = {
 
 // print_t is used to set and control the output printing level
 enum print_t {
-    Error  =  0,        // always display
-    Always =  0,
+    Never  =  0,        // never display
+    None   =  0,
     Debug0, 
     Debug1, 
     Debug2, 
     Debug3,
     Debug4,
-    Never  = 99,        // never display
-    None   = 99,
+    Error  = 99,        // always display
+    Always = 99,
 };
 
 // the global setting that affects the level of output detail
