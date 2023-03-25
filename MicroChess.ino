@@ -1,6 +1,8 @@
 /**
  * ArduinoChess.ino
  * 
+ * the MicroChess project: https://github.com/ripred/MicroChess
+ * 
  * written March 2023 - Trent M. Wyatt
  * 
  * version 1.0.0
@@ -35,6 +37,7 @@
  * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
  * TODO: for version 1.9.0
  * 
+ *  [ ] add castling
  *  [+] move the offsets into PROGMEM. add accessor functions.
  *  [+] add pawn promotion when they reach the last row.
  *  [+] move the move generation for each Piece type into it's own function.
@@ -42,6 +45,12 @@
  *  [ ] add reading and writing of FEN notation.
  *  [ ] add ply level awareness and minimax algorithm.
  *  [ ] add alpha-beta pruning.
+ *  [ ] 
+ * 
+ * BUGBUGS: to fix!
+ * 
+ *  [ ] fix and test the new Rook, Bishop, Queen, and King pieces
+ *  [ ] 
  *  [ ] 
  * 
  * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
@@ -430,7 +439,7 @@ void add_all_moves() {
         }
 
         static Bool const   enable_pawns = 1;
-        static Bool const enable_knights = 0;
+        static Bool const enable_knights = 1;
         static Bool const enable_bishops = 0;
         static Bool const   enable_rooks = 0;
         static Bool const  enable_queens = 0;

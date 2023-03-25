@@ -1,6 +1,8 @@
 /**
  * board.h
  * 
+ * the MicroChess project: https://github.com/ripred/MicroChess
+ * 
  */
 #ifndef BOARD_INCL
 #define BOARD_INCL

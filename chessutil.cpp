@@ -1,6 +1,8 @@
 /**
  * chessutil.cpp
  * 
+ * the MicroChess project: https://github.com/ripred/MicroChess
+ * 
  * MicroChess utility functions
  * 
  */
