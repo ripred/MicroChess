@@ -1,6 +1,8 @@
 /**
  * king.cpp
  * 
+ * the MicroChess project: https://github.com/ripred/MicroChess
+ * 
  * move generation for kings
  * 
  */

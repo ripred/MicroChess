@@ -1,3 +1,11 @@
+/**
+ * board.cpp
+ * 
+ * the MicroChess project: https://github.com/ripred/MicroChess
+ * 
+ * implementation file for the board class
+ * 
+ */
 #include <Arduino.h>
 #include "MicroChess.h"
 #include "board.h"

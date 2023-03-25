@@ -1,6 +1,8 @@
 /**
  * move.h
  * 
+ * the MicroChess project: https://github.com/ripred/MicroChess
+ * 
  * header file for MicroChess
  * 
  */
