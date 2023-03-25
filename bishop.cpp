@@ -42,7 +42,7 @@ void add_bishop_moves(index_t from, index_t col, index_t row, index_t fwd, Color
                 }
             }
             else
-            if (xoff > 0 && yoff > 0 && continue_nw) { // going NE
+            if (xoff > 0 && yoff > 0 && continue_ne) { // going NE
                 index_t to = to_col + (to_row * 8);
                 Piece const op = board.get(to);
                 if (Empty == getType(op)) {
@@ -59,7 +59,7 @@ void add_bishop_moves(index_t from, index_t col, index_t row, index_t fwd, Color
                 }
             }
             else
-            if (xoff < 0 && yoff < 0 && continue_nw) { // going SW
+            if (xoff < 0 && yoff < 0 && continue_sw) { // going SW
                 index_t to = to_col + (to_row * 8);
                 Piece const op = board.get(to);
                 if (Empty == getType(op)) {
@@ -76,7 +76,7 @@ void add_bishop_moves(index_t from, index_t col, index_t row, index_t fwd, Color
                 }
             }
             else
-            if (xoff > 0 && yoff < 0 && continue_nw) { // going SE
+            if (xoff > 0 && yoff < 0 && continue_se) { // going SE
                 index_t to = to_col + (to_row * 8);
                 Piece const op = board.get(to);
                 if (Empty == getType(op)) {

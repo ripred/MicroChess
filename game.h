@@ -1,3 +1,4 @@
+#include "Arduino.h"
 /**
  * game.h
  * 
@@ -29,6 +30,85 @@ public:
 
 
 ////////////////////////////////////////////////////////////////////////////////////////
+// the statistics of a game
+struct stat_t {
+    // move counts
+    uint16_t    max_moves;                  // max moves generated during make_all_moves()
+
+    uint32_t    moves_gen_game;             // moves generated entire game
+
+    uint32_t    moves_gen_move_start;       // value of moves_gen_game on move start
+    uint32_t    moves_gen_move_end;         // value of moves_gen_game on move end
+    uint32_t    moves_gen_move_delta;       // total moves considered for this move
+
+    // time tracking
+    uint32_t    game_start;
+    uint32_t    game_end;
+    uint32_t    game_time;
+
+    uint32_t    move_start;
+    uint32_t    move_end;
+    uint32_t    move_time;
+
+    stat_t() {
+        init();
+    }
+
+    void init() {
+        max_moves = 0;
+
+        moves_gen_game = 0;
+
+        moves_gen_move_start = 0;
+        moves_gen_move_end = 0;
+        moves_gen_move_delta = 0;
+
+        game_start = 0;
+        game_end = 0;
+        game_time = 0;
+
+        move_start = 0;
+        move_end = 0;
+        move_time = 0;
+    }
+
+    void inc_moves_count() {
+        moves_gen_game++;
+    }
+
+    void start_game_stats() {
+        game_start = millis();
+        game_end = game_start;
+        game_time = 0;
+        moves_gen_game = 0;
+    }
+
+    void stop_game_stats() {
+        game_end = millis();
+        game_time = game_end - game_start;
+    }
+
+    void start_move_stats() {
+        move_start = millis();
+        move_end = move_start;
+        move_time = 0;
+
+        moves_gen_move_start = moves_gen_game;
+        moves_gen_move_end = moves_gen_move_start;
+        moves_gen_move_delta = 0;
+    }
+
+    void stop_move_stats() {
+        move_end = millis();
+        move_time = move_end - move_start;
+
+        moves_gen_move_end = moves_gen_game;
+        moves_gen_move_delta = moves_gen_move_end - moves_gen_move_start;
+    }
+
+};  // stat_t
+
+////////////////////////////////////////////////////////////////////////////////////////
 // the state of a game
 struct game_t 
 {
@@ -38,13 +118,13 @@ public:
     move_t    moves2[MAX_MOVES];
     Piece     taken1[16];
     Piece     taken2[16];
+    stat_t    stats;
     Bool      white_king_in_check;
     Bool      black_king_in_check;
     move_t    last_move;
     uint8_t   piece_count;
     uint8_t   move_count1;
     uint8_t   move_count2;
-    uint8_t   max_moves;
     uint8_t   taken_count1;
     uint8_t   taken_count2;
     uint8_t   eval_ndx,     // board index being currently evaluated
@@ -72,7 +152,7 @@ public:
         move_count1 = 0;
         move_count2 = 0;
 
-        max_moves = 0;
+        stats = stat_t();
 
         taken_count1 = 0;
         taken_count2 = 0;

@@ -217,6 +217,8 @@ index_t find_piece(int const index) {
 // 
 long make_move(move_t const &move, Bool const restore) 
 {
+    game.stats.inc_moves_count();
+
     index_t const col = move.from % 8;
     index_t const row = move.from / 8;
     index_t const from = col + row * 8;
@@ -435,7 +437,7 @@ void add_all_moves() {
             show_pieces();
             show();
             static const char fmt1[] PROGMEM = "max move count = %d\n";
-            printf(Debug1, fmt1, game.max_moves);
+            printf(Debug1, fmt1, game.stats.max_moves);
 
             while ((1)) {}
         }
@@ -518,12 +520,12 @@ void play_game()
     evaluate_moves();
 
     // track the max number of move entries we need for debugging
-    if (game.move_count1 > game.max_moves) {
-        game.max_moves = game.move_count1;
+    if (game.move_count1 > game.stats.max_moves) {
+        game.stats.max_moves = game.move_count1;
     }
 
-    if (game.move_count2 > game.max_moves) {
-        game.max_moves = game.move_count2;
+    if (game.move_count2 > game.stats.max_moves) {
+        game.stats.max_moves = game.move_count2;
     }
 
     move_t move(-1, -1, 0);
@@ -609,13 +611,27 @@ void setup()
 {
     Serial.begin(115200); while (!Serial); Serial.write('\n');
 
+    // set to 1 to disable output and profile the program
+    static Bool const profiling = 0;
+
     // Enable random seed when program is debugged.
     // Disable random seed to reproduce issues or to profile.
-    // randomSeed(analogRead(A0) + analogRead(A1) + micros());
 
-    level = None;
+    if (profiling) {
+        randomSeed(0);
+        level = None;
+
+        static const char proffmt[] PROGMEM = "profiling...\n";
+        printf(Debug1, proffmt);
+    } 
+    else {
+        randomSeed(analogRead(A0) + analogRead(A1) + micros());
+        level = Debug1;
+    }
 
     Serial.println("starting..\n");
+
+    game.stats.start_game_stats();
 
     // initialize the board and the game:
     board.init();
@@ -629,12 +645,31 @@ void setup()
         play_game();
     } while (!game.done);
 
-    show();
-
-    static const char fmt[] PROGMEM = "max move count = %d\n";
-    printf(Debug1, fmt, game.max_moves);
+    game.stats.stop_game_stats();
 
     Serial.println("finished.\n");
+
+    level = Debug1;
+
+    show();
+
+    // print out the game move counts and time statistics
+    static const char gtime[] PROGMEM = "total game time: %ld ms\n";
+    printf(Debug1, gtime, game.stats.game_time);
+
+    static const char mmoves[] PROGMEM = "max move count = %d\n";
+    printf(Debug1, mmoves, game.stats.max_moves);
+
+    static const char gmoves[] PROGMEM = "total game moves = %d\n";
+    printf(Debug1, gmoves, game.stats.moves_gen_game);
+
+    char fstr[16]= "";
+    double fmoves = game.stats.moves_gen_game;
+    double ftime = game.stats.game_time;
+    dtostrf(fmoves / (ftime / 1000), 7, 3, fstr);
+
+    static const char movessec[] PROGMEM = "moves per second = %s\n";
+    printf(Debug1, movessec, fstr);
 }
 
 
