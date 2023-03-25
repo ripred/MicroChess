@@ -129,8 +129,8 @@ public:
     uint8_t   taken_count2;
     uint8_t   eval_ndx,     // board index being currently evaluated
                   turn,     // 0 := Black, 1 := White
-              move_num,     // increasing move number
                   done;     // 1 := game over
+    uint16_t  move_num;     // increasing move number
 public:
     // constructor
     game_t()

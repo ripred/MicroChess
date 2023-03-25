@@ -550,14 +550,25 @@ void play_game()
         }
     } while ((move.from == -1 || move.to == -1) && game.move_count1 > 0 && game.move_count2 > 0);
 
-    // see if the game has been won:
+    // see if we've hit the move liimt (used for testing scenarios that never run out of moves)
+    static int const move_limit = 500;
+    if (game.move_num > move_limit) {
+        static char const fmt[] PROGMEM = "\nmove limit of %d exceeded\n";
+        printf(Debug1, fmt, move_limit);
+        game.done = 1;
+        return;
+    }
+
+    // see if we have a stalemate
     if (0 == game.move_count1 && 0 == game.move_count2) {
         static char const fmt[] PROGMEM = "\nStalemate!\n";
         printf(Debug1, fmt);
         game.done = 1;
         return;
     }
-    else if (0 == game.move_count1 || 0 == game.move_count2) {
+    
+    // see if the game has been won:
+    if (0 == game.move_count1 || 0 == game.move_count2) {
         static char const fmt[] PROGMEM = "\nCheckmate!\n";
         printf(Debug1, fmt);
         game.done = 1;
