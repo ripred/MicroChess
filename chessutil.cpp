@@ -14,38 +14,6 @@
 
 print_t print_level = Debug1;
 
-// test case for the in-place isValidPos(...) macro
-// 
-// Bool isValidTest()
-// {
-// #ifdef TRACE_FAIL
-//     auto trace = []() -> int {
-//         static char const fmt[] PROGMEM = "\nerror: failed isValidPos(x,y) test 1!\n\n";
-//         printf(Always, fmt);
-//         return 0;
-//     };
-// #else
-//     auto trace = []() -> int { return 0; };
-// #endif
-//     for (index_t y=0; y < 8; y++) {
-//         for (index_t x=0; x < 8; x++) {
-//             if (!isValidPos(x, y)) {
-//                 return trace();
-//             }
-//         }
-//     }
-
-//     if (isValidPos(-1, 0) || isValidPos(0, -1) || isValidPos(8, 0) || isValidPos(0, 8)) {
-//         return trace();
-//     }
-
-//     static char const fmt[] PROGMEM = "passed isValidPos(x,y) tests\n\n";
-//     printf(Debug2, fmt);
-
-//     return 1;
-// }
-
-
 // get the Type of a Piece
 Piece getType(Piece b) 
 {
@@ -212,12 +180,13 @@ void printMemoryStats() {
 }
 
 
+// display a Piece's color and type
 void show_piece(Piece const p) 
 {
     Piece const type = getType(p);
     Color const side = getSide(p);
 
-    static char const fmt[] PROGMEM = "%5s %s";
+    static char const fmt[] PROGMEM = "%s %s";
     printf(Debug1, fmt, 
         (Empty == type ?  "" : (White == side ?  "White" : "Black")), 
         (Empty == type ?  "Empty" :
@@ -228,6 +197,8 @@ void show_piece(Piece const p)
          Queen == type ?  "Queen" : "King"));
 }
 
+
+// debug function to display all of the point_t's in the game.pieces[game.piece_count] list:
 void show_pieces() 
 {
     static char const fmt1[] PROGMEM = "game.pieces[%2d] = {\n";
@@ -248,6 +219,7 @@ void show_pieces()
 }
 
 
+// display a piece being moved
 void show_move(move_t const &move) {
     index_t const    col = move.from % 8;
     index_t const    row = move.from / 8;
@@ -260,6 +232,6 @@ void show_move(move_t const &move) {
 
     static char const fmt[] PROGMEM = " from: %d,%d (%c%c) to: %d,%d (%c%c)";
     printf(Debug1, fmt, 
-        col,    row,       col + 'A', '8' -    row, 
+           col,    row,    col + 'A', '8' -    row, 
         to_col, to_row, to_col + 'A', '8' - to_row);
 }

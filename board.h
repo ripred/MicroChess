@@ -9,9 +9,10 @@
 
 #include <math.h>
 
+// equivelent to/shadows the Piece date type layout
 struct spot_t {
-    uint8_t  type : 3,     // one of the Piece types above
-             side : 1,     // one of the Color types above
+    uint8_t  type : 3,     // one of the Piece values
+             side : 1,     // one of the Color values
             moved : 1,     // 1 if moved
             check : 1;     // 1 if in check
 
@@ -22,7 +23,8 @@ struct spot_t {
 
 /***
  * board_t version 1
- *
+ * 
+ * simple. 64 bytes
  */
 struct board_t1 {
 private:
@@ -31,15 +33,16 @@ private:
     } rows[8];
 
 public:
-    Piece get(unsigned char index) const;
+    Piece get(index_t index) const;
 
-    void set(unsigned char index, Piece const piece);
+    void set(index_t index, Piece const piece);
 };
 
 
 /***
  * board_t version 2
  *
+ * 48 bytes
  */
 struct board_t2 {
 private:
@@ -87,9 +90,9 @@ private:
     } rows[8];
 
 public:
-    Piece get(unsigned char index) const;
+    Piece get(index_t index) const;
 
-    void set(unsigned char index, Piece const piece);
+    void set(index_t index, Piece const piece);
 };
 
 
@@ -98,13 +101,13 @@ private:
     board_t2  board;
 
 public:
-    Piece get(unsigned char index) const;
+    Piece get(index_t index) const;
 
-    void set(unsigned char index, Piece const piece);
+    void set(index_t index, Piece const piece);
     
     void init();
 
-    Piece getType(unsigned char from) const;
+    Piece getType(index_t from) const;
 };
 
 #endif // BOARD_INCL

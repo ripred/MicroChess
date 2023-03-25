@@ -94,13 +94,7 @@ static offset_t const king_offsets[NUM_KING_OFFSETS] PROGMEM = {
 
 ////////////////////////////////////////////////////////////////////////////////////////
 // macro to validate a location
-// #define DEBUG_TRACE
-#ifdef DEBUG_TRACE
-#define TRACE_FAIL (printf(Debug3, level, "Failed isValidPos(...) at line: %d in %s\n", __LINE__, __FILE__),0)
-#else
-#define TRACE_FAIL 1
-#endif
-#define  isValidPos(col, row) ((col >= 0 && col < 8 && row >= 0 && row < 8) ? 1 : (TRACE_FAIL,0))
+#define  isValidPos(col, row) ((col >= 0 && col < 8 && row >= 0 && row < 8))
 
 // print_t is used to set and control the output printing level
 enum print_t {

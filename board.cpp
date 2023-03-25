@@ -22,21 +22,21 @@ spot_t::spot_t(uint8_t t, uint8_t s, uint8_t m, uint8_t c) : type(t), side(s), m
 
 }
 
-Piece board_t1::get(unsigned char index) const 
+Piece board_t1::get(index_t index) const 
 {
     return *((Piece*) &rows[index / 8].cols[index % 8]);
 }
 
-void board_t1::set(unsigned char index, Piece const piece) 
+void board_t1::set(index_t index, Piece const piece) 
 {
     rows[index / 8].cols[index % 8] = piece;
 }    
 
 
-Piece board_t2::get(unsigned char index) const 
+Piece board_t2::get(index_t index) const 
 {
-    int const row = index / 8;
-    int const col = index % 8;
+    index_t const row = index / 8;
+    index_t const col = index % 8;
 
     board_t2::row_t const &r = rows[row];
     spot_t const &spot = 
@@ -47,12 +47,12 @@ Piece board_t2::get(unsigned char index) const
         4 == col ? spot_t(r.type5, r.side5, r.moved5, r.check5) :
         5 == col ? spot_t(r.type6, r.side6, r.moved6, r.check6) :
         6 == col ? spot_t(r.type7, r.side7, r.moved7, r.check7) :
-                    spot_t(r.type8, r.side8, r.moved8, r.check8);
+                   spot_t(r.type8, r.side8, r.moved8, r.check8);
 
     return *((Piece*) &spot);
 }
 
-void board_t2::set(unsigned char index, Piece const piece) 
+void board_t2::set(index_t index, Piece const piece) 
 {
     int const row = index / 8;
     int const col = index % 8;
@@ -117,12 +117,12 @@ void board_t2::set(unsigned char index, Piece const piece)
     }
 }
 
-Piece board_t::get(unsigned char index) const 
+Piece board_t::get(index_t index) const 
 {
     return board.get(index);
 }
 
-void board_t::set(unsigned char index, Piece const piece) 
+void board_t::set(index_t index, Piece const piece) 
 {
     board.set(index, piece);
 }    
@@ -164,7 +164,7 @@ void board_t::init() {
     set(63, makeSpot(  Rook, White, 0, 0));
 }
 
-Piece board_t::getType(unsigned char from) const 
+Piece board_t::getType(index_t from) const 
 {
     return getType(get(from));
 }

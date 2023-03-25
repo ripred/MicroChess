@@ -37,6 +37,10 @@
  * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
  * TODO: for version 1.9.0
  * 
+ *  [ ] create new macro for printf that automatically declares the
+ *      format string as a PROGMEM array behind the scenes without
+ *      requiring a PROGMEM to be decared at each use of printf(...)
+ *  [+] replace all checks for Empty == getType(p) with isEmpty(p)
  *  [+] add the ability turn off all output in order to profile 
  *      the engine without waiting on serial i/o.
  *  [+] move the offsets into PROGMEM.
@@ -120,10 +124,12 @@ long evaluate(Color side)
 
     // Adjust as desired
     // Note: Do not include mobility unless you are prepared to evaluate all moves
-    // for both sides for future plies. On the first pass when neither side has any moved
-    // this gives favor to White when the Black response moves have not been counted yet
+    // for both sides for future plies. On the first pass when neither side has any moves
+    // this gives favor to White when the Black response moves have not been generated yet
     static uint8_t const   filter = material | center;
 
+    // adjustable multipiers to alter importance of mobility or center proximity.
+    // season to taste
     static long const mobilityBonus = 3L;
     static long const   centerBonus = 5L;
 
@@ -135,17 +141,19 @@ long evaluate(Color side)
     // Gives more points for moves that are closer the center of the board
     auto centerEvaluator = [](index_t location, Piece piece) -> long {
         Piece type = getType(piece);
-        if (type == King)
-            return 0;  // let's not encourage the king to wander to the board center mmkay?
 
-        uint8_t dx = location % 8;
+        // let's not encourage the king to wander to the board center mmkay?
+        if (King == type) return 0;
+
+        index_t dx = location % 8;
         if (dx > 3) dx = 7 - dx;
-        uint8_t dy = location / 8;
+        index_t dy = location / 8;
         if (dy > 3) dy = 7 - dy;
 
         return static_cast<long>((dx + dy) * type);
     };
 
+    // calculate the value of the board
     long materialTotal = 0L;
     long mobilityTotal = 0L;
     long centerTotal = 0L;
@@ -154,7 +162,7 @@ long evaluate(Color side)
 
     // enumerate over the pieces on the board if necessary
     if ((filter & material) || (filter & center)) {
-        for (uint8_t piece_index = 0; piece_index < game.piece_count; piece_index++) {
+        for (index_t piece_index = 0; piece_index < game.piece_count; piece_index++) {
             index_t const board_index = game.pieces[piece_index].x + game.pieces[piece_index].y * 8;
             Piece const p = board.get(board_index);
             sideFactor = (Black == getSide(p)) ? -1 : 1;
@@ -257,12 +265,12 @@ long make_move(move_t const &move, Bool const restore)
     // TODO: implement en-passant captures the way the other moves are implemented.
     // checks for en-passant:
 
-    // if (type == Pawn && otype == Empty && col != to_col) {  // en-passant capture
+    // if (type == Pawn && isEmpty(otype) && col != to_col) {  // en-passant capture
     //     if (White == side) { game.taken1[game.taken_count1++] = p; }
     //     else { game.taken2[game.taken_count2++] = p; }
     //     board.set(to_col + row * 8, Empty);
     // } else {
-    //     if (otype != Empty) {
+    //     if (!isEmpty(otype)) {
     //         // This move captures a piece
     //         if (White == side) { game.taken1[game.taken_count1++] = p; }
     //         else { game.taken2[game.taken_count2++] = op; }
@@ -272,7 +280,7 @@ long make_move(move_t const &move, Bool const restore)
     // See if the destination is not empty and not a piece on our side.
     // i.e. an opponent's piece.
     index_t taken_index = -1;
-    if (Empty != otype && side != oside) {
+    if (!isEmpty(otype) && side != oside) {
         // remember the piece index of the piece being taken
         taken_index = find_piece(to);
 
@@ -333,7 +341,7 @@ long make_move(move_t const &move, Bool const restore)
         board.set(from, setMoved(p, moved));
 
         // put any piece back that we took and set it to being in check
-        if (Empty == otype) {
+        if (isEmpty(otype)) {
             board.set(to, Empty);
         }
         else if (side != oside) {
@@ -435,7 +443,7 @@ void add_all_moves() {
             col, row, 
             getColor(p), getName(p));
 
-        if (Empty == type) {
+        if (isEmpty(type)) {
             static char const fmt[] PROGMEM = 
                 "error: Empty piece in piece list: game.eval_ndx = %d, board index = %d\n";
             printf(Error, fmt, game.eval_ndx, from);
@@ -600,7 +608,7 @@ void play_game()
     printf(Debug1, fmt3, game.move_num + 1);
     show_move(move);
 
-    if (Empty != otype) {
+    if (!isEmpty(otype)) {
         static char const fmt[] PROGMEM = " taking a ";
         printf(Debug1, fmt);
         show_piece(op);
@@ -631,18 +639,21 @@ void setup()
     // set to 1 to disable output and profile the program
     static Bool const profiling = 0;
 
+    // game hash
+    uint32_t seed = 0x232F89A3;
+
     // Enable random seed when program is debugged.
     // Disable random seed to reproduce issues or to profile.
 
     if (profiling) {
-        randomSeed(0);
+        static const char proffmt[] PROGMEM = "game hash: %08X, profiling...\n";
+        printf(Debug1, proffmt, seed);
+        randomSeed(seed);
         print_level = None;
-
-        static const char proffmt[] PROGMEM = "profiling...\n";
-        printf(Debug1, proffmt);
     } 
     else {
-        randomSeed(analogRead(A0) + analogRead(A1) + micros());
+        seed = analogRead(A0) + analogRead(A1) + micros();
+        randomSeed(seed);
         print_level = Debug1;
     }
 
@@ -654,10 +665,6 @@ void setup()
     board.init();
     game.init();
 
-    // if (!isValidTest()) {
-    //     while ((1)) {}
-    // }
-
     do {
         play_game();
     } while (!game.done);
@@ -668,6 +675,7 @@ void setup()
 
     print_level = Debug1;
 
+    // show the final board    
     show();
 
     // print out the game move counts and time statistics
@@ -701,13 +709,13 @@ void loop()
 // display the game board
 void show()
 {
-    static const char icons[] = "pnbrqkPNBRQK";
-    static const char fmt1[] PROGMEM = "%c";
-    static const char fmt2[] PROGMEM = "%c ";
-    static const char fmt3[] PROGMEM = " %c ";
-    static const char fmt4[] PROGMEM = "%s";
-    static const char fmt5[] PROGMEM = "    Taken %d: ";
-    static const char fmt6[] PROGMEM = "    Board value: %8ld %s";
+    static char const icons[] = "pnbrqkPNBRQK";
+    static char const fmt1[] PROGMEM = "%c";
+    static char const fmt2[] PROGMEM = "%c ";
+    static char const fmt3[] PROGMEM = " %c ";
+    static char const fmt4[] PROGMEM = "%s";
+    static char const fmt5[] PROGMEM = "    Taken %d: ";
+    static char const fmt6[] PROGMEM = "    Board value: %8ld %s";
 
     static const bool dev = true;
 
@@ -720,7 +728,7 @@ void show()
         for (unsigned char x = 0; x < 8; ++x) {
             Piece const piece = board.get(y * 8 + x);
             printf(Debug1, fmt3, 
-                (Empty == getType(piece)) ? ((y ^ x) & 1 ? '.' : '*') :
+                isEmpty(piece) ? ((y ^ x) & 1 ? '.' : '*') :
                 icons[((getSide(piece) * 6) + getType(piece) - 1)]);
         }
 
