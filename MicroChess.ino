@@ -350,10 +350,10 @@ long make_move(move_t const &move, Bool const restore)
 
             if (King == otype) {
                 if (White == oside) {
-                    game.white_king_in_check = 1;
+                    game.white_king_in_check = True;
                 }
                 else {
-                    game.black_king_in_check = 1;
+                    game.black_king_in_check = True;
                 }
             }
         }
@@ -403,8 +403,8 @@ void evaluate_moves()
     };
 
     // reset the king-in-check flags
-    game.white_king_in_check = 0;
-    game.black_king_in_check = 0;
+    game.white_king_in_check = False;
+    game.black_king_in_check = False;
 
     // fill in and sort game.moves1 in decending order
     for (uint8_t ndx=0; ndx < game.move_count1; ++ndx) {
@@ -456,12 +456,12 @@ void add_all_moves() {
             while ((1)) {}
         }
 
-        static Bool const   enable_pawns = 1;
-        static Bool const enable_knights = 1;
-        static Bool const enable_bishops = 0;
-        static Bool const   enable_rooks = 0;
-        static Bool const  enable_queens = 0;
-        static Bool const   enable_kings = 0;
+        static Bool const   enable_pawns = True;
+        static Bool const enable_knights = True;
+        static Bool const enable_bishops = False;
+        static Bool const   enable_rooks = False;
+        static Bool const  enable_queens = False;
+        static Bool const   enable_kings = False;
 
         switch (type) {
             default:
@@ -569,7 +569,7 @@ void play_game()
     if (game.move_num > move_limit) {
         static char const fmt[] PROGMEM = "\nmove limit of %d exceeded\n";
         printf(Debug1, fmt, move_limit);
-        game.done = 1;
+        game.done = True;
         return;
     }
 
@@ -577,7 +577,7 @@ void play_game()
     if (0 == game.move_count1 && 0 == game.move_count2) {
         static char const fmt[] PROGMEM = "\nStalemate!\n";
         printf(Debug1, fmt);
-        game.done = 1;
+        game.done = True;
         return;
     }
     
@@ -585,7 +585,7 @@ void play_game()
     if (0 == game.move_count1 || 0 == game.move_count2) {
         static char const fmt[] PROGMEM = "\nCheckmate!\n";
         printf(Debug1, fmt);
-        game.done = 1;
+        game.done = True;
 
         if (0 == game.move_count1) {
             static char const fmt[] PROGMEM = "\nWhite as no moves.\nBlack wins!\n";
@@ -637,7 +637,7 @@ void setup()
     Serial.begin(115200); while (!Serial); Serial.write('\n');
 
     // set to 1 to disable output and profile the program
-    static Bool const profiling = 0;
+    static Bool const profiling = True;
 
     // game hash
     uint32_t seed = 0x232F89A3;

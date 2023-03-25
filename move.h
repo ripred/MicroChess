@@ -21,9 +21,6 @@ public:
 public:
     move_t() : from(0), to(0), value(0) { }
     move_t(index_t f, index_t t, long v) : from(f), to(t), value(v) {
-        // if (!isValidPos(f%8,f/8) || !isValidPos(t%8,t/8)) {
-        //     printf(Always, "error: adding invalid move %d, %d to %d, %d\n", f%8,f/8, t%8,t/8);
-        // }
     }
 
 };

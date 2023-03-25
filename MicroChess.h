@@ -124,6 +124,10 @@ extern print_t print_level;
 static unsigned const BOARD_SIZE = 64u;
 
 // The two sides
+static Bool const True  = 1u;
+static Bool const False = 0u;
+
+// The two sides
 static Color const White = 1u;
 static Color const Black = 0u;
 

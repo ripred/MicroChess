@@ -121,9 +121,10 @@ char *getColor(Piece b)
 // }
 
 int printf(print_t const required, char const * const progmem, ...) {
-    char fmt[100] = "";
-    for (int i = 0; fmt[i] = pgm_read_byte_near(progmem + i), fmt[i] != 0; i++) {}
     if (print_level >= required) {
+        char fmt[100] = "";
+        for (int i = 0; fmt[i] = pgm_read_byte_near(progmem + i), fmt[i] != 0; i++) {}
+        
         char buff[100] = "";
         va_list argList;
         va_start(argList, fmt);
