@@ -30,7 +30,7 @@ enum
     MAX_PIECES    = 32,
     MAX_MOVES     = 106,         // R:11 N:8 B:11 Q:22 K:8 B:11 N:8 R:11 P:16 == 106
 
-    NUM_BITS_PT   =   5,        // bits per field in point_t struct
+    NUM_BITS_PT   =   4,        // bits per field in point_t struct
     NUM_BITS_SPOT =   7,        // bits per field in move_t struct
 
     NUM_KNIGHT_OFFSETS =  8,    // number of offsets to check for knight moves
@@ -72,7 +72,7 @@ extern print_t print_level;
 #define  ARRAYSZ(A) (sizeof(A) / sizeof(*(A)))
 
 // The max and min range for piece values
-#define  MAX_VALUE ((long const)( 0b00000010000000))    // half the value of number of bits the 'value' field in move_t has
+#define  MAX_VALUE ((long const)( 0b0000100000000000))    // half the value of number of bits the 'value' field in move_t has
 #define  MIN_VALUE ((long const)(0 - MAX_VALUE))
 
 // the number of locations on the game board
@@ -174,6 +174,35 @@ void show_pieces();
 void show_piece(Piece const p);
 
 extern game_t game;
+
+struct conv1_t {
+    union {
+        struct {
+             uint8_t  col : 3,
+                      row : 3,
+                     type : 3,
+                     side : 1;
+        } pt;
+        struct {
+            uint8_t index : 6,
+                     type : 3,
+                     side : 1;
+        } ndx;
+    } u;
+
+    conv1_t() : u{ 0, 0, Empty, Black } {}
+    conv1_t(uint8_t index) { u.ndx = { index, Empty, Black  }; }
+    conv1_t(uint8_t index, uint8_t type, uint8_t side) { u.ndx = { index, type, side }; }
+    conv1_t(uint8_t col, uint8_t row) : u{ col, row, Empty, Black } {}
+
+};  // conv1_t
+
+struct conv2_t {
+    conv1_t from, to;
+
+    conv2_t() {}
+    conv2_t(uint8_t from, uint8_t to) : from(from), to(to){}
+};
 
 void add_move(Color side, index_t from, index_t to, long value);
 void add_pawn_moves(Piece p, index_t from, index_t fwd, Color side);

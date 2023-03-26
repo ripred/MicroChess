@@ -102,12 +102,23 @@ void show_stats(Bool profiling = False) {
 // add a move to the move list: game.moves1 (White) or game.moves2 (Black), 
 // depending on the color of the piece.
 void add_move(Color side, index_t from, index_t to, long value) 
+// void add_move(move_t &move) 
 {
-    printf(Debug3, "call to add_move(from: %d,%d, to: %d,%d)\n", from%8,from/8, to%8,to/8);
+    conv2_t m(from, to);
+    m.from.u.ndx.side = getSide(board.get(from));
+    m.to.u.ndx.side = getSide(board.get(to));
+
+    move_t move(from, to, value);
+
+    printf(Debug3, "call to add_move(from: %d,%d, to: %d,%d)\n", 
+        m.from.u.pt.col,
+        m.from.u.pt.row,
+        m.to.u.pt.col,
+        m.to.u.pt.row);
 
     if (White == side) {
         if (game.move_count1 < MAX_MOVES) {
-            game.moves1[game.move_count1++] = { from, to, value };
+            game.moves1[game.move_count1++] = move;
         }
         else {
             printf(Debug1, "attempt to add too many move1\n");
@@ -115,7 +126,7 @@ void add_move(Color side, index_t from, index_t to, long value)
     }
     else {
         if (game.move_count2 < MAX_MOVES) {
-            game.moves2[game.move_count2++] = { from, to, value };
+            game.moves2[game.move_count2++] = move;
         }
         else {
             printf(Debug1, "attempt to add too many move2\n");
@@ -281,25 +292,21 @@ index_t find_piece(int const index) {
     return -1;
 };
 
-
-////////////////////////////////////////////////////////////////////////////////////////
-// move a piece on the board, taking a piece if necessary.
-// If 'restore' != 0 then we put the piece(s) bac after evaluating the move value
-// 
-long make_move(move_t const &move, Bool const restore) 
+#if 1
+long make_move(move_t const &move, Bool const restore = True) 
 {
     game.stats.inc_moves_count();
 
     index_t const col = move.from % 8;
     index_t const row = move.from / 8;
-    index_t const from = col + row * 8;
+    index_t const from = move.from;
     Piece   const p = board.get(from);
     Color   const side = getSide(p);
     Bool    const moved = hasMoved(p);
 
     index_t const to_col = move.to % 8;
     index_t const to_row = move.to / 8;
-    index_t const to = to_col + to_row * 8;
+    index_t const to = move.to;
     Piece         op = board.get(to);
     Piece   const otype = getType(op);
     Color   const oside = getSide(op);
@@ -435,6 +442,156 @@ long make_move(move_t const &move, Bool const restore)
     return value;
 }
 
+#else
+
+////////////////////////////////////////////////////////////////////////////////////////
+// move a piece on the board, taking a piece if necessary.
+// If 'restore' != 0 then we put the piece(s) bac after evaluating the move value
+// 
+long make_move(move_t const &move, Bool const restore) 
+{
+    game.stats.inc_moves_count();
+
+    conv2_t m(move.from, move.to);
+    Piece const p = board.get(move.from);
+    m.from.u.ndx.side = getSide(p);
+    Bool const moved = hasMoved(p);
+    Piece op = board.get(move.to);
+    m.to.u.ndx.type = getType(op);
+    m.to.u.ndx.side = getSide(op);
+
+    // for debugging; remove when finished validating capture restores
+    index_t const orig_piece_count = game.piece_count;
+
+    // find piece in the list of pieces:
+    index_t const piece_index = find_piece(m.from.u.ndx.index);
+    if (piece_index < 0) {
+        printf(Error, 
+            "error in make_move(...): could not find piece from move_t in pieces list: "
+            "col = %d, row = %d\n\n",
+            m.from.u.pt.col, m.from.u.pt.row);
+
+        print_level = Debug1;
+        show();
+        show_stats();
+        while ((1)) {}
+    }
+
+    // TODO: implement en-passant captures the way the other moves are implemented.
+    // checks for en-passant:
+
+    // if (type == Pawn && isEmpty(otype) && col != to_col) {  // en-passant capture
+    //     if (White == side) { game.taken1[game.taken_count1++] = p; }
+    //     else { game.taken2[game.taken_count2++] = p; }
+    //     board.set(to_col + row * 8, Empty);
+    // } else {
+    //     if (!isEmpty(otype)) {
+    //         // This move captures a piece
+    //         if (White == side) { game.taken1[game.taken_count1++] = p; }
+    //         else { game.taken2[game.taken_count2++] = op; }
+    //     }
+    // }
+
+    // See if the destination is not empty and not a piece on our side.
+    // i.e. an opponent's piece.
+    index_t taken_index = -1;
+    if (!isEmpty(m.to.u.pt.type) && m.from.u.pt.side != m.to.u.pt.side) {
+        // remember the piece index of the piece being taken
+        taken_index = find_piece(move.to);
+
+        // Decrement the piece count to point to the last entry
+        game.piece_count--;
+
+        // replace the taken piece in the piece list with the last piece
+        // in the piece list (remove it).
+        // ONLY if it is NOT the last piece in the list (that we just moved in the list)
+        if (taken_index != piece_index) {
+            game.pieces[taken_index] = game.pieces[game.piece_count];
+        }
+
+        // add the piece to the list of taken pieces
+        if (White == m.from.u.pt.side) {
+            game.taken1[game.taken_count1++] = op;
+        }
+        else {
+            game.taken2[game.taken_count2++] = op;
+        }
+    }
+
+    // move our piece on the board
+    board.set(m.from.u.ndx.index, Empty);
+
+    // promote the pawn to a queen if it reached the back row
+    if (Pawn == m.from.u.ndx.type && (m.to.u.pt.row == ((White == m.from.u.ndx.side) ? index_t(0) : index_t(7)))) {
+        board.set(move.to, setMoved(setType(p, Queen), True));
+    }
+    else {
+        board.set(move.to, setMoved(p, True));
+    }
+
+    // move our piece in the piece list
+    game.pieces[piece_index] = { m.to.u.pt.col, m.to.u.pt.row };
+
+    // get the value of the board after the move
+    long const value = evaluate(m.from.u.ndx.side);
+
+    // if this move is just being evaluated then put the pieces back
+    if (restore) {
+        // if we took a piece then restore it
+        if (taken_index != -1) {
+            // restore the last piece in the piece list
+            game.pieces[game.piece_count++] = game.pieces[taken_index];
+            game.pieces[taken_index] = { m.to.u.pt.col, m.to.u.pt.row };
+
+            // remove the piece from the taken pieces list
+            if (White == m.from.u.ndx.side) {
+                game.taken_count1--;
+            }
+            else {
+                game.taken_count2--;
+            }
+        }
+
+        // put the pieces back where they were on the board
+        board.set(move.from, setMoved(p, moved));
+
+        // put any piece back that we took and set it to being in check
+        if (isEmpty(m.to.u.ndx.type)) {
+            board.set(move.to, Empty);
+        }
+        else if (m.from.u.ndx.side != m.to.u.ndx.side) {
+            op = setCheck(op, True);
+            board.set(move.to, op);
+
+            if (King == m.to.u.ndx.type) {
+                if (White == m.to.u.ndx.side) {
+                    game.white_king_in_check = True;
+                }
+                else {
+                    game.black_king_in_check = True;
+                }
+            }
+        }
+
+        // restore the position of the piece we moved in the piece list
+        game.pieces[piece_index] = { m.from.u.pt.col, m.from.u.pt.row };
+
+        if (orig_piece_count != game.piece_count) {
+            printf(Error, 
+                "error: orig_piece_count: %d != game.piece_count: %d\n\n", 
+                orig_piece_count, game.piece_count);
+
+            print_level = Debug1;
+            show();
+            show_stats();
+            while ((1)) {}
+        }
+    }
+
+    return value;
+}
+
+#endif
 
 ////////////////////////////////////////////////////////////////////////////////////////
 // Go through both list of moves (game.moves1 and game.moves2) and get a valuation for
@@ -470,14 +627,14 @@ void evaluate_moves()
     // fill in and sort game.moves1 in decending order
     for (uint8_t ndx=0; ndx < game.move_count1; ++ndx) {
         move_t &move = game.moves1[ndx];
-        move.value = make_move(move, True);
+        move.value = make_move(move);
     }
     qsort(game.moves1, game.move_count1, sizeof(long), compare);
 
     // fill in and sort game.moves2 in decending order
     for (uint8_t ndx=0; ndx < game.move_count2; ++ndx) {
         move_t &move = game.moves2[ndx];
-        move.value = make_move(move, True);
+        move.value = make_move(move);
     }
     qsort(game.moves2, game.move_count2, sizeof(long), reverse_compare);
 }
@@ -649,19 +806,25 @@ void play_game()
     // Make the move:
     move.value = make_move(move, False);
 
-    // remove the move from the move list
-    index_t removed = remove_move(game.turn, move.from);
-    if (0 == removed) {
-        print_level = Debug1;
-        printf(Error, "failed to remove move from %d to %d from move list\n", move.from, move.to);
-        show_stats();
-        while ((1)) {}
-    }
-    else {
-        printf(Debug2, "removed %d moves from move list\n", removed);
-    }
+    // // remove the move from the move list
+    // index_t removed = remove_move(game.turn, move.from);
+    // if (0 == removed) {
+    //     print_level = Debug1;
+    //     printf(Error, "failed to remove move from %d to %d from move list\n", move.from, move.to);
+    //     show_stats();
+    //     while ((1)) {}
+    // }
+    // else {
+    //     printf(Debug2, "removed %d moves from move list\n", removed);
+    // }
 
     // force re-examination of check states
+
+    // clear the list of moves
+    game.move_count1 = 0;
+    game.move_count2 = 0;
+
+    add_all_moves();
     evaluate_moves();
 
     if (game.white_king_in_check) {
@@ -689,12 +852,29 @@ void play_game()
 }
 
 
+void test_conv_t() {
+    printf(Debug1, "sizeof(conv1_t): %d\n", sizeof(conv1_t))
+    conv1_t cnv1;
+    cnv1.u.pt = { 3, 5, 0, 0 };
+    printf(Debug1, "point: %d,%d index: %d\n", cnv1.u.pt.col, cnv1.u.pt.row, cnv1.u.ndx.index);
+
+    printf(Debug1, "sizeof(conv2_t): %d\n", sizeof(conv2_t))
+    conv2_t cnv2;
+    cnv2.from.u.pt = { 3, 5, 0, 0 };
+    cnv2.to.u.pt = { 7, 7, 0, 0 };
+    printf(Debug1, "from point: %d,%d index: %d to point: %d,%d index: %d\n", 
+        cnv2.from.u.pt.col, cnv2.from.u.pt.row, cnv2.from.u.ndx.index,
+        cnv2.to.u.pt.col, cnv2.to.u.pt.row, cnv2.to.u.ndx.index);
+}
+
 ////////////////////////////////////////////////////////////////////////////////////////
 void setup() 
 {
     Serial.begin(115200); while (!Serial); Serial.write('\n');
 
     Serial.println("starting..\n");
+
+    // test_conv_t();
 
     // set to 1 to disable output and profile the program
     static Bool profiling = False;
@@ -813,11 +993,8 @@ void show()
             // display the current score
             case offset + 5:
                 value = evaluate(game.turn);
-                printf(Debug1, "    Board value: %8ld %s", 
-                value, 
-                (value == 0) ? "" : 
-                (value  < 0) ? "Black's favor" : 
-                                "White's favor");
+                printf(Debug1, "    Board value: %8ld %s", value, (value == 0) ? "" : 
+                    (value  < 0) ? "Black's favor" : "White's favor");
                 break;
         }
         printf(Debug1, "%c", '\n');
