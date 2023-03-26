@@ -697,7 +697,7 @@ void setup()
     Serial.println("starting..\n");
 
     // set to 1 to disable output and profile the program
-    static Bool profiling = True;
+    static Bool profiling = False;
     static Bool useRandom = False;
 
     // game hash
