@@ -120,16 +120,17 @@ char *getColor(Piece b)
 //     return buff;
 // }
 
-int printf(print_t const required, char const * const progmem, ...) {
+int debug(print_t const required, char const * const progmem, ...) {
     if (print_level >= required) {
-        char fmt[100] = "";
-        for (int i = 0; fmt[i] = pgm_read_byte_near(progmem + i), fmt[i] != 0; i++) {}
+        char fmt[128];
+        strcpy_P(fmt, progmem);
         
-        char buff[100] = "";
+        char buff[128];
         va_list argList;
         va_start(argList, fmt);
         vsnprintf(buff, ARRAYSZ(buff), fmt, argList);
         va_end(argList);
+
         return Serial.write(buff, strlen(buff));
     }
 
@@ -165,19 +166,17 @@ void printMemoryStats() {
     int freeRam = freeMemory();
     int usedRam = totalRam - freeRam;
 
-    static char const fmt1[] PROGMEM = "Total SRAM = %d\n";
-    printf(Debug2, fmt1, totalRam);
-    static char const fmt2[] PROGMEM = "Free SRAM = %d\n";
-    printf(Debug2, fmt2, freeRam);
-    static char const fmt3[] PROGMEM = "Used SRAM = %d\n";
-    printf(Debug2, fmt3, usedRam);
+    printf(Debug2, "Total SRAM = %d\n", totalRam);
+    printf(Debug2, "Free SRAM = %d\n", freeRam);
+    printf(Debug2, "Used SRAM = %d\n", usedRam);
 
-    static char const fmt4[] PROGMEM = "sizeof(move_t) = %d\n";
-    printf(Debug2, fmt4, sizeof(move_t));
-    static char const fmt5[] PROGMEM = "meaning there is room for %d more move_t entries.\n";
-    printf(Debug2, fmt5, freeRam / sizeof(move_t) );
-    static char const fmt6[] PROGMEM = "or %d more move_t entries per move list.\n";
-    printf(Debug2, fmt6, ((freeRam / sizeof(move_t)) / 2) );
+    printf(Debug2, "sizeof(move_t) = %d\n", sizeof(move_t));
+    printf(Debug2, 
+        "meaning there is room for %d more move_t entries.\n", 
+        freeRam / sizeof(move_t) );
+    printf(Debug2, 
+        "or %d more move_t entries per move list.\n", 
+        ((freeRam / sizeof(move_t)) / 2) );
 }
 
 
@@ -187,8 +186,7 @@ void show_piece(Piece const p)
     Piece const type = getType(p);
     Color const side = getSide(p);
 
-    static char const fmt[] PROGMEM = "%s %s";
-    printf(Debug1, fmt, 
+    printf(Debug1, "%s %s", 
         (Empty == type ?  "" : (White == side ?  "White" : "Black")), 
         (Empty == type ?  "Empty" :
           Pawn == type ?   "Pawn" :
@@ -202,21 +200,17 @@ void show_piece(Piece const p)
 // debug function to display all of the point_t's in the game.pieces[game.piece_count] list:
 void show_pieces() 
 {
-    static char const fmt1[] PROGMEM = "game.pieces[%2d] = {\n";
-    printf(Debug1, fmt1, game.piece_count);
+    printf(Debug1, "game.pieces[%2d] = {\n", game.piece_count);
     for (int i = 0; i < game.piece_count; i++) {
         point_t const &loc = game.pieces[i];
         index_t const col = loc.x;
         index_t const row = loc.y;
         Piece  const p = board.get(col + row * 8);
-        static char const fmt1[] PROGMEM = "    game.pieces[%2d] = %d, %d: ";
-        printf(Debug1, fmt1, i, col, row);
+        printf(Debug1, "    game.pieces[%2d] = %d, %d: ", i, col, row);
         show_piece(p);
-        static char const fmt2[] PROGMEM = "\n";
-        printf(Debug1, fmt2);
+        printf(Debug1, "\n");
     }
-    static char const fmt2[] PROGMEM = "};\n";
-    printf(Debug1, fmt2);
+    printf(Debug1, "};\n");
 }
 
 
@@ -231,8 +225,7 @@ void show_move(move_t const &move) {
 
     show_piece(p);
 
-    static char const fmt[] PROGMEM = " from: %d,%d (%c%c) to: %d,%d (%c%c)";
-    printf(Debug1, fmt, 
+    printf(Debug1, " from: %d,%d (%c%c) to: %d,%d (%c%c)", 
            col,    row,    col + 'A', '8' -    row, 
         to_col, to_row, to_col + 'A', '8' - to_row);
 }

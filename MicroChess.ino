@@ -37,7 +37,7 @@
  * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
  * TODO: for version 1.9.0
  * 
- *  [ ] create new macro for printf that automatically declares the
+ *  [+] create new macro for printf that automatically declares the
  *      format string as a PROGMEM array behind the scenes without
  *      requiring a PROGMEM to be decared at each use of printf(...)
  *  [+] replace all checks for Empty == getType(p) with isEmpty(p)
@@ -87,16 +87,14 @@ game_t game;
 // depending on the color of the piece.
 void add_move(Color side, index_t from, index_t to, long value) 
 {
-    static char const fmt[] PROGMEM = "call to add move from %d,%d to %d,%d\n";
-    printf(Debug3, fmt, from%8,from/8, to%8,to/8);
+    printf(Debug3, "call to add move from %d,%d to %d,%d\n", from%8,from/8, to%8,to/8);
 
     if (White == side) {
         if (game.move_count1 < MAX_MOVES) {
             game.moves1[game.move_count1++] = { from, to, value };
         }
         else {
-            static char const fmt[] PROGMEM = "attempt to add too many move1\n";
-            printf(Debug1, fmt);
+            printf(Debug1, "attempt to add too many move1\n");
         }
     }
     else {
@@ -104,8 +102,7 @@ void add_move(Color side, index_t from, index_t to, long value)
             game.moves2[game.move_count2++] = { from, to, value };
         }
         else {
-            static char const fmt[] PROGMEM = "attempt to add too many move2\n";
-            printf(Debug1, fmt);
+            printf(Debug1, "attempt to add too many move2\n");
         }
     }
 }
@@ -191,9 +188,9 @@ long evaluate(Color side)
 
     score = materialTotal + centerTotal + mobilityTotal;
 
-    static char const fmt[] PROGMEM = 
-        "evaluation: %ld = centerTotal: %ld  materialTotal: %ld  mobilityTotal: %ld\n";
-    printf(Debug4, fmt, score, centerTotal, materialTotal, mobilityTotal);
+    printf(Debug4, 
+        "evaluation: %ld = centerTotal: %ld  materialTotal: %ld  mobilityTotal: %ld\n", 
+        score, centerTotal, materialTotal, mobilityTotal);
 
     return score;
 }
@@ -205,18 +202,17 @@ index_t find_piece(int const index) {
     // print_t dbg = game.move_num == 7 ? Debug1 : Debug3;
     print_t dbg = Debug3;
 
-    static char const fmt[] PROGMEM = "find_piece(index: %2d) called, %2d total pieces\n";
-    printf(dbg, fmt, index, game.piece_count);
+    printf(dbg, "find_piece(index: %2d) called, %2d total pieces\n", index, game.piece_count);
 
     for (index_t piece_index = 0; piece_index < game.piece_count; piece_index++) {
         point_t const &loc = game.pieces[piece_index];
         index_t const board_index = loc.x + (loc.y * 8);
 
-        static char const fmt[] PROGMEM = "game.pieces[%2d] = point_t(x:%d, y: %d) (%2d)\n";
-        printf(print_t(dbg + 1), fmt, piece_index, loc.x, loc.y, board_index);
+        printf(print_t(dbg + 1), 
+            "game.pieces[%2d] = point_t(x:%d, y: %d) (%2d)\n", 
+            piece_index, loc.x, loc.y, board_index);
         if (board_index == index) {
-            static char const fmt[] PROGMEM = " returning %d\n";
-            printf(print_t(dbg + 1), fmt, piece_index);
+            printf(print_t(dbg + 1), " returning %d\n", piece_index);
             return piece_index;
         }
     }
@@ -253,10 +249,10 @@ long make_move(move_t const &move, Bool const restore)
     // find piece in the list of pieces:
     index_t const piece_index = find_piece(from);
     if (piece_index < 0) {
-        static char const fmt[] PROGMEM = 
+        printf(Error, 
             "error: could not find piece from move_t in pieces list: "
-            "col = %d, row = %d\n\n";
-        printf(Error, fmt, col, row);
+            "col = %d, row = %d\n\n",
+            col, row);
 
         show();
         while ((1));
@@ -362,9 +358,9 @@ long make_move(move_t const &move, Bool const restore)
         game.pieces[piece_index] = { col, row };
 
         if (orig_piece_count != game.piece_count) {
-            static char const fmt[] PROGMEM = 
-                "error: orig_piece_count: %d != game.piece_count: %d\n\n";
-            printf(Error, fmt, orig_piece_count, game.piece_count);
+            printf(Error, 
+                "error: orig_piece_count: %d != game.piece_count: %d\n\n", 
+                orig_piece_count, game.piece_count);
 
             show();
             while ((1));
@@ -436,22 +432,21 @@ void add_all_moves() {
         Piece   const type = getType(p);
         index_t const fwd = (White == side) ? -1 : 1;      // which indexing direction 'forward' is for the current side
 
-        static char const fmt[] PROGMEM = "game.eval_ndx = %2d of %2d, point = %d,%d, %5s %s\n";
-        printf(Debug3, fmt, 
+        printf(Debug3, 
+            "game.eval_ndx = %2d of %2d, point = %d,%d, %5s %s\n", 
             game.eval_ndx, 
             game.piece_count, 
             col, row, 
             getColor(p), getName(p));
 
         if (isEmpty(type)) {
-            static char const fmt[] PROGMEM = 
-                "error: Empty piece in piece list: game.eval_ndx = %d, board index = %d\n";
-            printf(Error, fmt, game.eval_ndx, from);
+            printf(Error, 
+                "error: Empty piece in piece list: game.eval_ndx = %d, board index = %d\n", 
+                game.eval_ndx, from);
 
             show_pieces();
             show();
-            static const char fmt1[] PROGMEM = "max move count = %d\n";
-            printf(Debug1, fmt1, game.stats.max_moves);
+            printf(Debug1, "max move count = %d\n", game.stats.max_moves);
 
             while ((1)) {}
         }
@@ -466,8 +461,7 @@ void add_all_moves() {
         switch (type) {
             default:
                 {
-                    static char const fmt[] PROGMEM = "error: invalid type = %d\n";
-                    printf(Error, fmt, type);
+                    printf(Error, "error: invalid type = %d\n", type);
                 }
                 show();
                 while ((1)) {}
@@ -481,7 +475,7 @@ void add_all_moves() {
 
             case Knight:
                 if ((enable_knights)) {
-                    add_pawn_moves(p, from, col, row, fwd, side);
+                    add_knight_moves(from, col, row, fwd, side);
                 }
                 break;
 
@@ -524,13 +518,11 @@ void play_game()
     game.move_count2 = 0;
 
     // add all moves for all pieces
-    static char const fmt1[] PROGMEM = "\nadding all available moves..\n\n";
-    printf(Debug3, fmt1);
+    printf(Debug3, "\nadding all available moves..\n\n");
     add_all_moves();
 
     // evaluate all moves for all pieces
-    static char const fmt2[] PROGMEM = "\nevaluating all available moves..\n\n";
-    printf(Debug3, fmt2);
+    printf(Debug3, "\nevaluating all available moves..\n\n");
     evaluate_moves();
 
     // track the max number of move entries we need for debugging
@@ -567,33 +559,28 @@ void play_game()
     // see if we've hit the move liimt (used for testing scenarios that never run out of moves)
     static int const move_limit = 500;
     if (game.move_num > move_limit) {
-        static char const fmt[] PROGMEM = "\nmove limit of %d exceeded\n";
-        printf(Debug1, fmt, move_limit);
+        printf(Debug1, "\nmove limit of %d exceeded\n", move_limit);
         game.done = True;
         return;
     }
 
     // see if we have a stalemate
     if (0 == game.move_count1 && 0 == game.move_count2) {
-        static char const fmt[] PROGMEM = "\nStalemate!\n";
-        printf(Debug1, fmt);
+        printf(Debug1, "\nStalemate!\n");
         game.done = True;
         return;
     }
     
     // see if the game has been won:
     if (0 == game.move_count1 || 0 == game.move_count2) {
-        static char const fmt[] PROGMEM = "\nCheckmate!\n";
-        printf(Debug1, fmt);
+        printf(Debug1, "\nCheckmate!\n");
         game.done = True;
 
         if (0 == game.move_count1) {
-            static char const fmt[] PROGMEM = "\nWhite as no moves.\nBlack wins!\n";
-            printf(Debug1, fmt);
+            printf(Debug1, "\nWhite as no moves.\nBlack wins!\n");
         }
         else if (0 == game.move_count2) {
-            static char const fmt[] PROGMEM = "\nBlack as no moves.\nWhite wins!\n";
-            printf(Debug1, fmt);
+            printf(Debug1, "\nBlack as no moves.\nWhite wins!\n");
         } 
 
         return;
@@ -604,18 +591,15 @@ void play_game()
     Piece   const    op = board.get(to);
     Piece   const otype = getType(op);
 
-    static char const fmt3[] PROGMEM = "\nMove #%d: ";
-    printf(Debug1, fmt3, game.move_num + 1);
+    printf(Debug1, "\nMove #%d: ", game.move_num + 1);
     show_move(move);
 
     if (!isEmpty(otype)) {
-        static char const fmt[] PROGMEM = " taking a ";
-        printf(Debug1, fmt);
+        printf(Debug1, " taking a ");
         show_piece(op);
     }
 
-    static char const fmt4[] PROGMEM = "\n\n";
-    printf(Debug1, fmt4);
+    printf(Debug1, "\n\n");
 
     // Make the move:
     move.value = make_move(move, 0);
@@ -637,7 +621,7 @@ void setup()
     Serial.begin(115200); while (!Serial); Serial.write('\n');
 
     // set to 1 to disable output and profile the program
-    static Bool const profiling = True;
+    static Bool const profiling = False;
 
     // game hash
     uint32_t seed = 0x232F89A3;
@@ -645,9 +629,10 @@ void setup()
     // Enable random seed when program is debugged.
     // Disable random seed to reproduce issues or to profile.
 
+    printf(Debug1, "The number is %d\n", 42);    
+
     if (profiling) {
-        static const char proffmt[] PROGMEM = "game hash: %08X, profiling...\n";
-        printf(Debug1, proffmt, seed);
+        printf(Debug1, "game hash: %08X, profiling...\n", seed);
         randomSeed(seed);
         print_level = None;
     } 
@@ -679,22 +664,19 @@ void setup()
     show();
 
     // print out the game move counts and time statistics
-    static const char gtime[] PROGMEM = "total game time: %ld ms\n";
-    printf(Debug1, gtime, game.stats.game_time);
+    printf(Debug1, "total game time: %ld ms\n", game.stats.game_time);
 
-    static const char mmoves[] PROGMEM = "max move count: %d\n";
-    printf(Debug1, mmoves, game.stats.max_moves);
+    printf(Debug1, "max move count: %d\n", game.stats.max_moves);
 
-    static const char gmoves[] PROGMEM = "total game moves evaluated: %d\n";
-    printf(Debug1, gmoves, game.stats.moves_gen_game);
+    printf(Debug1, "total game moves evaluated: %d\n", game.stats.moves_gen_game);
 
     char fstr[16]= "";
     double fmoves = game.stats.moves_gen_game;
     double ftime = game.stats.game_time;
     dtostrf(fmoves / (ftime / 1000), 8, 4, fstr);
 
-    static const char movessec[] PROGMEM = "moves per second: %s %s\n";
-    printf(Debug1, movessec, fstr, profiling ? "" : "(this includes waiting on the serial output)\n");
+    printf(Debug1, "moves per second: %s %s\n", 
+        fstr, profiling ? "" : "(this includes waiting on the serial output)\n");
 }
 
 
@@ -710,12 +692,6 @@ void loop()
 void show()
 {
     static char const icons[] = "pnbrqkPNBRQK";
-    static char const fmt1[] PROGMEM = "%c";
-    static char const fmt2[] PROGMEM = "%c ";
-    static char const fmt3[] PROGMEM = " %c ";
-    static char const fmt4[] PROGMEM = "%s";
-    static char const fmt5[] PROGMEM = "    Taken %d: ";
-    static char const fmt6[] PROGMEM = "    Board value: %8ld %s";
 
     static const bool dev = true;
 
@@ -724,10 +700,10 @@ void show()
     index_t const offset = 1;
 
     for (unsigned char y = 0; y < 8; ++y) {
-        printf(Debug1, fmt2, dev ? ('0' + y) : ('8' - y));
+        printf(Debug1, "%c ", dev ? ('0' + y) : ('8' - y));
         for (unsigned char x = 0; x < 8; ++x) {
             Piece const piece = board.get(y * 8 + x);
-            printf(Debug1, fmt3, 
+            printf(Debug1, " %c ", 
                 isEmpty(piece) ? ((y ^ x) & 1 ? '.' : '*') :
                 icons[((getSide(piece) * 6) + getType(piece) - 1)]);
         }
@@ -737,8 +713,7 @@ void show()
             // display the last move made if available
             case offset + 0:
                 if (game.last_move.from != -1 && game.last_move.to != -1) {
-                    static char const fmt[] PROGMEM = "    Last Move: %c%c to %c%c";
-                    printf(Debug1, fmt, 
+                    printf(Debug1, "    Last Move: %c%c to %c%c", 
                         (game.last_move.from % 8) + 'A', 
                         '8' - (game.last_move.from / 8), 
                         (game.last_move.to   % 8) + 'A', 
@@ -748,34 +723,34 @@ void show()
 
             // display the pieces taken by White
             case offset + 2:
-                printf(Debug1, fmt5, 1);
+                printf(Debug1, "    Taken %d: ", 1);
                 for (int i = 0; i < game.taken_count1; i++) {
                     char c = icons[(getSide(game.taken1[i]) * 6) + getType(game.taken1[i]) - 1];
-                    printf(Debug1, fmt2, c);
+                    printf(Debug1, "%c ", c);
                 }
                 break;
 
             // display the pieces taken by Black
             case offset + 3:
-                printf(Debug1, fmt5, 2);
+                printf(Debug1, "    Taken %d: ", 2);
                 for (int i = 0; i < game.taken_count2; i++) {
                     char c = icons[(getSide(game.taken2[i]) * 6) + getType(game.taken2[i]) - 1];
-                    printf(Debug1, fmt2, c);
+                    printf(Debug1, "%c ", c);
                 }
                 break;
 
             // display the current score
             case offset + 5:
                 value = evaluate(game.turn);
-                printf(Debug1, fmt6, 
+                printf(Debug1, "    Board value: %8ld %s", 
                 value, 
                 (value == 0) ? "" : 
                 (value  < 0) ? "Black's favor" : 
                                 "White's favor");
                 break;
         }
-        printf(Debug1, fmt1, '\n');
+        printf(Debug1, "%c", '\n');
     }
-    printf(Debug1, fmt4, 
+    printf(Debug1, "%s", 
         dev ? "   0  1  2  3  4  5  6  7\n\n" : "   A  B  C  D  E  F  G  H\n");
 }

@@ -48,51 +48,6 @@ struct offset_t {
 };
 
 ////////////////////////////////////////////////////////////////////////////////////////
-// the offsets a knight can move to
-static offset_t const knight_offsets[NUM_KNIGHT_OFFSETS] PROGMEM = {
-    { -2, +1 }, { -2, -1 }, { +2, +1 }, { +2, -1 }, 
-    { +1, +2 }, { -1, +2 }, { +1, -2 }, { -1, -2 }  
-};
-
-////////////////////////////////////////////////////////////////////////////////////////
-// the offsets a rook can move to
-static offset_t const rook_offsets[NUM_ROOK_OFFSETS] PROGMEM = {
-    { -1,  0 }, { -2,  0 }, { -3,  0 }, { -4,  0 }, { -5,  0 }, { -6,  0 }, { -7,  0 },     // W
-    { +1,  0 }, { +2,  0 }, { +3,  0 }, { +4,  0 }, { +5,  0 }, { +6,  0 }, { +7,  0 },     // E
-    {  0, +1 }, {  0, +2 }, {  0, +3 }, {  0, +4 }, {  0, +5 }, {  0, +6 }, {  0, +7 },     // N
-    {  0, -1 }, {  0, -2 }, {  0, -3 }, {  0, -4 }, {  0, -5 }, {  0, -6 }, {  0, -7 }      // S
-};
-
-////////////////////////////////////////////////////////////////////////////////////////
-// the offsets a bishop can move to
-static offset_t const bishop_offsets[NUM_BISHOP_OFFSETS] PROGMEM = {
-    { -1, +1 }, { -2, +2 }, { -3, +3 }, { -4, +4 }, { -5, +5 }, { -6, +6 }, { -7, +7 },     // NW
-    { +1, +1 }, { +2, +2 }, { +3, +3 }, { +4, +4 }, { +5, +5 }, { +6, +6 }, { +7, +7 },     // NE
-    { -1, -1 }, { -2, -2 }, { -3, -3 }, { -4, -4 }, { -5, -5 }, { -6, -6 }, { -7, -7 },     // SW
-    { +1, -1 }, { +2, -2 }, { +3, -3 }, { +4, -4 }, { +5, -5 }, { +6, -6 }, { +7, -7 }      // SE
-};
-
-////////////////////////////////////////////////////////////////////////////////////////
-// the offsets a queen can move to
-static offset_t const queen_offsets[NUM_QUEEN_OFFSETS] = {
-    { -1,  0 }, { -2,  0 }, { -3,  0 }, { -4,  0 }, { -5,  0 }, { -6,  0 }, { -7,  0 },     // W
-    { +1,  0 }, { +2,  0 }, { +3,  0 }, { +4,  0 }, { +5,  0 }, { +6,  0 }, { +7,  0 },     // E
-    {  0, +1 }, {  0, +2 }, {  0, +3 }, {  0, +4 }, {  0, +5 }, {  0, +6 }, {  0, +7 },     // N
-    {  0, -1 }, {  0, -2 }, {  0, -3 }, {  0, -4 }, {  0, -5 }, {  0, -6 }, {  0, -7 },     // S
-    { -1, +1 }, { -2, +2 }, { -3, +3 }, { -4, +4 }, { -5, +5 }, { -6, +6 }, { -7, +7 },     // NW
-    { +1, +1 }, { +2, +2 }, { +3, +3 }, { +4, +4 }, { +5, +5 }, { +6, +6 }, { +7, +7 },     // NE
-    { -1, -1 }, { -2, -2 }, { -3, -3 }, { -4, -4 }, { -5, -5 }, { -6, -6 }, { -7, -7 },     // SW
-    { +1, -1 }, { +2, -2 }, { +3, -3 }, { +4, -4 }, { +5, -5 }, { +6, -6 }, { +7, -7 }      // SE
-};
-
-////////////////////////////////////////////////////////////////////////////////////////
-// the offsets a king can move to
-static offset_t const king_offsets[NUM_KING_OFFSETS] PROGMEM = {
-    { -1,  0 }, { -1, +1 }, { +1,  0 }, { +1, +1 }, 
-    {  0, +1 }, { -1, -1 }, {  0, -1 }, { +1, -1 }
-};
-
-////////////////////////////////////////////////////////////////////////////////////////
 // macro to validate a location
 #define  isValidPos(col, row) ((col >= 0 && col < 8 && row >= 0 && row < 8))
 
@@ -100,9 +55,9 @@ static offset_t const king_offsets[NUM_KING_OFFSETS] PROGMEM = {
 enum print_t {
     Never  =  0,        // never display
     None   =  0,
-    Debug0, 
+    Debug0,             // less verbose..
     Debug1,             // Normal game output
-    Debug2,             // more verbose ..
+    Debug2,             // more verbose..
     Debug3,
     Debug4,
     Error      = 99,    // always display
@@ -191,7 +146,13 @@ char *getColor(Piece b);
 
 // const char* addCommas(long int value);
 
-int printf(print_t const required, char const * const fmt, ...);
+int debug(print_t const required, char const * const fmt, ...);
+
+#define printf(level, str, ...) \
+do { \
+  static const char debug_string[] PROGMEM = str; \
+  debug(level, debug_string, ##__VA_ARGS__); \
+} while(0);
 
 static long const pieceValues[8] = {
             0,  // empty spot value

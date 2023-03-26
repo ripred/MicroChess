@@ -11,6 +11,13 @@
 #include "MicroChess.h"
 
 ////////////////////////////////////////////////////////////////////////////////////////
+// the offsets a knight can move to
+static offset_t const knight_offsets[NUM_KNIGHT_OFFSETS] PROGMEM = {
+    { -2, +1 }, { -2, -1 }, { +2, +1 }, { +2, -1 }, 
+    { +1, +2 }, { -1, +2 }, { +1, -2 }, { -1, -2 }  
+};
+
+////////////////////////////////////////////////////////////////////////////////////////
 // add the moves for a knight to the proper list (game.moves1 or game.moves2)
 void add_knight_moves(index_t from, index_t col, index_t row, index_t fwd, Color side) {
     for (unsigned i=0; i < NUM_KNIGHT_OFFSETS; i++) {

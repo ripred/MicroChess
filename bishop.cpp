@@ -11,6 +11,15 @@
 #include "MicroChess.h"
 
 ////////////////////////////////////////////////////////////////////////////////////////
+// the offsets a bishop can move to
+static offset_t const bishop_offsets[NUM_BISHOP_OFFSETS] PROGMEM = {
+    { -1, +1 }, { -2, +2 }, { -3, +3 }, { -4, +4 }, { -5, +5 }, { -6, +6 }, { -7, +7 },     // NW
+    { +1, +1 }, { +2, +2 }, { +3, +3 }, { +4, +4 }, { +5, +5 }, { +6, +6 }, { +7, +7 },     // NE
+    { -1, -1 }, { -2, -2 }, { -3, -3 }, { -4, -4 }, { -5, -5 }, { -6, -6 }, { -7, -7 },     // SW
+    { +1, -1 }, { +2, -2 }, { +3, -3 }, { +4, -4 }, { +5, -5 }, { +6, -6 }, { +7, -7 }      // SE
+};
+
+////////////////////////////////////////////////////////////////////////////////////////
 // add the moves for a bishop to the proper list (game.moves1 or game.moves2)
 void add_bishop_moves(index_t from, index_t col, index_t row, index_t fwd, Color side) {
     Bool continue_nw = 1;
