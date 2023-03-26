@@ -12,8 +12,11 @@
 
 ////////////////////////////////////////////////////////////////////////////////////////
 // add the moves for a pawn to the proper list (game.moves1 or game.moves2)
-void add_pawn_moves(Piece p, index_t from, index_t col, index_t row, index_t fwd, Color side) {
+void add_pawn_moves(Piece p, index_t from, index_t fwd, Color side) {
     // see if we can move 1 spot in front of this pawn
+    index_t const col = from % 8;
+    index_t const row = from / 8;
+
     index_t to_col = col;
     index_t to_row = row + fwd;
     index_t to;
@@ -23,7 +26,7 @@ void add_pawn_moves(Piece p, index_t from, index_t col, index_t row, index_t fwd
         // get piece at location 1 spot in front of pawn
         index_t to = to_col + to_row * 8;
         Piece op = board.get(to);
-        if (Empty == getType(op)) {
+        if (isEmpty(op)) {
             add_move(side, from, to, 0);
 
             // see if we can move 2 spots in front of this pawn
@@ -34,7 +37,7 @@ void add_pawn_moves(Piece p, index_t from, index_t col, index_t row, index_t fwd
                     // get piece at location 2 spots in front of pawn
                     to = to_col + to_row * 8;
                     op = board.get(to);
-                    if (Empty == getType(op)) {
+                    if (isEmpty(op)) {
                         add_move(side, from, to, 0);
                     }
                 }
@@ -49,7 +52,7 @@ void add_pawn_moves(Piece p, index_t from, index_t col, index_t row, index_t fwd
     if (isValidPos(to_col, to_row)) {
         // get piece diagonally to the right
         op = board.get(to);
-        if (Empty != getType(op) && getSide(op) != side) {
+        if (!isEmpty(op) && getSide(op) != side) {
             add_move(side, from, to, 0);
         }
     }
@@ -61,7 +64,7 @@ void add_pawn_moves(Piece p, index_t from, index_t col, index_t row, index_t fwd
     if (isValidPos(to_col, to_row)) {
         // get piece diagonally to the right
         op = board.get(to);
-        if (Empty != op && getSide(op) != side) {
+        if (!isEmpty(op) && getSide(op) != side) {
             add_move(side, from, to, 0);
         }
     }
@@ -78,7 +81,7 @@ void add_pawn_moves(Piece p, index_t from, index_t col, index_t row, index_t fwd
     if (isValidPos(to_col, to_row)) {
         // get piece diagonally to the right
         op = board.get(to);
-        if (Empty != getType(op) && getSide(op) != side) {
+        if (!isEmpty(op) && getSide(op) != side) {
             index_t last_move_from_row = game.last_move.from / 8;
             index_t last_move_to_col = game.last_move.to % 8;
             index_t last_move_to_row = game.last_move.to / 8;
@@ -104,7 +107,7 @@ void add_pawn_moves(Piece p, index_t from, index_t col, index_t row, index_t fwd
     if (isValidPos(to_col, to_row)) {
         // get piece diagonally to the right
         op = board.get(to);
-        if (Empty != getType(op) && getSide(op) != side) {
+        if (!isEmpty(op) && getSide(op) != side) {
             index_t last_move_from_row = game.last_move.from / 8;
             index_t last_move_to_col = game.last_move.to % 8;
             index_t last_move_to_row = game.last_move.to / 8;

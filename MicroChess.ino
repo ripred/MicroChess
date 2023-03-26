@@ -208,11 +208,11 @@ index_t find_piece(int const index) {
         point_t const &loc = game.pieces[piece_index];
         index_t const board_index = loc.x + (loc.y * 8);
 
-        printf(print_t(dbg + 1), 
-            "game.pieces[%2d] = point_t(x:%d, y: %d) (%2d)\n", 
+        printf(print_t(dbg + 1), "game.pieces[%2d] = point_t(x:%d, y: %d) (%2d)\n", 
             piece_index, loc.x, loc.y, board_index);
         if (board_index == index) {
             printf(print_t(dbg + 1), " returning %d\n", piece_index);
+
             return piece_index;
         }
     }
@@ -452,11 +452,11 @@ void add_all_moves() {
         }
 
         static Bool const   enable_pawns = True;
-        static Bool const enable_knights = True;
+        static Bool const enable_knights = False;
         static Bool const enable_bishops = False;
         static Bool const   enable_rooks = False;
         static Bool const  enable_queens = False;
-        static Bool const   enable_kings = False;
+        static Bool const   enable_kings = True;
 
         switch (type) {
             default:
@@ -468,39 +468,27 @@ void add_all_moves() {
                 break;
 
             case Pawn:
-                if ((enable_pawns)) {
-                    add_pawn_moves(p, from, col, row, fwd, side);
-                }
+                if ((enable_pawns)) { add_pawn_moves(p, from, fwd, side); }
                 break;
 
             case Knight:
-                if ((enable_knights)) {
-                    add_knight_moves(from, col, row, fwd, side);
-                }
+                if ((enable_knights)) { add_knight_moves(from, fwd, side); }
                 break;
 
             case Bishop:
-                if ((enable_bishops)) {
-                    add_bishop_moves(from, col, row, fwd, side);
-                }
+                if ((enable_bishops)) { add_bishop_moves(from, fwd, side); }
                 break;
 
             case Rook:
-                if ((enable_rooks)) {
-                    add_rook_moves(from, col, row, fwd, side);
-                }                
+                if ((enable_rooks)) { add_rook_moves(from, fwd, side); }                
                 break;
 
             case Queen:
-                if ((enable_queens)) {
-                    add_queen_moves(from, col, row, fwd, side);
-                }                
+                if ((enable_queens)) { add_queen_moves(from, fwd, side); }                
                 break;
 
             case King:
-                if ((enable_kings)) {
-                    add_king_moves(from, col, row, fwd, side);
-                }
+                if ((enable_kings)) { add_king_moves(from, fwd, side); }
                 break;
         }
     }

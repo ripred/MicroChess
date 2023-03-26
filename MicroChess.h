@@ -11,7 +11,7 @@
 
 #include <Arduino.h>
 
-#pragma pack(1)
+#pragma pack(0)
 
 #include <stdio.h>
 #include <limits.h>
@@ -27,8 +27,8 @@ typedef unsigned char Bool;
 // limits
 enum 
 {
-    MAX_PIECES    =  32,
-    MAX_MOVES     = 106,        // R:11 N:8 B:11 Q:22 K:8 B:11 N:8 R:11 P:16
+    MAX_PIECES    = 32,
+    MAX_MOVES     = 64,         // R:11 N:8 B:11 Q:22 K:8 B:11 N:8 R:11 P:16 == 106
 
     NUM_BITS_PT   =   5,        // bits per field in point_t struct
     NUM_BITS_SPOT =   7,        // bits per field in move_t struct
@@ -150,8 +150,8 @@ int debug(print_t const required, char const * const fmt, ...);
 
 #define printf(level, str, ...) \
 do { \
-  static const char debug_string[] PROGMEM = str; \
-  debug(level, debug_string, ##__VA_ARGS__); \
+    static const char debug_string[] PROGMEM = str; \
+    debug(level, debug_string, ##__VA_ARGS__); \
 } while(0);
 
 static long const pieceValues[8] = {
@@ -176,11 +176,11 @@ void show_piece(Piece const p);
 extern game_t game;
 
 void add_move(Color side, index_t from, index_t to, long value);
-void add_pawn_moves(Piece p, index_t from, index_t col, index_t row, index_t fwd, Color side);
-void add_knight_moves(index_t from, index_t col, index_t row, index_t fwd, Color side);
-void add_bishop_moves(index_t from, index_t col, index_t row, index_t fwd, Color side);
-void add_rook_moves(index_t from, index_t col, index_t row, index_t fwd, Color side);
-void add_queen_moves(index_t from, index_t col, index_t row, index_t fwd, Color side);
-void add_king_moves(index_t from, index_t col, index_t row, index_t fwd, Color side);
+void add_pawn_moves(Piece p, index_t from, index_t fwd, Color side);
+void add_knight_moves(index_t from, index_t fwd, Color side);
+void add_bishop_moves(index_t from, index_t fwd, Color side);
+void add_rook_moves(index_t from, index_t fwd, Color side);
+void add_queen_moves(index_t from, index_t fwd, Color side);
+void add_king_moves(index_t from, index_t fwd, Color side);
 
 #endif // MICROCHESS_INCL
