@@ -39,7 +39,7 @@
  * 
  *  [+] create new macro for printf that automatically declares the
  *      format string as a PROGMEM array behind the scenes without
- *      requiring a PROGMEM to be decared at each use of printf(...)
+ *      requiring a PROGMEM to be decared at each use of printf(...)!
  *  [+] replace all checks for Empty == getType(p) with isEmpty(p)
  *  [+] add the ability turn off all output in order to profile 
  *      the engine without waiting on serial i/o.
@@ -62,7 +62,7 @@
  * 
  * BUGBUGS: to fix!
  * 
- *  [ ] fix and test the new Rook, Bishop, Queen, and King pieces
+ *  [+] fix and test the new Rook, Bishop, Queen, and King pieces
  *  [ ] 
  * 
  * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
@@ -82,12 +82,28 @@ board_t board;
 game_t game;
 
 
+void show_stats(Bool profiling = False) {
+    game.stats.stop_game_stats();
+    // print out the game move counts and time statistics
+    char fstr[16]= "";
+    double fmoves = game.stats.moves_gen_game;
+    double ftime = game.stats.game_time;
+    dtostrf(fmoves / (ftime / 1000), 8, 4, fstr);
+
+    printf(Debug1, "total game time: %ld ms\n", game.stats.game_time);
+    printf(Debug1, "max move count: %d\n", game.stats.max_moves);
+    printf(Debug1, "total game moves evaluated: %d\n", game.stats.moves_gen_game);
+    printf(Debug1, "moves per second: %s %s\n", 
+        fstr, profiling ? "" : "(this includes waiting on the serial output)\n");
+}
+
+
 ////////////////////////////////////////////////////////////////////////////////////////
 // add a move to the move list: game.moves1 (White) or game.moves2 (Black), 
 // depending on the color of the piece.
 void add_move(Color side, index_t from, index_t to, long value) 
 {
-    printf(Debug3, "call to add move from %d,%d to %d,%d\n", from%8,from/8, to%8,to/8);
+    printf(Debug3, "call to add_move(from: %d,%d, to: %d,%d)\n", from%8,from/8, to%8,to/8);
 
     if (White == side) {
         if (game.move_count1 < MAX_MOVES) {
@@ -105,6 +121,51 @@ void add_move(Color side, index_t from, index_t to, long value)
             printf(Debug1, "attempt to add too many move2\n");
         }
     }
+}
+
+
+////////////////////////////////////////////////////////////////////////////////////////
+// remove a move to the move list: game.moves1 (White) or game.moves2 (Black), 
+// depending on the color of the piece.
+index_t remove_move(Color const side, index_t const from, index_t const to = -1)
+{
+    printf(Debug2, "call to remove_move(from: %d,%d, to: %d,%d)\n", from%8,from/8, to%8,to/8);
+
+    index_t result = 0;
+
+    if (White == side) {
+        for (index_t i = 0; i < game.move_count1; i++) {
+            move_t &move = game.moves1[i];
+            if (move.from == from) {
+                if (-1 == to || to == move.to) {
+                    --game.move_count1;
+                    if (game.move_count1 > 0 && i != game.move_count1) {
+                        move = game.moves1[game.move_count1];
+                    }
+                    --i;
+                    result++;
+                }
+            }
+        }
+
+        return result;
+    }
+
+    for (index_t i = 0; i < game.move_count2; i++) {
+        move_t &move = game.moves2[i];
+        if (move.from == from) {
+            if (-1 == to || to == move.to) {
+                --game.move_count2;
+                if (game.move_count2 > 0 && i != game.move_count2) {
+                    move = game.moves2[game.move_count2];
+                }
+                --i;
+                result++;
+            }
+        }
+    }
+
+    return result;
 }
 
 
@@ -250,12 +311,14 @@ long make_move(move_t const &move, Bool const restore)
     index_t const piece_index = find_piece(from);
     if (piece_index < 0) {
         printf(Error, 
-            "error: could not find piece from move_t in pieces list: "
+            "error in make_move(...): could not find piece from move_t in pieces list: "
             "col = %d, row = %d\n\n",
             col, row);
 
+        print_level = Debug1;
         show();
-        while ((1));
+        show_stats();
+        while ((1)) {}
     }
 
     // TODO: implement en-passant captures the way the other moves are implemented.
@@ -304,10 +367,10 @@ long make_move(move_t const &move, Bool const restore)
 
     // promote the pawn to a queen if it reached the back row
     if (Pawn == getType(p) && (to_row == ((White == side) ? index_t(0) : index_t(7)))) {
-        board.set(to, setMoved(setType(p, Queen), 1));
+        board.set(to, setMoved(setType(p, Queen), True));
     }
     else {
-        board.set(to, setMoved(p, 1));
+        board.set(to, setMoved(p, True));
     }
 
     // move our piece in the piece list
@@ -341,7 +404,7 @@ long make_move(move_t const &move, Bool const restore)
             board.set(to, Empty);
         }
         else if (side != oside) {
-            op = setCheck(op, 1);
+            op = setCheck(op, True);
             board.set(to, op);
 
             if (King == otype) {
@@ -362,8 +425,10 @@ long make_move(move_t const &move, Bool const restore)
                 "error: orig_piece_count: %d != game.piece_count: %d\n\n", 
                 orig_piece_count, game.piece_count);
 
+            print_level = Debug1;
             show();
-            while ((1));
+            show_stats();
+            while ((1)) {}
         }
     }
 
@@ -405,23 +470,37 @@ void evaluate_moves()
     // fill in and sort game.moves1 in decending order
     for (uint8_t ndx=0; ndx < game.move_count1; ++ndx) {
         move_t &move = game.moves1[ndx];
-        move.value = make_move(move, 1);
+        move.value = make_move(move, True);
     }
     qsort(game.moves1, game.move_count1, sizeof(long), compare);
 
     // fill in and sort game.moves2 in decending order
     for (uint8_t ndx=0; ndx < game.move_count2; ++ndx) {
         move_t &move = game.moves2[ndx];
-        move.value = make_move(move, 1);
+        move.value = make_move(move, True);
     }
     qsort(game.moves2, game.move_count2, sizeof(long), reverse_compare);
 }
 
 
 ////////////////////////////////////////////////////////////////////////////////////////
+// clear the "in-check" flag for all pieces
+void clear_checks() {
+    for (game.eval_ndx = 0; game.eval_ndx < game.piece_count; game.eval_ndx++) {
+        index_t const col = game.pieces[game.eval_ndx].x;
+        index_t const row = game.pieces[game.eval_ndx].y;
+        index_t const from = col + row * 8;
+        Piece   const p = board.get(from);
+        board.set(from, setCheck(p, False));
+    }
+}
+
+////////////////////////////////////////////////////////////////////////////////////////
 // Add all of the available moves for all pieces to the game.moves1 (White) 
 // and game.moves2 (Black) lists
 void add_all_moves() {
+    clear_checks();
+
     // walk through the pieces list and generate all moves for each piece
     for (game.eval_ndx = 0; game.eval_ndx < game.piece_count; game.eval_ndx++) {
         index_t const col = game.pieces[game.eval_ndx].x;
@@ -432,22 +511,17 @@ void add_all_moves() {
         Piece   const type = getType(p);
         index_t const fwd = (White == side) ? -1 : 1;      // which indexing direction 'forward' is for the current side
 
-        printf(Debug3, 
-            "game.eval_ndx = %2d of %2d, point = %d,%d, %5s %s\n", 
-            game.eval_ndx, 
-            game.piece_count, 
-            col, row, 
-            getColor(p), getName(p));
+        printf(Debug3, "game.eval_ndx = %2d of %2d, point = %d,%d, %5s %s\n", 
+            game.eval_ndx, game.piece_count, col, row, getColor(p), getName(p));
 
         if (isEmpty(type)) {
-            printf(Error, 
-                "error: Empty piece in piece list: game.eval_ndx = %d, board index = %d\n", 
+            printf(Error, "error: Empty piece in piece list: game.eval_ndx = %d, board index = %d\n", 
                 game.eval_ndx, from);
 
+            print_level = Debug1;
             show_pieces();
             show();
-            printf(Debug1, "max move count = %d\n", game.stats.max_moves);
-
+            show_stats();
             while ((1)) {}
         }
 
@@ -455,41 +529,24 @@ void add_all_moves() {
         static Bool const enable_knights = False;
         static Bool const enable_bishops = False;
         static Bool const   enable_rooks = False;
-        static Bool const  enable_queens = False;
+        static Bool const  enable_queens = True;
         static Bool const   enable_kings = True;
 
         switch (type) {
-            default:
-                {
-                    printf(Error, "error: invalid type = %d\n", type);
-                }
+                default:
+                printf(Error, "error: invalid type = %d\n", type);
+                print_level = Debug1;
                 show();
+                show_stats();
                 while ((1)) {}
                 break;
 
-            case Pawn:
-                if ((enable_pawns)) { add_pawn_moves(p, from, fwd, side); }
-                break;
-
-            case Knight:
-                if ((enable_knights)) { add_knight_moves(from, fwd, side); }
-                break;
-
-            case Bishop:
-                if ((enable_bishops)) { add_bishop_moves(from, fwd, side); }
-                break;
-
-            case Rook:
-                if ((enable_rooks)) { add_rook_moves(from, fwd, side); }                
-                break;
-
-            case Queen:
-                if ((enable_queens)) { add_queen_moves(from, fwd, side); }                
-                break;
-
-            case King:
-                if ((enable_kings)) { add_king_moves(from, fwd, side); }
-                break;
+            case   Pawn: if ((enable_pawns))   { add_pawn_moves(p, from, fwd, side); }  break;
+            case Knight: if ((enable_knights)) { add_knight_moves(from, fwd, side); }   break;
+            case Bishop: if ((enable_bishops)) { add_bishop_moves(from, fwd, side); }   break;
+            case   Rook: if ((enable_rooks))   { add_rook_moves(from, fwd, side); }     break;
+            case  Queen: if ((enable_queens))  { add_queen_moves(from, fwd, side); }    break;
+            case   King: if ((enable_kings))   { add_king_moves(from, fwd, side); }     break;
         }
     }
 }
@@ -544,7 +601,7 @@ void play_game()
         }
     } while ((move.from == -1 || move.to == -1) && game.move_count1 > 0 && game.move_count2 > 0);
 
-    // see if we've hit the move liimt (used for testing scenarios that never run out of moves)
+    // see if we've hit the move limit (used for testing scenarios that never run out of moves)
     static int const move_limit = 500;
     if (game.move_num > move_limit) {
         printf(Debug1, "\nmove limit of %d exceeded\n", move_limit);
@@ -590,7 +647,36 @@ void play_game()
     printf(Debug1, "\n\n");
 
     // Make the move:
-    move.value = make_move(move, 0);
+    move.value = make_move(move, False);
+
+    // remove the move from the move list
+    index_t removed = remove_move(game.turn, move.from);
+    if (0 == removed) {
+        print_level = Debug1;
+        printf(Error, "failed to remove move from %d to %d from move list\n", move.from, move.to);
+        show_stats();
+        while ((1)) {}
+    }
+    else {
+        printf(Debug2, "removed %d moves from move list\n", removed);
+    }
+
+    // force re-examination of check states
+    evaluate_moves();
+
+    if (game.white_king_in_check) {
+        printf(Debug1, "White King is in check!\n");
+        if (White == game.turn) {
+            printf(Debug1, "illegal move\n");
+        }
+    }
+
+    if (game.black_king_in_check) {
+        printf(Debug1, "Black King is in check!\n");
+        if (Black == game.turn) {
+            printf(Debug1, "illegal move\n");
+        }
+    }
 
     // remember the last move made
     game.last_move = move;
@@ -608,8 +694,11 @@ void setup()
 {
     Serial.begin(115200); while (!Serial); Serial.write('\n');
 
+    Serial.println("starting..\n");
+
     // set to 1 to disable output and profile the program
-    static Bool const profiling = False;
+    static Bool profiling = True;
+    static Bool useRandom = False;
 
     // game hash
     uint32_t seed = 0x232F89A3;
@@ -617,20 +706,20 @@ void setup()
     // Enable random seed when program is debugged.
     // Disable random seed to reproduce issues or to profile.
 
-    printf(Debug1, "The number is %d\n", 42);    
-
     if (profiling) {
+        useRandom = False;
         printf(Debug1, "game hash: %08X, profiling...\n", seed);
-        randomSeed(seed);
         print_level = None;
     } 
     else {
-        seed = analogRead(A0) + analogRead(A1) + micros();
-        randomSeed(seed);
+        if (useRandom) {
+            seed = analogRead(A0) + analogRead(A1) + micros();
+        }
+        printf(Debug1, "game hash: %08X\n", seed);
         print_level = Debug1;
     }
 
-    Serial.println("starting..\n");
+    randomSeed(seed);
 
     game.stats.start_game_stats();
 
@@ -652,27 +741,21 @@ void setup()
     show();
 
     // print out the game move counts and time statistics
-    printf(Debug1, "total game time: %ld ms\n", game.stats.game_time);
-
-    printf(Debug1, "max move count: %d\n", game.stats.max_moves);
-
-    printf(Debug1, "total game moves evaluated: %d\n", game.stats.moves_gen_game);
-
     char fstr[16]= "";
     double fmoves = game.stats.moves_gen_game;
     double ftime = game.stats.game_time;
     dtostrf(fmoves / (ftime / 1000), 8, 4, fstr);
 
+    printf(Debug1, "total game time: %ld ms\n", game.stats.game_time);
+    printf(Debug1, "max move count: %d\n", game.stats.max_moves);
+    printf(Debug1, "total game moves evaluated: %d\n", game.stats.moves_gen_game);
     printf(Debug1, "moves per second: %s %s\n", 
         fstr, profiling ? "" : "(this includes waiting on the serial output)\n");
 }
 
 
 ////////////////////////////////////////////////////////////////////////////////////////
-void loop() 
-{ 
-
-}
+void loop() { }
 
 
 ////////////////////////////////////////////////////////////////////////////////////////

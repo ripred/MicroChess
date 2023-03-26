@@ -28,7 +28,7 @@ typedef unsigned char Bool;
 enum 
 {
     MAX_PIECES    = 32,
-    MAX_MOVES     = 64,         // R:11 N:8 B:11 Q:22 K:8 B:11 N:8 R:11 P:16 == 106
+    MAX_MOVES     = 106,         // R:11 N:8 B:11 Q:22 K:8 B:11 N:8 R:11 P:16 == 106
 
     NUM_BITS_PT   =   5,        // bits per field in point_t struct
     NUM_BITS_SPOT =   7,        // bits per field in move_t struct
@@ -53,16 +53,16 @@ struct offset_t {
 
 // print_t is used to set and control the output printing level
 enum print_t {
-    Never  =  0,        // never display
-    None   =  0,
+    Error  =  0,        // always display
+    Always =  0,
+    None   =  0,        // for use in setting print_level
     Debug0,             // less verbose..
     Debug1,             // Normal game output
     Debug2,             // more verbose..
     Debug3,
     Debug4,
-    Error      = 99,    // always display
-    Always     = 99,
-    Everything = 99,
+    Never      = 99,    // never display
+    Everything = 99,    // for use in setting print_level
 };
 
 // the global setting that affects the level of output detail
