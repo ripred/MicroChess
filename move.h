@@ -17,9 +17,12 @@ private:
 
     static constexpr uint8_t NUM_BITS_VALUE = ((sizeof(int32_t) * 8) - (NUM_BITS_SPOT * 2) - 1);
 public:
-    int32_t  from : NUM_BITS_SPOT, 
-               to : NUM_BITS_SPOT,
-            value : NUM_BITS_VALUE,
+    int32_t  from : NUM_BITS_SPOT,  // the index into the board the move starts at
+               to : NUM_BITS_SPOT,  // the index into the board the move finishes at
+            value : NUM_BITS_VALUE, // the value of the move
+
+            // flag used for soft-delete so that moves can be deleted and ignored without actually having to move them.
+            // TODO: add the same idiom to the deletion of pieces during make_move(...) to avoid moving memory.
           deleted : 1;
 
 public:

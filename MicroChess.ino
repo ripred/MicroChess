@@ -50,7 +50,10 @@
  *  [ ] add castling.
  *  [ ] update the show_move(...) function to properly display when a pawn executes 
  *      an en-passant capture.
- *  [ ] 
+ *  [ ] add and implement a "deleted" flag for moves so they can be soft-deleted and ignored
+ *      without actually moving any memory
+ *  [ ] implement and use the same idiom for pieces in the game.pieces[] list so they are ignored
+ *      during moves that take pieces instead of needing to move/copy the taken piece from the list!
  * 
  * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
  * TODO: for version 1.nn.0
