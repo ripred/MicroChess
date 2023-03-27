@@ -1,4 +1,3 @@
-#include "Arduino.h"
 /**
  * game.h
  * 
@@ -10,6 +9,7 @@
 #ifndef GAME_INCL
 #define GAME_INCL
 
+#include "Arduino.h"
 #include "board.h"
 
 extern board_t board;
@@ -50,10 +50,12 @@ struct stat_t {
     uint32_t    move_end;
     uint32_t    move_time;
 
+    // constructor:
     stat_t() {
         init();
     }
 
+    // init method
     void init() {
         max_moves = 0;
 
@@ -72,10 +74,12 @@ struct stat_t {
         move_time = 0;
     }
 
+    // increase the number of moves evaluated
     void inc_moves_count() {
         moves_gen_game++;
     }
 
+    // start the game timers and clear out the game counts
     void start_game_stats() {
         game_start = millis();
         game_end = game_start;
@@ -83,11 +87,13 @@ struct stat_t {
         moves_gen_game = 0;
     }
 
+    // stop the game timers and calc the game stats
     void stop_game_stats() {
         game_end = millis();
         game_time = game_end - game_start;
     }
 
+    // start the move timers and clear out the move counts
     void start_move_stats() {
         move_start = millis();
         move_end = move_start;
@@ -98,6 +104,7 @@ struct stat_t {
         moves_gen_move_delta = 0;
     }
 
+    // stop the move timers and calc the move stats
     void stop_move_stats() {
         move_end = millis();
         move_time = move_end - move_start;

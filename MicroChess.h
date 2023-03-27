@@ -72,7 +72,7 @@ extern print_t print_level;
 #define  ARRAYSZ(A) (sizeof(A) / sizeof(*(A)))
 
 // The max and min range for piece values
-#define  MAX_VALUE ((long const)( 0b0000100000000000))    // half the value of number of bits the 'value' field in move_t has
+#define  MAX_VALUE ((long const)( 0b0100000000000000))    // half the value of number of bits the 'value' field in move_t has
 #define  MIN_VALUE ((long const)(0 - MAX_VALUE))
 
 // the number of locations on the game board

@@ -711,6 +711,21 @@ void add_all_moves() {
 
 ////////////////////////////////////////////////////////////////////////////////////////
 // play a game until reach a stalemate or checkmate
+// 
+// ● Generate all of the moves
+// ● Evaluate all of the moves
+// ● Sort all of the moves
+// ● Pick the top scoring move (or one of them if more than one move has the same score)
+// ● 
+// ● 
+// ● 
+// ● 
+// 
+// 
+// 
+// ▷ ☐ ☑︎ ☒ ✓ ✔︎ ⦿ ◉ ◎ 
+// 
+// 
 void play_game() 
 {
     show();
@@ -801,7 +816,7 @@ void play_game()
         show_piece(op);
     }
 
-    printf(Debug1, "\n\n");
+    printf(Debug1, "\n");
 
     // Make the move:
     move.value = make_move(move, False);
@@ -840,6 +855,8 @@ void play_game()
             printf(Debug1, "illegal move\n");
         }
     }
+
+    printf(Debug1, "\n");
 
     // remember the last move made
     game.last_move = move;
