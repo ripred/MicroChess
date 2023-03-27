@@ -1,4 +1,3 @@
-#include <avr/pgmspace.h>
 /**
  * rook.cpp
  * 
@@ -11,16 +10,11 @@
 #include <Arduino.h>
 #include "MicroChess.h"
 
-////////////////////////////////////////////////////////////////////////////////////////
-// add the moves for a rook to the proper list (game.moves1 or game.moves2)
+/*
+ * add the moves for a rook to the proper list (game.moves1 or game.moves2)
+ *
+ */
 void add_rook_moves(index_t from, index_t fwd, Color side) {
-    static offset_t const rook_offsets[NUM_ROOK_OFFSETS] PROGMEM = {
-        { -1,  0 }, { -2,  0 }, { -3,  0 }, { -4,  0 }, { -5,  0 }, { -6,  0 }, { -7,  0 },     // W
-        { +1,  0 }, { +2,  0 }, { +3,  0 }, { +4,  0 }, { +5,  0 }, { +6,  0 }, { +7,  0 },     // E
-        {  0, +1 }, {  0, +2 }, {  0, +3 }, {  0, +4 }, {  0, +5 }, {  0, +6 }, {  0, +7 },     // N
-        {  0, -1 }, {  0, -2 }, {  0, -3 }, {  0, -4 }, {  0, -5 }, {  0, -6 }, {  0, -7 }      // S
-    };
-
     Bool continue_n = True;
     Bool continue_s = True;
     Bool continue_e = True;

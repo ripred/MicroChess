@@ -47,13 +47,17 @@
  *  [+] add pawn promotion to queen when reaching the last row.
  *  [+] move the move generation for each Piece type into it's own function.
  *  [+] create a separate file for each piece.
+ *  [+] add precomputed tables for the material bonuses calculated by evaluate(...) at runtime.
+ *  [+] add precomputed tables for the center bonuses calculated by evaluate(...) at runtime.
  *  [ ] add castling.
  *  [ ] update the show_move(...) function to properly display when a pawn executes 
  *      an en-passant capture.
  *  [ ] add and implement a "deleted" flag for moves so they can be soft-deleted and ignored
- *      without actually moving any memory
+ *      without actually moving any memory!
  *  [ ] implement and use the same idiom for pieces in the game.pieces[] list so they are ignored
  *      during moves that take pieces instead of needing to move/copy the taken piece from the list!
+ *  [ ] add the time spent and number of moves evaluated on the last move to the status area
+ *  [ ] 
  * 
  * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
  * TODO: for version 1.nn.0
@@ -87,17 +91,26 @@ game_t game;
 
 void show_stats(Bool profiling = False) {
     game.stats.stop_game_stats();
+
     // print out the game move counts and time statistics
     char fstr[16]= "";
     double fmoves = game.stats.moves_gen_game;
-    double ftime = game.stats.game_time;
-    dtostrf(fmoves / (ftime / 1000), 8, 4, fstr);
+    double ftime = game.stats.game_time / 1000.0;
 
-    printf(Debug1, "total game time: %ld ms\n", game.stats.game_time);
-    printf(Debug1, "max move count: %d\n", game.stats.max_moves);
-    printf(Debug1, "total game moves evaluated: %d\n", game.stats.moves_gen_game);
-    printf(Debug1, "moves per second: %s %s\n", 
-        fstr, profiling ? "" : "(this includes waiting on the serial output)\n");
+    printf(Debug1, "======================================================================\n");
+
+    dtostrf(ftime, 8, 4, fstr);
+    printf(Debug1, "           total game time: %s seconds\n", fstr);
+
+    printf(Debug1, "           number of moves: %d\n", game.move_num);
+    printf(Debug1, "total game moves evaluated: %s\n", addCommas(game.stats.moves_gen_game));
+
+    dtostrf(fmoves / ftime, 8, 4, fstr);
+    printf(Debug1, "  average moves per second: %s %s\n", 
+        fstr, profiling ? "" : "(this includes waiting on the serial output)");
+
+    printf(Debug1, "   max move count per turn: %d\n", game.stats.max_moves);
+    printf(Debug1, "\n");
 }
 
 
@@ -143,7 +156,7 @@ void add_move(Color side, index_t from, index_t to, long value)
 // depending on the color of the piece.
 index_t remove_move(Color const side, index_t const from, index_t const to = -1)
 {
-    printf(Debug2, "call to remove_move(from: %d,%d, to: %d,%d)\n", from%8,from/8, to%8,to/8);
+    printf(Debug2, "call to remove_move(from: %d,%d, to: %d,%d)\n", from % 8,from / 8, to % 8,to / 8);
 
     index_t result = 0;
 
@@ -200,55 +213,31 @@ long evaluate(Color side)
     // this gives favor to White when the Black response moves have not been generated yet
     static uint8_t const   filter = material | center;
 
-    // adjustable multipiers to alter importance of mobility or center proximity.
-    // season to taste
-    static long const mobilityBonus = 3L;
-    static long const   centerBonus = 5L;
-
-    // Material bonus lambda function
-    // Gives more points for moves leave more or higher value pieces on the board
-    auto materialEvaluator = [](Piece p) -> long { return getValue(p) / 100; };
-
-    // Center location bonus lambda function
-    // Gives more points for moves that are closer the center of the board
-    auto centerEvaluator = [](index_t location, Piece piece) -> long {
-        Piece type = getType(piece);
-
-        // let's not encourage the king to wander to the board center mmkay?
-        if (King == type) return 0;
-
-        index_t dx = location % 8;
-        if (dx > 3) dx = 7 - dx;
-        index_t dy = location / 8;
-        if (dy > 3) dy = 7 - dy;
-
-        return static_cast<long>((dx + dy) * type);
-    };
-
     // calculate the value of the board
     long materialTotal = 0L;
     long mobilityTotal = 0L;
     long centerTotal = 0L;
-    long sideFactor = 1L;
     long score = 0L;
 
-    // enumerate over the pieces on the board if necessary
-    if ((filter & material) || (filter & center)) {
+    // iterate over the pieces on the board if necessary
+    if (filter & (material | center)) {
         for (index_t piece_index = 0; piece_index < game.piece_count; piece_index++) {
-            index_t const board_index = game.pieces[piece_index].x + game.pieces[piece_index].y * 8;
-            Piece const p = board.get(board_index);
-            sideFactor = (Black == getSide(p)) ? -1 : 1;
+            index_t const col = game.pieces[piece_index].x;
+            index_t const row = game.pieces[piece_index].y;
+            Piece   const p = board.get(col + row * 8);
+            Piece   const ptype = getType(p);
+            Color   const pside = getSide(p);
 
-            // The score or 'identity property' of the board can include extra points for
-            // the material value of pieces
             if (filter & material) {
-                materialTotal += materialEvaluator(p) * sideFactor;
+                // now uses pre-computed material bonus table for speed!
+                materialTotal += pgm_read_dword(&material_bonus[ptype][pside]);
             }
 
-            // The score or 'identity property' of the board can include extra points for
-            // the "proximity to the center" value of pieces
-            if (filter & center) {
-                centerTotal += centerEvaluator(board_index, p) * centerBonus * sideFactor;
+            if (filter & center) { 
+                // now uses pre-computed center bonus table for speed!
+                centerTotal += (King == ptype) ? 0 :
+                    pgm_read_dword(&center_bonus[col][ptype][pside]) + 
+                    pgm_read_dword(&center_bonus[row][ptype][pside]);
             }
         }
     }
@@ -256,7 +245,7 @@ long evaluate(Color side)
     // The score or 'identity property' of the board can include extra points for
     // how many total moves (mobility) the remaining pieces can make
     if (filter & mobility) {
-        sideFactor = (Black == side) ? -1 : 1;
+        long sideFactor = (Black == side) ? -1 : 1;
         mobilityTotal += static_cast<long>(game.move_count1 * mobilityBonus * sideFactor);
         mobilityTotal -= static_cast<long>(game.move_count2 * mobilityBonus * sideFactor);
     }
@@ -480,25 +469,49 @@ long make_move(move_t const &move, Bool const restore)
         while ((1)) {}
     }
 
-    // TODO: implement en-passant captures the way the other moves are implemented.
     // checks for en-passant:
+    if (m.from.u.pt.type == Pawn && isEmpty(m.to.u.pt.type) && m.from.u.pt.col != m.to.u.pt.col) {  // en-passant capture
+        m.to.u.pt = { m.to.u.pt.col, m.from.u.pt.row };
+        piece_index = find_piece(m.to.u.ndx.index);
+        if (piece_index < 0) {
+            printf(Error, "cannot find taken en-passant piece in pieces list\n");
+            show();
+            show_pieces();
+            show_stats();
+            while ((1)) {}
+        }
+        op = board.get(m.to.u.ndx.index);
 
-    // if (type == Pawn && isEmpty(otype) && col != to_col) {  // en-passant capture
-    //     if (White == side) { game.taken1[game.taken_count1++] = p; }
-    //     else { game.taken2[game.taken_count2++] = p; }
-    //     board.set(to_col + row * 8, Empty);
-    // } else {
-    //     if (!isEmpty(otype)) {
-    //         // This move captures a piece
-    //         if (White == side) { game.taken1[game.taken_count1++] = p; }
-    //         else { game.taken2[game.taken_count2++] = op; }
-    //     }
-    // }
+        // don't allow the King to be taken
+        if (King == getType(op)) { return 0L; }
+
+        // replace the piece in our piece list with the last one in the pieces list (remove it)
+        game.pieces[piece_index] = game.pieces[--game.piece_count];
+
+        if (White == side) { game.taken1[game.taken_count1++] = op; }
+        else { game.taken2[game.taken_count2++] = op; }
+
+        board.set(m.to.u.pt.col + m.from.u.pt.row * 8, Empty);
+    } else {
+        if (!isEmpty(otype)) {
+            // This move captures a piece
+            // don't allow the King to be taken
+            if (King == m.to.u.pt.type) { return 0L; }
+
+            if (White == side) { game.taken1[game.taken_count1++] = p; }
+            else { game.taken2[game.taken_count2++] = op; }
+        }
+    }
 
     // See if the destination is not empty and not a piece on our side.
     // i.e. an opponent's piece.
     index_t taken_index = -1;
-    if (!isEmpty(m.to.u.pt.type) && m.from.u.pt.side != m.to.u.pt.side) {
+    if (!isEmpty(m.to.u.pt.type) && 
+        m.from.u.pt.side != m.to.u.pt.side) {
+
+        // don't allow the King to be taken
+        if (King == m.to.u.pt.type) { return 0L; }
+
         // remember the piece index of the piece being taken
         taken_index = find_piece(move.to);
 
@@ -619,8 +632,8 @@ void evaluate_moves()
     auto reverse_compare = [](const void *a, const void *b) -> int {
         move_t const move_a = *((move_t*) a);
         move_t const move_b = *((move_t*) b);
-        return (move_a.value == move_b.value) ?  0 :
-            (move_a.value  < move_b.value) ? -1 : +1;
+        return (move_a.value == move_b.value) ?  
+            0 : (move_a.value  < move_b.value) ? -1 : +1;
     };
 
     // reset the king-in-check flags
@@ -686,9 +699,9 @@ void add_all_moves() {
         }
 
         static Bool const   enable_pawns = True;
-        static Bool const enable_knights = False;
-        static Bool const enable_bishops = False;
-        static Bool const   enable_rooks = False;
+        static Bool const enable_knights = True;
+        static Bool const enable_bishops = True;
+        static Bool const   enable_rooks = True;
         static Bool const  enable_queens = True;
         static Bool const   enable_kings = True;
 
@@ -715,22 +728,10 @@ void add_all_moves() {
 ////////////////////////////////////////////////////////////////////////////////////////
 // play a game until reach a stalemate or checkmate
 // 
-// ● Generate all of the moves
-// ● Evaluate all of the moves
-// ● Sort all of the moves
-// ● Pick the top scoring move (or one of them if more than one move has the same score)
-// ● 
-// ● 
-// ● 
-// ● 
-// 
-// 
-// 
-// ▷ ☐ ☑︎ ☒ ✓ ✔︎ ⦿ ◉ ◎ 
-// 
-// 
 void play_game() 
 {
+    game.stats.start_move_stats();
+
     show();
 
     // clear the list of moves
@@ -777,7 +778,7 @@ void play_game()
     } while ((move.from == -1 || move.to == -1) && game.move_count1 > 0 && game.move_count2 > 0);
 
     // see if we've hit the move limit (used for testing scenarios that never run out of moves)
-    static int const move_limit = 500;
+    static int const move_limit = 200;
     if (game.move_num > move_limit) {
         printf(Debug1, "\nmove limit of %d exceeded\n", move_limit);
         game.done = True;
@@ -861,6 +862,12 @@ void play_game()
 
     printf(Debug1, "\n");
 
+    game.stats.stop_move_stats();
+
+    game.last_move_time = game.stats.move_time;
+    game.last_moves_evaluated = game.stats.moves_gen_move_delta;
+
+
     // remember the last move made
     game.last_move = move;
 
@@ -896,7 +903,7 @@ void setup()
 
     // test_conv_t();
 
-    // set to 1 to disable output and profile the program
+    // set to True (1) to disable output and profile the program
     static Bool profiling = False;
     static Bool useRandom = False;
 
@@ -905,17 +912,20 @@ void setup()
 
     // Enable random seed when program is debugged.
     // Disable random seed to reproduce issues or to profile.
-
     if (profiling) {
         useRandom = False;
-        printf(Debug1, "game hash: %08X, profiling...\n", seed);
+        printf(Debug1, "game hash: 0x%04X%04X, profiling...\n", seed >> 16, seed & 0xFFFF);
         print_level = None;
     } 
     else {
         if (useRandom) {
             seed = analogRead(A0) + analogRead(A1) + micros();
         }
-        printf(Debug1, "game hash: %08X\n", seed);
+
+        uint16_t upper = seed >> 16;
+        uint16_t lower = word(seed);
+
+        printf(Debug1, "game hash: 0x%04X%04X\n", upper, lower);
         print_level = Debug1;
     }
 
@@ -929,6 +939,7 @@ void setup()
 
     do {
         play_game();
+
     } while (!game.done);
 
     game.stats.stop_game_stats();
@@ -941,16 +952,7 @@ void setup()
     show();
 
     // print out the game move counts and time statistics
-    char fstr[16]= "";
-    double fmoves = game.stats.moves_gen_game;
-    double ftime = game.stats.game_time;
-    dtostrf(fmoves / (ftime / 1000), 8, 4, fstr);
-
-    printf(Debug1, "total game time: %ld ms\n", game.stats.game_time);
-    printf(Debug1, "max move count: %d\n", game.stats.max_moves);
-    printf(Debug1, "total game moves evaluated: %d\n", game.stats.moves_gen_game);
-    printf(Debug1, "moves per second: %s %s\n", 
-        fstr, profiling ? "" : "(this includes waiting on the serial output)\n");
+    show_stats(profiling);
 }
 
 
@@ -968,7 +970,7 @@ void show()
 
     long value = 0;
 
-    index_t const offset = 1;
+    index_t const offset = 0;
 
     for (unsigned char y = 0; y < 8; ++y) {
         printf(Debug1, "%c ", dev ? ('0' + y) : ('8' - y));
@@ -992,8 +994,18 @@ void show()
                 }
                 break;
 
-            // display the pieces taken by White
+            // display the time spent on the last move
+            case offset + 1:
+                printf(Debug1, "    Time spent: %lu ms", game.last_move_time);
+                break;
+
+            // display the number of moves evaluated on the last move
             case offset + 2:
+                printf(Debug1, "    Moves evaluated: %s", addCommas(game.last_moves_evaluated));
+                break;
+
+            // display the pieces taken by White
+            case offset + 4:
                 printf(Debug1, "    Taken %d: ", 1);
                 for (int i = 0; i < game.taken_count1; i++) {
                     char c = icons[(getSide(game.taken1[i]) * 6) + getType(game.taken1[i]) - 1];
@@ -1002,7 +1014,7 @@ void show()
                 break;
 
             // display the pieces taken by Black
-            case offset + 3:
+            case offset + 5:
                 printf(Debug1, "    Taken %d: ", 2);
                 for (int i = 0; i < game.taken_count2; i++) {
                     char c = icons[(getSide(game.taken2[i]) * 6) + getType(game.taken2[i]) - 1];
@@ -1011,7 +1023,7 @@ void show()
                 break;
 
             // display the current score
-            case offset + 5:
+            case offset + 7:
                 value = evaluate(game.turn);
                 printf(Debug1, "    Board value: %8ld %s", value, (value == 0) ? "" : 
                     (value  < 0) ? "Black's favor" : "White's favor");

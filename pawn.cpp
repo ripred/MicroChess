@@ -10,8 +10,10 @@
 #include <Arduino.h>
 #include "MicroChess.h"
 
-////////////////////////////////////////////////////////////////////////////////////////
-// add the moves for a pawn to the proper list (game.moves1 or game.moves2)
+/*
+ * add the moves for a pawn to the proper list (game.moves1 or game.moves2)
+ *
+ */
 void add_pawn_moves(Piece p, index_t from, index_t fwd, Color side) {
     // see if we can move 1 spot in front of this pawn
     index_t const col = from % 8;

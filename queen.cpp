@@ -10,20 +10,11 @@
 #include <Arduino.h>
 #include "MicroChess.h"
 
-////////////////////////////////////////////////////////////////////////////////////////
-// add the moves for a queen to the proper list (game.moves1 or game.moves2)
+/*
+ * add the moves for a queen to the proper list (game.moves1 or game.moves2)
+ *
+ */
 void add_queen_moves(index_t from, index_t fwd, Color side) {
-    static offset_t const queen_offsets[NUM_QUEEN_OFFSETS] PROGMEM = {
-        { -1,  0 }, { -2,  0 }, { -3,  0 }, { -4,  0 }, { -5,  0 }, { -6,  0 }, { -7,  0 },     // W
-        { +1,  0 }, { +2,  0 }, { +3,  0 }, { +4,  0 }, { +5,  0 }, { +6,  0 }, { +7,  0 },     // E
-        {  0, +1 }, {  0, +2 }, {  0, +3 }, {  0, +4 }, {  0, +5 }, {  0, +6 }, {  0, +7 },     // N
-        {  0, -1 }, {  0, -2 }, {  0, -3 }, {  0, -4 }, {  0, -5 }, {  0, -6 }, {  0, -7 },     // S
-        { -1, +1 }, { -2, +2 }, { -3, +3 }, { -4, +4 }, { -5, +5 }, { -6, +6 }, { -7, +7 },     // NW
-        { +1, +1 }, { +2, +2 }, { +3, +3 }, { +4, +4 }, { +5, +5 }, { +6, +6 }, { +7, +7 },     // NE
-        { -1, -1 }, { -2, -2 }, { -3, -3 }, { -4, -4 }, { -5, -5 }, { -6, -6 }, { -7, -7 },     // SW
-        { +1, -1 }, { +2, -2 }, { +3, -3 }, { +4, -4 }, { +5, -5 }, { +6, -6 }, { +7, -7 }      // SE
-    };
-
     Bool continue_n  = True;
     Bool continue_s  = True;
     Bool continue_e  = True;

@@ -10,14 +10,11 @@
 #include <Arduino.h>
 #include "MicroChess.h"
 
-////////////////////////////////////////////////////////////////////////////////////////
-// add the moves for a king to the proper list (game.moves1 or game.moves2)
+/*
+ * add the moves for a king to the proper list (game.moves1 or game.moves2)
+ *
+ */
 void add_king_moves(index_t from, index_t fwd, Color side) {
-    static offset_t const king_offsets[NUM_KING_OFFSETS] PROGMEM = {
-        { -1,  0 }, { -1, +1 }, { +1,  0 }, { +1, +1 }, 
-        {  0, +1 }, { -1, -1 }, {  0, -1 }, { +1, -1 }
-    };
-
     index_t const col = from % 8;
     index_t const row = from / 8;
 

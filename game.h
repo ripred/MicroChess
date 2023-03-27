@@ -129,6 +129,8 @@ public:
     Bool      white_king_in_check;
     Bool      black_king_in_check;
     move_t    last_move;
+    uint32_t  last_move_time;
+    uint32_t  last_moves_evaluated;
     uint8_t   piece_count;
     uint8_t   move_count1;
     uint8_t   move_count2;
@@ -165,6 +167,8 @@ public:
         taken_count2 = 0;
 
         last_move = { -1, -1, 0 };
+        last_move_time = 0;
+        last_moves_evaluated = 0;
 
         white_king_in_check = 0;
         black_king_in_check = 0;

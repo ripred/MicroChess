@@ -144,7 +144,7 @@ char *getName(Piece b);
 
 char *getColor(Piece b);
 
-// const char* addCommas(long int value);
+const char* addCommas(long int value);
 
 int debug(print_t const required, char const * const fmt, ...);
 
@@ -155,15 +155,29 @@ do { \
 } while(0);
 
 static long const pieceValues[8] = {
-            0,  // empty spot value
-        10000,  // pawn value
-        30000,  // knight value
-        30000,  // bishop value
-        50000,  // rook value
-        90000,  // queen value
-    MAX_VALUE,  // king value
-            0   // padded for alignment and increased L1 and L2 cache hit gains
+            0,      // empty spot value
+          100,      // pawn value
+          300,      // knight value
+          300,      // bishop value
+          500,      // rook value
+          900,      // queen value
+    MAX_VALUE,      // king value
+            0       // padded for alignment and increased L1 and L2 cache hit gains
 };
+
+// adjustable multipiers to alter importance of mobility or center proximity
+// during board evaluation. season to taste
+static long const mobilityBonus = 3L;
+static long const   centerBonus = 5L;
+
+extern long const center_bonus[8][7][2] PROGMEM;
+extern long const material_bonus[7][2] PROGMEM;
+
+extern offset_t const knight_offsets[NUM_KNIGHT_OFFSETS] PROGMEM;
+extern offset_t const rook_offsets[NUM_ROOK_OFFSETS] PROGMEM;
+extern offset_t const bishop_offsets[NUM_BISHOP_OFFSETS] PROGMEM;
+extern offset_t const queen_offsets[NUM_QUEEN_OFFSETS] PROGMEM;
+extern offset_t const king_offsets[NUM_KING_OFFSETS] PROGMEM;
 
 #include "board.h"
 #include "move.h"

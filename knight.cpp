@@ -1,4 +1,3 @@
-#include <avr/pgmspace.h>
 /**
  * knight.cpp
  * 
@@ -11,16 +10,11 @@
 #include <Arduino.h>
 #include "MicroChess.h"
 
-////////////////////////////////////////////////////////////////////////////////////////
-// the offsets a knight can move to
-////////////////////////////////////////////////////////////////////////////////////////
-// add the moves for a knight to the proper list (game.moves1 or game.moves2)
+/*
+ * add the moves for a knight to the proper list (game.moves1 or game.moves2)
+ *
+ */
 void add_knight_moves(index_t from, index_t fwd, Color side) {
-    static offset_t const knight_offsets[NUM_KNIGHT_OFFSETS] PROGMEM = {
-        { -2, +1 }, { -2, -1 }, { +2, +1 }, { +2, -1 }, 
-        { +1, +2 }, { -1, +2 }, { +1, -2 }, { -1, -2 }  
-    };
-
     index_t const col = from % 8;
     index_t const row = from / 8;
 
