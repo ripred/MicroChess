@@ -49,6 +49,7 @@
  *  [+] create a separate file for each piece.
  *  [+] add precomputed tables for the material bonuses calculated by evaluate(...) at runtime.
  *  [+] add precomputed tables for the center bonuses calculated by evaluate(...) at runtime.
+ *  [+] add the time spent and number of moves evaluated on the last move to the status area
  *  [ ] add castling.
  *  [ ] update the show_move(...) function to properly display when a pawn executes 
  *      an en-passant capture.
@@ -56,7 +57,6 @@
  *      without actually moving any memory!
  *  [ ] implement and use the same idiom for pieces in the game.pieces[] list so they are ignored
  *      during moves that take pieces instead of needing to move/copy the taken piece from the list!
- *  [ ] add the time spent and number of moves evaluated on the last move to the status area
  *  [ ] 
  * 
  * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
@@ -905,7 +905,7 @@ void setup()
 
     // set to True (1) to disable output and profile the program
     static Bool profiling = False;
-    static Bool useRandom = False;
+    static Bool useRandom = True;
 
     // game hash
     uint32_t seed = 0x232F89A3;
