@@ -121,16 +121,16 @@ void add_move(Color side, index_t from, index_t to, long value)
 // void add_move(move_t &move) 
 {
     conv2_t m(from, to);
-    m.from.u.ndx.side = getSide(board.get(from));
-    m.to.u.ndx.side = getSide(board.get(to));
+    m.set_from_side(getSide(board.get(from)));
+    m.set_to_side(getSide(board.get(to)));
 
-    move_t move(from, to, value);
+    move_t move(m.get_from_index(), m.get_to_index(), value);
 
-    printf(Debug3, "call to add_move(from: %d,%d, to: %d,%d)\n", 
-        m.from.u.pt.col,
-        m.from.u.pt.row,
-        m.to.u.pt.col,
-        m.to.u.pt.row);
+    printf(Debug3, "call to add_move(from: %d,%d, to: %d,%d)\n",
+        m.get_from_col(),
+        m.get_from_row(),
+        m.get_to_col(),
+        m.get_to_row());
 
     if (White == side) {
         if (game.move_count1 < MAX_MOVES) {
@@ -289,15 +289,15 @@ long make_move(move_t const &move, Bool const restore = True)
 {
     game.stats.inc_moves_count();
 
-    index_t const col = move.from % 8;
-    index_t const row = move.from / 8;
+    index_t const col = move.from & 7;
+    index_t const row = move.from >> 3;
     index_t const from = move.from;
     Piece   const p = board.get(from);
     Color   const side = getSide(p);
     Bool    const moved = hasMoved(p);
 
-    index_t const to_col = move.to % 8;
-    index_t const to_row = move.to / 8;
+    index_t const to_col = move.to & 7;
+    index_t const to_row = move.to >> 3;
     index_t const to = move.to;
     Piece         op = board.get(to);
     Piece   const otype = getType(op);
@@ -880,18 +880,21 @@ void play_game()
 
 
 void test_conv_t() {
-    printf(Debug1, "sizeof(conv1_t): %d\n", sizeof(conv1_t))
+    printf(Debug1, "sizeof(conv1_t): %zu\n", sizeof(conv1_t));
     conv1_t cnv1;
-    cnv1.u.pt = { 3, 5, 0, 0 };
-    printf(Debug1, "point: %d,%d index: %d\n", cnv1.u.pt.col, cnv1.u.pt.row, cnv1.u.ndx.index);
+    cnv1.set_col(3);
+    cnv1.set_row(5);
+    printf(Debug1, "point: %d,%d index: %d\n", cnv1.get_col(), cnv1.get_row(), cnv1.get_index());
 
-    printf(Debug1, "sizeof(conv2_t): %d\n", sizeof(conv2_t))
+    printf(Debug1, "sizeof(conv2_t): %zu\n", sizeof(conv2_t));
     conv2_t cnv2;
-    cnv2.from.u.pt = { 3, 5, 0, 0 };
-    cnv2.to.u.pt = { 7, 7, 0, 0 };
+    cnv2.set_from_col(3);
+    cnv2.set_from_row(5);
+    cnv2.set_to_col(7);
+    cnv2.set_to_row(7);
     printf(Debug1, "from point: %d,%d index: %d to point: %d,%d index: %d\n", 
-        cnv2.from.u.pt.col, cnv2.from.u.pt.row, cnv2.from.u.ndx.index,
-        cnv2.to.u.pt.col, cnv2.to.u.pt.row, cnv2.to.u.ndx.index);
+        cnv2.get_from_col(), cnv2.get_from_row(), cnv2.get_from_index(),
+        cnv2.get_to_col(), cnv2.get_to_row(), cnv2.get_to_index());
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////
@@ -904,7 +907,7 @@ void setup()
     // test_conv_t();
 
     // set to True (1) to disable output and profile the program
-    static Bool profiling = False;
+    static Bool profiling = True;
     static Bool useRandom = True;
 
     // game hash

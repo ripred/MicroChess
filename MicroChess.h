@@ -189,34 +189,7 @@ void show_piece(Piece const p);
 
 extern game_t game;
 
-struct conv1_t {
-    union {
-        struct {
-             uint8_t  col : 3,
-                      row : 3,
-                     type : 3,
-                     side : 1;
-        } pt;
-        struct {
-            uint8_t index : 6,
-                     type : 3,
-                     side : 1;
-        } ndx;
-    } u;
-
-    conv1_t() : u{ 0, 0, Empty, Black } {}
-    conv1_t(uint8_t index) { u.ndx = { index, Empty, Black  }; }
-    conv1_t(uint8_t index, uint8_t type, uint8_t side) { u.ndx = { index, type, side }; }
-    conv1_t(uint8_t col, uint8_t row) : u{ col, row, Empty, Black } {}
-
-};  // conv1_t
-
-struct conv2_t {
-    conv1_t from, to;
-
-    conv2_t() {}
-    conv2_t(uint8_t from, uint8_t to) : from(from), to(to){}
-};
+#include "conv.h"
 
 void add_move(Color side, index_t from, index_t to, long value);
 void add_pawn_moves(Piece p, index_t from, index_t fwd, Color side);
