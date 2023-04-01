@@ -102,7 +102,7 @@ void consider_move(Color const side, index_t const from, index_t const to)
         else 
             { game.best_black_move = move; }
 
-        printf(Debug1, "*\n");
+        printf(Debug2, "*\n");
     };
 
     // make a move_t object for the move and evaluate it's value
@@ -110,7 +110,7 @@ void consider_move(Color const side, index_t const from, index_t const to)
     move.value = make_move(move, True);
 
     // trace the call
-    print_t const  dbg = Debug1;
+    print_t const dbg = Debug2;
     printf(dbg, "call to consider_move(%d, %2d, %2d, %5ld) = ", 
         side, from, to, move.value);
 
@@ -369,19 +369,20 @@ long evaluate()
 
 ////////////////////////////////////////////////////////////////////////////////////////
 // find the piece index for a given board index
-index_t find_piece(int const index) 
+index_t find_piece(index_t const index) 
 {
     // print_t dbg = game.move_num == 7 ? Debug1 : Debug3;
-    print_t dbg = Debug3;
+    print_t const dbg = Debug3;
 
     printf(dbg, "find_piece(index: %2d) called, %2d total pieces\n", index, game.piece_count);
 
     for (index_t piece_index = 0; piece_index < game.piece_count; piece_index++) {
         point_t const &loc = game.pieces[piece_index];
-        index_t const board_index = loc.x + (loc.y * 8);
+        index_t const board_index = loc.x + loc.y * 8;
 
         printf(print_t(dbg + 1), "game.pieces[%2d] = point_t(x:%d, y: %d) (%2d)\n", 
             piece_index, loc.x, loc.y, board_index);
+
         if (board_index == index) {
             printf(print_t(dbg + 1), " returning %d\n", piece_index);
 
@@ -394,25 +395,44 @@ index_t find_piece(int const index)
 
 
 ////////////////////////////////////////////////////////////////////////////////////////
-// clear the "in-check" flag for all pieces
-void clear_checks() 
+// reset the various move tracking flags
+void reset_move_flags() 
 {
     for (game.eval_ndx = 0; game.eval_ndx < game.piece_count; game.eval_ndx++) {
         index_t const col = game.pieces[game.eval_ndx].x;
         index_t const row = game.pieces[game.eval_ndx].y;
         index_t const from = col + row * 8;
         Piece   const p = board.get(from);
+
         board.set(from, setCheck(p, False));
     }
 
-}   // clear_checks()
+    // reset the king-in-check flags
+    game.white_king_in_check = False;
+    game.black_king_in_check = False;
+
+    // reset the best moves
+    game.best_white_move = { -1, -1, MIN_VALUE };
+    game.best_black_move = { -1, -1, MAX_VALUE };
+
+    // reset the move counts
+    game.num_white_moves = 0;
+    game.num_black_moves = 0;
+}   // reset_move_flags()
+
 
 ////////////////////////////////////////////////////////////////////////////////////////
-// Add all of the available moves for all pieces to the game.moves1 (White) 
-// and game.moves2 (Black) lists
+// Evaluate all of the available moves for all pieces
 void consider_all_moves() 
 {
-    clear_checks();
+    reset_move_flags();
+
+    static Bool const   enable_pawns = True;
+    static Bool const enable_knights = True;
+    static Bool const enable_bishops = True;
+    static Bool const   enable_rooks = True;
+    static Bool const  enable_queens = True;
+    static Bool const   enable_kings = True;
 
     // walk through the pieces list and generate all moves for each piece
     for (game.eval_ndx = 0; game.eval_ndx < game.piece_count; game.eval_ndx++) {
@@ -422,7 +442,9 @@ void consider_all_moves()
         Piece   const p = board.get(from);
         Color   const side = getSide(p);
         Piece   const type = getType(p);
-        index_t const fwd = (White == side) ? -1 : 1;      // which indexing direction 'forward' is for the current side
+        
+        // which direction is 'forward' is for this piece
+        index_t const fwd = (White == side) ? -1 : 1;
 
         printf(Debug3, "game.eval_ndx = %2d of %2d, point = %d,%d, %5s %s\n", 
             game.eval_ndx, game.piece_count, col, row, getColor(p), getName(p));
@@ -438,28 +460,21 @@ void consider_all_moves()
             while ((1)) {}
         }
 
-        static Bool const   enable_pawns = True;
-        static Bool const enable_knights = True;
-        static Bool const enable_bishops = True;
-        static Bool const   enable_rooks = True;
-        static Bool const  enable_queens = True;
-        static Bool const   enable_kings = True;
-
         switch (type) {
-                default:
+            case   Pawn: if ((enable_pawns))   { add_pawn_moves(p, from, fwd, side); }  break;
+            case Knight: if ((enable_knights)) { add_knight_moves( from, fwd, side); }  break;
+            case Bishop: if ((enable_bishops)) { add_bishop_moves( from, fwd, side); }  break;
+            case   Rook: if ((enable_rooks))   { add_rook_moves(   from, fwd, side); }  break;
+            case  Queen: if ((enable_queens))  { add_queen_moves(  from, fwd, side); }  break;
+            case   King: if ((enable_kings))   { add_king_moves(   from, fwd, side); }  break;
+
+            default:
                 printf(Error, "error: invalid type = %d\n", type);
                 print_level = Debug1;
                 show();
                 show_stats();
                 while ((1)) {}
                 break;
-
-            case   Pawn: if ((enable_pawns))   { add_pawn_moves(p, from, fwd, side); }  break;
-            case Knight: if ((enable_knights)) { add_knight_moves(from, fwd, side); }   break;
-            case Bishop: if ((enable_bishops)) { add_bishop_moves(from, fwd, side); }   break;
-            case   Rook: if ((enable_rooks))   { add_rook_moves(from, fwd, side); }     break;
-            case  Queen: if ((enable_queens))  { add_queen_moves(from, fwd, side); }    break;
-            case   King: if ((enable_kings))   { add_king_moves(from, fwd, side); }     break;
         }
     }
 }   // consider_all_moves()
@@ -474,18 +489,6 @@ void play_game()
 
     game.stats.start_move_stats();
 
-    // reset the king-in-check flags
-    game.white_king_in_check = False;
-    game.black_king_in_check = False;
-
-    // reset the best moves
-    game.best_white_move = { -1, -1, 0 };
-    game.best_black_move = { -1, -1, 0 };
-
-    // reset the move counts
-    game.num_white_moves = 0;
-    game.num_black_moves = 0;
-
     // consider all moves for all pieces
     printf(Debug3, "\n" "evaluating all available moves..\n\n");
     consider_all_moves();
@@ -499,8 +502,8 @@ void play_game()
         game.stats.max_moves = game.num_black_moves;
     }
 
-    // see if we've hit the move limit (used for testing scenarios that never run out of moves)
-    static int const move_limit = 50;
+    // see if we've hit the move limit
+    static int const move_limit = 200;
     if (game.move_num > move_limit) {
         printf(Debug1, "\nmove limit of %d exceeded\n", move_limit);
         game.done = True;
@@ -533,26 +536,14 @@ void play_game()
     }
 
     // Display the move that we chose:
-    move_t &move = (White == game.turn) ? 
-        game.best_white_move : 
-        game.best_black_move;
-
-    Piece   const    op = board.get(move.to);
-    Piece   const otype = getType(op);
+    move_t const &move = (White == game.turn) ? game.best_white_move : game.best_black_move;
 
     printf(Debug1, "\nMove #%d: ", game.move_num + 1);
     show_move(move);
-
-    if (!isEmpty(otype)) {
-        printf(Debug1, " co a ");
-        show_piece(op);
-    }
-
     printf(Debug1, "\n");
 
     // Make the move:
-    move.value = make_move(move, False);
-
+    make_move(move, False);
 
     if (game.white_king_in_check) {
         printf(Debug1, "White King is in check!\n");
@@ -608,7 +599,7 @@ void test_conv_t() {
 
 void setup_options() {
     // set game.options.profiling to True (1) to disable output and profile the engine
-    game.options.profiling = False;
+    game.options.profiling = True;
 
     // set game.options.random to True (1) to use randomness in the game decisions
     game.options.random = False;

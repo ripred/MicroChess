@@ -152,9 +152,9 @@ int debug(print_t const required, char const * const fmt, ...);
 do { \
     static const char debug_string[] PROGMEM = str; \
     debug(level, debug_string, ##__VA_ARGS__); \
-} while(0);
+} while(0)
 
-static long const pieceValues[8] = {
+static long constexpr pieceValues[8] = {
             0,      // empty spot value
           100,      // pawn value
           300,      // knight value
@@ -167,8 +167,8 @@ static long const pieceValues[8] = {
 
 // adjustable multipiers to alter importance of mobility or center proximity
 // during board evaluation. season to taste
-static long const mobilityBonus = 3L;
-static long const   centerBonus = 5L;
+static long constexpr mobilityBonus = 3L;
+static long constexpr   centerBonus = 5L;
 
 extern long const center_bonus[8][7][2] PROGMEM;
 extern long const material_bonus[7][2] PROGMEM;
@@ -182,14 +182,13 @@ extern offset_t const king_offsets[NUM_KING_OFFSETS] PROGMEM;
 #include "board.h"
 #include "move.h"
 #include "game.h"
+#include "conv.h"
+
+extern game_t game;
 
 void show_move(move_t const &move);
 void show_pieces();
 void show_piece(Piece const p);
-
-extern game_t game;
-
-#include "conv.h"
 
 void show_stats();
 
