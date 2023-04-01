@@ -115,31 +115,48 @@ struct stat_t {
 
 };  // stat_t
 
+
+struct options_t {
+public:
+    uint8_t
+        random : 1,     // add randomness to the game?
+     profiling : 1;     // are we profiling the engine?
+
+public:
+
+    options_t() : random(False), profiling(False) {}
+};
+
 ////////////////////////////////////////////////////////////////////////////////////////
 // the state of a game
 struct game_t 
 {
 public:
-    point_t   pieces[MAX_PIECES];
-    move_t    moves1[MAX_MOVES];
-    move_t    moves2[MAX_MOVES];
-    Piece     taken1[16];
-    Piece     taken2[16];
-    stat_t    stats;
-    Bool      white_king_in_check;
-    Bool      black_king_in_check;
-    move_t    last_move;
-    uint32_t  last_move_time;
-    uint32_t  last_moves_evaluated;
-    uint8_t   piece_count;
-    uint8_t   move_count1;
-    uint8_t   move_count2;
-    uint8_t   taken_count1;
-    uint8_t   taken_count2;
-    uint8_t   eval_ndx,     // board index being currently evaluated
-                  turn,     // 0 := Black, 1 := White
-                  done;     // 1 := game over
-    uint16_t  move_num;     // increasing move number
+    point_t     pieces[MAX_PIECES];
+    Piece       taken1[16], taken2[16];
+    stat_t      stats;
+    Bool        white_king_in_check;
+    Bool        black_king_in_check;
+    move_t      last_move;
+    uint32_t    last_move_time;
+    uint32_t    last_moves_evaluated;
+    uint8_t     piece_count;
+    uint8_t     taken_count1;
+    uint8_t     taken_count2;
+    uint8_t     eval_ndx;       // board index being currently evaluated
+    uint8_t     turn;           // 0 := Black, 1 := White
+    uint8_t     done;           // 1 := game over
+    uint16_t    move_num;       // increasing move number
+
+    options_t   options;        // game options
+
+    // TODO: track all moves of equal value, not just one
+    move_t    best_white_move;
+    move_t    best_black_move;
+
+    uint8_t   num_white_moves;
+    uint8_t   num_black_moves;
+
 public:
     // constructor
     game_t()
@@ -158,9 +175,6 @@ public:
             }
         }
 
-        move_count1 = 0;
-        move_count2 = 0;
-
         stats = stat_t();
 
         taken_count1 = 0;
@@ -177,6 +191,12 @@ public:
         move_num = 0;
 
         done = 0;
+
+        best_white_move = { -1, -1, 0 };
+        best_black_move = { -1, -1, 0 };
+
+        num_white_moves = 0;
+        num_black_moves = 0;
     }
 
 };  // game_t

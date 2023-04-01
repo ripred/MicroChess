@@ -10,165 +10,37 @@
 #include <Arduino.h>
 #include "MicroChess.h"
 
-/*
- * add the moves for a queen to the proper list (game.moves1 or game.moves2)
- *
- */
 void add_queen_moves(index_t from, index_t fwd, Color side) {
-    Bool continue_n  = True;
-    Bool continue_s  = True;
-    Bool continue_e  = True;
-    Bool continue_w  = True;
-    Bool continue_nw = True;
-    Bool continue_ne = True;
-    Bool continue_sw = True;
-    Bool continue_se = True;
+    index_t dirs[8][2] = { {0,1}, {0,-1}, {-1,0}, {1,0}, {-1,1}, {1,1}, {-1,-1}, {1,-1} };
+    Bool continue_dir[8] = { True, True, True, True, True, True, True, True };
+    int8_t const col = from % 8;
+    int8_t const row = from / 8;
 
-    index_t const col = from % 8;
-    index_t const row = from / 8;
+    for (auto& dir : dirs) {
+        int8_t x = col + dir[0] * fwd;
+        int8_t y = row + dir[1] * fwd;
 
-    for (unsigned i=0; i < NUM_QUEEN_OFFSETS; i++) {
-        offset_t *ptr = pgm_get_far_address(queen_offsets);
-        index_t xoff = pgm_read_byte(&ptr[i].x) * fwd;
-        index_t yoff = pgm_read_byte(&ptr[i].y) * fwd;
-        index_t to_col = col + xoff;
-        index_t to_row = row + yoff;
-        if (isValidPos(to_col, to_row)) {
-            if (xoff == 0 && yoff > 0 && continue_n) { // going N
-                index_t to = to_col + to_row * 8;
-                Piece const op = board.get(to);
-                if (isEmpty(op)) {
-                    add_move(side, from, to, 0);
-                }
-                else {
-                    // there is a piece there
-                    continue_n = False;
+        index_t offset = 0;
+        while (isValidPos(x, y) && continue_dir[offset]) {
+            index_t to = x + y * 8;
+            Piece const op = board.get(to);
 
-                    // if it is the other side then capture it
-                    if (side != getSide(op)) {
-                        add_move(side, from, to, 0);
-                    }
-                }
+            if (isEmpty(op)) {
+                consider_move(side, from, to);
             }
-            else
-            if (xoff == 0 && yoff < 0 && continue_s) { // going S
-                index_t to = to_col + to_row * 8;
-                Piece const op = board.get(to);
-                if (isEmpty(op)) {
-                    add_move(side, from, to, 0);
-                }
-                else {
-                    // there is a piece there
-                    continue_s = False;
-
-                    // if it is the other side then capture it
-                    if (side != getSide(op)) {
-                        add_move(side, from, to, 0);
-                    }
-                }
+            else if (side != getSide(op)) {
+                continue_dir[offset] = False;
+                consider_move(side, from, to);
+                break;
             }
-            else
-            if (xoff < 0 && yoff == 0 && continue_w) { // going W
-                index_t to = to_col + to_row * 8;
-                Piece const op = board.get(to);
-                if (isEmpty(op)) {
-                    add_move(side, from, to, 0);
-                }
-                else {
-                    // there is a piece there
-                    continue_w = False;
-
-                    // if it is the other side then capture it
-                    if (side != getSide(op)) {
-                        add_move(side, from, to, 0);
-                    }
-                }
+            else {
+                continue_dir[offset] = False;
+                break;
             }
-            else
-            if (xoff > 0 && yoff == 0 && continue_e) { // going E
-                index_t to = to_col + to_row * 8;
-                Piece const op = board.get(to);
-                if (isEmpty(op)) {
-                    add_move(side, from, to, 0);
-                }
-                else {
-                    // there is a piece there
-                    continue_e = False;
 
-                    // if it is the other side then capture it
-                    if (side != getSide(op)) {
-                        add_move(side, from, to, 0);
-                    }
-                }
-            }
-            else
-            if (xoff < 0 && yoff > 0 && continue_nw) { // going NW
-                index_t to = to_col + to_row * 8;
-                Piece const op = board.get(to);
-                if (isEmpty(op)) {
-                    add_move(side, from, to, 0);
-                }
-                else {
-                    // there is a piece there
-                    continue_nw = False;
-
-                    // if it is the other side then capture it
-                    if (side != getSide(op)) {
-                        add_move(side, from, to, 0);
-                    }
-                }
-            }
-            else
-            if (xoff > 0 && yoff > 0 && continue_ne) { // going NE
-                index_t to = to_col + to_row * 8;
-                Piece const op = board.get(to);
-                if (isEmpty(op)) {
-                    add_move(side, from, to, 0);
-                }
-                else {
-                    // there is a piece there
-                    continue_ne = False;
-
-                    // if it is the other side then capture it
-                    if (side != getSide(op)) {
-                        add_move(side, from, to, 0);
-                    }
-                }
-            }
-            else
-            if (xoff < 0 && yoff < 0 && continue_sw) { // going SW
-                index_t to = to_col + to_row * 8;
-                Piece const op = board.get(to);
-                if (isEmpty(op)) {
-                    add_move(side, from, to, 0);
-                }
-                else {
-                    // there is a piece there
-                    continue_sw = False;
-
-                    // if it is the other side then capture it
-                    if (side != getSide(op)) {
-                        add_move(side, from, to, 0);
-                    }
-                }
-            }
-            else
-            if (xoff > 0 && yoff < 0 && continue_se) { // going SE
-                index_t to = to_col + to_row * 8;
-                Piece const op = board.get(to);
-                if (isEmpty(op)) {
-                    add_move(side, from, to, 0);
-                }
-                else {
-                    // there is a piece there
-                    continue_se = False;
-
-                    // if it is the other side then capture it
-                    if (side != getSide(op)) {
-                        add_move(side, from, to, 0);
-                    }
-                }
-            }
+            x += dir[0] * fwd;
+            y += dir[1] * fwd;
         }
+        offset++;
     }
 }

@@ -189,36 +189,15 @@ void show_piece(Piece const p);
 
 extern game_t game;
 
-struct conv1_t {
-    union {
-        struct {
-             uint8_t  col : 3,
-                      row : 3,
-                     type : 3,
-                     side : 1;
-        } pt;
-        struct {
-            uint8_t index : 6,
-                     type : 3,
-                     side : 1;
-        } ndx;
-    } u;
+#include "conv.h"
 
-    conv1_t() : u{ 0, 0, Empty, Black } {}
-    conv1_t(uint8_t index) { u.ndx = { index, Empty, Black  }; }
-    conv1_t(uint8_t index, uint8_t type, uint8_t side) { u.ndx = { index, type, side }; }
-    conv1_t(uint8_t col, uint8_t row) : u{ col, row, Empty, Black } {}
+void show_stats();
 
-};  // conv1_t
+long make_move(move_t const &move, Bool const restore);
 
-struct conv2_t {
-    conv1_t from, to;
+void consider_move(Color const side, index_t const from, index_t const to);
+void consider_all_moves();
 
-    conv2_t() {}
-    conv2_t(uint8_t from, uint8_t to) : from(from), to(to){}
-};
-
-void add_move(Color side, index_t from, index_t to, long value);
 void add_pawn_moves(Piece p, index_t from, index_t fwd, Color side);
 void add_knight_moves(index_t from, index_t fwd, Color side);
 void add_bishop_moves(index_t from, index_t fwd, Color side);

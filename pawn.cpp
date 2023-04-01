@@ -10,10 +10,6 @@
 #include <Arduino.h>
 #include "MicroChess.h"
 
-/*
- * add the moves for a pawn to the proper list (game.moves1 or game.moves2)
- *
- */
 void add_pawn_moves(Piece p, index_t from, index_t fwd, Color side) {
     // see if we can move 1 spot in front of this pawn
     index_t const col = from % 8;
@@ -29,7 +25,7 @@ void add_pawn_moves(Piece p, index_t from, index_t fwd, Color side) {
         index_t to = to_col + to_row * 8;
         Piece op = board.get(to);
         if (isEmpty(op)) {
-            add_move(side, from, to, 0);
+            consider_move(side, from, to);
 
             // see if we can move 2 spots in front of this pawn
             if (!hasMoved(p)) {
@@ -40,83 +36,38 @@ void add_pawn_moves(Piece p, index_t from, index_t fwd, Color side) {
                     to = to_col + to_row * 8;
                     op = board.get(to);
                     if (isEmpty(op)) {
-                        add_move(side, from, to, 0);
+                        consider_move(side, from, to);
                     }
                 }
             }
         }
     }
 
-    // see if we can capture a piece diagonally to the left
-    to_col = col - 1;
-    to_row = row + fwd;
-    to = to_col + to_row * 8;
-    if (isValidPos(to_col, to_row)) {
-        // get piece diagonally to the right
-        op = board.get(to);
-        if (!isEmpty(op) && getSide(op) != side) {
-            add_move(side, from, to, 0);
-        }
-    }
-
-    // see if we can capture a piece diagonally to the right
-    to_col = col + 1;
-    to_row = row + fwd;
-    to = to_col + to_row * 8;
-    if (isValidPos(to_col, to_row)) {
-        // get piece diagonally to the right
-        op = board.get(to);
-        if (!isEmpty(op) && getSide(op) != side) {
-            add_move(side, from, to, 0);
-        }
-    }
-
-    // check for en-passant on the left
-    to_col = col - 1;
-    to_row = row + fwd;
-    to = to_col + to_row * 8;
-    if (isValidPos(to_col, to_row)) {
-        // get piece diagonally to the right
-        op = board.get(to);
-    }
-    index_t epx = to_col;
-    if (isValidPos(to_col, to_row)) {
-        // get piece diagonally to the right
-        op = board.get(to);
-        if (!isEmpty(op) && getSide(op) != side) {
-            index_t last_move_from_row = game.last_move.from / 8;
-            index_t last_move_to_col = game.last_move.to % 8;
-            index_t last_move_to_row = game.last_move.to / 8;
-            if (last_move_to_col == epx && last_move_to_row == row) {
-                if (abs(int(last_move_from_row) - int(last_move_to_row)) > 1) {
-                    if (getType(op) == Pawn) {
-                        add_move(side, from, to, 0);
-                    }
-                }
+    // see if we can capture a piece diagonally
+    for (int i = -1; i <= 1; i += 2) {
+        to_col = col + i;
+        to_row = row + fwd;
+        to = to_col + to_row * 8;
+        if (isValidPos(to_col, to_row)) {
+            // get piece diagonally
+            op = board.get(to);
+            if (!isEmpty(op) && getSide(op) != side) {
+                consider_move(side, from, to);
             }
-        }
-    }
 
-    // check for en-passant on the right
-    to_col = col - 1;
-    to_row = row + fwd;
-    to = to_col + to_row * 8;
-    if (isValidPos(to_col, to_row)) {
-        // get piece diagonally to the right
-        op = board.get(to);
-    }
-    epx = to_col;
-    if (isValidPos(to_col, to_row)) {
-        // get piece diagonally to the right
-        op = board.get(to);
-        if (!isEmpty(op) && getSide(op) != side) {
-            index_t last_move_from_row = game.last_move.from / 8;
-            index_t last_move_to_col = game.last_move.to % 8;
-            index_t last_move_to_row = game.last_move.to / 8;
-            if (last_move_to_col == epx && last_move_to_row == row) {
-                if (abs(int(last_move_from_row) - int(last_move_to_row)) > 1) {
-                    if (getType(op) == Pawn) {
-                        add_move(side, from, to, 0);
+            // check for en-passant
+            if (isValidPos(to_col, to_row)) {
+                op = board.get(to);
+                if (!isEmpty(op) && getSide(op) != side) {
+                    index_t last_move_from_row = game.last_move.from / 8;
+                    index_t last_move_to_col = game.last_move.to % 8;
+                    index_t last_move_to_row = game.last_move.to / 8;
+                    if (last_move_to_col == to_col && last_move_to_row == row) {
+                        if (abs(int(last_move_from_row) - int(last_move_to_row)) > 1) {
+                            if (getType(op) == Pawn) {
+                                consider_move(side, from, to);
+                            }
+                        }
                     }
                 }
             }

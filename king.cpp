@@ -28,7 +28,7 @@ void add_king_moves(index_t from, index_t fwd, Color side) {
             index_t to = to_col + to_row * 8;
             Piece const op = board.get(to);
             if (isEmpty(op) || getSide(op) != side) {
-                add_move(side, from, to, 0);
+                consider_move(side, from, to);
             }
         }
     }
