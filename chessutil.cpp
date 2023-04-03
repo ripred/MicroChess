@@ -121,21 +121,17 @@ const char* addCommas(long int value) {
 }
 
 
-int debug(print_t const required, char const * const progmem, ...) {
-    if (print_level >= required) {
-        char fmt[128];
-        strcpy_P(fmt, progmem);
-        
-        char buff[128];
-        va_list argList;
-        va_start(argList, fmt);
-        vsnprintf(buff, ARRAYSZ(buff), fmt, argList);
-        va_end(argList);
+int debug(char const * const progmem, ...) {
+    char fmt[128];
+    strcpy_P(fmt, progmem);
+    
+    char buff[128];
+    va_list argList;
+    va_start(argList, fmt);
+    vsnprintf(buff, ARRAYSZ(buff), fmt, argList);
+    va_end(argList);
 
-        return Serial.write(buff, strlen(buff));
-    }
-
-    return 0;
+    return Serial.write(buff, strlen(buff));
 }
 
 

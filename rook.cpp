@@ -10,11 +10,16 @@
 #include <Arduino.h>
 #include "MicroChess.h"
 
-void add_rook_moves(index_t from, index_t fwd, Color side) {
+// void add_rook_moves(index_t from, index_t fwd, Color side) {
+void add_rook_moves(move_t &move) {
+    Piece   const p = board.get(move.from);
+    Color   const side = getSide(p);
+    index_t const  fwd = (White == side) ? -1 : 1;
+
     bool continue_dir[4] = {true, true, true, true};
 
-    index_t const col = from % 8;
-    index_t const row = from / 8;
+    index_t const col = move.from % 8;
+    index_t const row = move.from / 8;
 
     for (unsigned i=0; i < NUM_ROOK_OFFSETS; i++) {
         offset_t *ptr = pgm_get_far_address(rook_offsets);
@@ -30,11 +35,11 @@ void add_rook_moves(index_t from, index_t fwd, Color side) {
                 int index = yoff > 0 ? 0 : 1; // N or S
                 if (continue_dir[index]) {
                     if (isEmpty(op)) {
-                        consider_move(side, from, to);
+                        consider_move(side, move.from, to);
                     } else {
                         continue_dir[index] = false;
                         if (side != getSide(op)) {
-                            consider_move(side, from, to);
+                            consider_move(side, move.from, to);
                         }
                     }
                 }
@@ -42,11 +47,11 @@ void add_rook_moves(index_t from, index_t fwd, Color side) {
                 int index = xoff > 0 ? 2 : 3; // E or W
                 if (continue_dir[index]) {
                     if (isEmpty(op)) {
-                        consider_move(side, from, to);
+                        consider_move(side, move.from, to);
                     } else {
                         continue_dir[index] = false;
                         if (side != getSide(op)) {
-                            consider_move(side, from, to);
+                            consider_move(side, move.from, to);
                         }
                     }
                 }

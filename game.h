@@ -116,16 +116,25 @@ struct stat_t {
 };  // stat_t
 
 
+////////////////////////////////////////////////////////////////////////////////////////
+// the settings for a game
 struct options_t {
 public:
     uint8_t
         random : 1,     // add randomness to the game?
      profiling : 1;     // are we profiling the engine?
+    uint8_t maxply;     // the maximum ply level
 
 public:
 
-    options_t() : random(False), profiling(False) {}
-};
+    options_t() : 
+        random(False), 
+        profiling(False), 
+        maxply(MAX_PLY) 
+    {}
+
+};  // options_t
+
 
 ////////////////////////////////////////////////////////////////////////////////////////
 // the state of a game
@@ -143,19 +152,17 @@ public:
     uint8_t     piece_count;
     uint8_t     taken_count1;
     uint8_t     taken_count2;
-    uint8_t     eval_ndx;       // board index being currently evaluated
     uint8_t     turn;           // 0 := Black, 1 := White
     uint8_t     done;           // 1 := game over
     uint16_t    move_num;       // increasing move number
 
     options_t   options;        // game options
 
+    uint8_t     ply;            // current ply level
+
     // TODO: track all moves of equal value, not just one
     move_t    best_white_move;
     move_t    best_black_move;
-
-    uint8_t   num_white_moves;
-    uint8_t   num_black_moves;
 
 public:
     // constructor
@@ -166,7 +173,7 @@ public:
 
     void init()
     {
-        // initialize list of pieces in the game
+        // initialize list of pieces in the game based of of the board contents:
         piece_count = 0;
         for (uint8_t ndx=0; ndx < BOARD_SIZE; ++ndx) {
             if (Empty == getType(board.get(ndx))) continue;
@@ -195,8 +202,7 @@ public:
         best_white_move = { -1, -1, 0 };
         best_black_move = { -1, -1, 0 };
 
-        num_white_moves = 0;
-        num_black_moves = 0;
+        ply = 0;
     }
 
 };  // game_t

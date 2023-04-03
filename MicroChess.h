@@ -27,11 +27,12 @@ typedef unsigned char Bool;
 // limits
 enum 
 {
-    MAX_PIECES    = 32,
-    MAX_MOVES     = 106,         // R:11 N:8 B:11 Q:22 K:8 B:11 N:8 R:11 P:16 == 106
+    MAX_PLY            =  0,    // max ply depth
 
-    NUM_BITS_PT   =   4,        // bits per field in point_t struct
-    NUM_BITS_SPOT =   7,        // bits per field in move_t struct
+    MAX_PIECES         = 32,    // max number of pieces in game.pieces[]
+
+    NUM_BITS_PT        =  4,    // bits per field in point_t struct
+    NUM_BITS_SPOT      =  7,    // bits per field in move_t struct
 
     NUM_KNIGHT_OFFSETS =  8,    // number of offsets to check for knight moves
     NUM_BISHOP_OFFSETS = 28,    // number of offsets to check for bishop moves
@@ -146,13 +147,13 @@ char *getColor(Piece b);
 
 const char* addCommas(long int value);
 
-int debug(print_t const required, char const * const fmt, ...);
+int debug(char const * const fmt, ...);
 
 #define printf(level, str, ...) \
-do { \
+if (print_level >= level) { \
     static const char debug_string[] PROGMEM = str; \
-    debug(level, debug_string, ##__VA_ARGS__); \
-} while(0)
+    debug(debug_string, ##__VA_ARGS__); \
+}
 
 static long constexpr pieceValues[8] = {
             0,      // empty spot value
@@ -168,7 +169,7 @@ static long constexpr pieceValues[8] = {
 // adjustable multipiers to alter importance of mobility or center proximity
 // during board evaluation. season to taste
 static long constexpr mobilityBonus = 3L;
-static long constexpr   centerBonus = 5L;
+static long constexpr   centerBonus = 3L;
 
 extern long const center_bonus[8][7][2] PROGMEM;
 extern long const material_bonus[7][2] PROGMEM;
@@ -195,13 +196,13 @@ void show_stats();
 long make_move(move_t const &move, Bool const restore);
 
 void consider_move(Color const side, index_t const from, index_t const to);
-void consider_all_moves();
+move_t choose_best_move(Color const who);
 
-void add_pawn_moves(Piece p, index_t from, index_t fwd, Color side);
-void add_knight_moves(index_t from, index_t fwd, Color side);
-void add_bishop_moves(index_t from, index_t fwd, Color side);
-void add_rook_moves(index_t from, index_t fwd, Color side);
-void add_queen_moves(index_t from, index_t fwd, Color side);
-void add_king_moves(index_t from, index_t fwd, Color side);
+void add_pawn_moves(move_t &move);
+void add_knight_moves(move_t &move);
+void add_bishop_moves(move_t &move);
+void add_rook_moves(move_t &move);
+void add_queen_moves(move_t &move);
+void add_king_moves(move_t &move);
 
 #endif // MICROCHESS_INCL

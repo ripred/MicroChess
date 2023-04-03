@@ -10,10 +10,15 @@
 #include <Arduino.h>
 #include "MicroChess.h"
 
-void add_pawn_moves(Piece p, index_t from, index_t fwd, Color side) {
+// void add_pawn_moves(Piece p, index_t from, index_t fwd, Color side) {
+void add_pawn_moves(move_t &move) {
+    Piece   const p = board.get(move.from);
+    Color   const side = getSide(p);
+    index_t const  fwd = (White == side) ? -1 : 1;
+
     // see if we can move 1 spot in front of this pawn
-    index_t const col = from % 8;
-    index_t const row = from / 8;
+    index_t const col = move.from % 8;
+    index_t const row = move.from / 8;
 
     index_t to_col = col;
     index_t to_row = row + fwd;
@@ -25,7 +30,7 @@ void add_pawn_moves(Piece p, index_t from, index_t fwd, Color side) {
         index_t to = to_col + to_row * 8;
         Piece op = board.get(to);
         if (isEmpty(op)) {
-            consider_move(side, from, to);
+            consider_move(side, move.from, to);
 
             // see if we can move 2 spots in front of this pawn
             if (!hasMoved(p)) {
@@ -36,7 +41,7 @@ void add_pawn_moves(Piece p, index_t from, index_t fwd, Color side) {
                     to = to_col + to_row * 8;
                     op = board.get(to);
                     if (isEmpty(op)) {
-                        consider_move(side, from, to);
+                        consider_move(side, move.from, to);
                     }
                 }
             }
@@ -52,7 +57,7 @@ void add_pawn_moves(Piece p, index_t from, index_t fwd, Color side) {
             // get piece diagonally
             op = board.get(to);
             if (!isEmpty(op) && getSide(op) != side) {
-                consider_move(side, from, to);
+                consider_move(side, move.from, to);
             }
 
             // check for en-passant
@@ -65,7 +70,7 @@ void add_pawn_moves(Piece p, index_t from, index_t fwd, Color side) {
                     if (last_move_to_col == to_col && last_move_to_row == row) {
                         if (abs(int(last_move_from_row) - int(last_move_to_row)) > 1) {
                             if (getType(op) == Pawn) {
-                                consider_move(side, from, to);
+                                consider_move(side, move.from, to);
                             }
                         }
                     }

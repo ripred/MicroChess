@@ -14,19 +14,24 @@
  * add the moves for a knight to the proper list (game.moves1 or game.moves2)
  *
  */
-void add_knight_moves(index_t from, index_t fwd, Color side) {
-    index_t const col = from % 8;
-    index_t const row = from / 8;
+// void add_knight_moves(index_t from, index_t fwd, Color side) {
+void add_knight_moves(move_t &move) {
+    Piece   const p = board.get(move.from);
+    Color   const side = getSide(p);
+    index_t const  fwd = (White == side) ? -1 : 1;
+
+    index_t const col = move.from % 8;
+    index_t const row = move.from / 8;
 
     for (index_t i = 0; i < NUM_KNIGHT_OFFSETS; i++) {
         offset_t *ptr = (offset_t *)pgm_get_far_address(knight_offsets);
         index_t to_col = col + pgm_read_byte(&ptr[i].x) * fwd;
         index_t to_row = row + pgm_read_byte(&ptr[i].y) * fwd;
         if (isValidPos(to_col, to_row)) {
-            index_t to = to_col + (to_row * 8);
+            index_t to = to_col + to_row * 8;
             Piece const op = board.get(to);
             if (isEmpty(op) || getSide(op) != side) {
-                consider_move(side, from, to);
+                consider_move(side, move.from, to);
             }
         }
     }
