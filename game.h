@@ -104,6 +104,10 @@ struct stat_t {
         moves_gen_move_delta = 0;
     }
 
+    uint32_t move_count_so_far() const {
+        return moves_gen_game - moves_gen_move_start;
+    }
+
     // stop the move timers and calc the move stats
     void stop_move_stats() {
         move_end = millis();
@@ -121,16 +125,18 @@ struct stat_t {
 struct options_t {
 public:
     uint8_t
-        random : 1,     // add randomness to the game?
-     profiling : 1;     // are we profiling the engine?
-    uint8_t maxply;     // the maximum ply level
+        random : 1,         // add randomness to the game?
+     profiling : 1;         // are we profiling the engine?
+    uint8_t maxply;         // the maximum ply level
+    uint8_t move_limit;     // the maximum number of moves allowed in a full game
 
 public:
 
     options_t() : 
         random(False), 
         profiling(False), 
-        maxply(MAX_PLY) 
+        maxply(MAX_PLY),
+        move_limit(MOVE_LIMIT)
     {}
 
 };  // options_t
@@ -141,28 +147,46 @@ public:
 struct game_t 
 {
 public:
+    // the last 5 moves are kept to recognize 3-move repetition
+    move_t      history[5];
+    index_t     hist_count;
+
+    // the pieces on the board
     point_t     pieces[MAX_PIECES];
-    Piece       taken1[16], taken2[16];
-    stat_t      stats;
-    Bool        white_king_in_check;
-    Bool        black_king_in_check;
-    move_t      last_move;
-    uint32_t    last_move_time;
-    uint32_t    last_moves_evaluated;
     uint8_t     piece_count;
+
+    // the pieces that have been taken
+    Piece       taken1[16], taken2[16];
     uint8_t     taken_count1;
     uint8_t     taken_count2;
+
+    // the statistics of the game
+    stat_t      stats;
+
+    // the check state of the two kings
+    Bool        white_king_in_check;
+    Bool        black_king_in_check;
+
+    // the last move made
+    move_t      last_move;
+    uint8_t     last_was_en_passant : 1;    // true when last move was an en-passaant capture
+    uint32_t    last_move_time;
+    uint32_t    last_moves_evaluated;
+
+    // whose turn it is
     uint8_t     turn;           // 0 := Black, 1 := White
-    uint8_t     done;           // 1 := game over
-    uint16_t    move_num;       // increasing move number
 
-    options_t   options;        // game options
+    // flag indicating the end of the game
+    Bool        done;
 
-    uint8_t     ply;            // current ply level
+    // increasing move number
+    uint16_t    move_num;
 
-    // TODO: track all moves of equal value, not just one
-    move_t    best_white_move;
-    move_t    best_black_move;
+    // the game options
+    options_t   options;
+
+    // the current ply level
+    uint8_t     ply;
 
 public:
     // constructor
@@ -182,25 +206,25 @@ public:
             }
         }
 
+        hist_count = 0;
+
         stats = stat_t();
 
         taken_count1 = 0;
         taken_count2 = 0;
 
         last_move = { -1, -1, 0 };
+        last_was_en_passant = False;
         last_move_time = 0;
         last_moves_evaluated = 0;
 
-        white_king_in_check = 0;
-        black_king_in_check = 0;
+        white_king_in_check = False;
+        black_king_in_check = False;
 
         turn = White;
         move_num = 0;
 
-        done = 0;
-
-        best_white_move = { -1, -1, 0 };
-        best_black_move = { -1, -1, 0 };
+        done = False;
 
         ply = 0;
     }

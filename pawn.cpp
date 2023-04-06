@@ -10,11 +10,14 @@
 #include <Arduino.h>
 #include "MicroChess.h"
 
-// void add_pawn_moves(Piece p, index_t from, index_t fwd, Color side) {
-void add_pawn_moves(move_t &move) {
+/*
+ * evaluate the moves for a pawn against the best move so far
+ *
+ */
+void add_pawn_moves(move_t &move, move_t &best) {
     Piece   const p = board.get(move.from);
     Color   const side = getSide(p);
-    index_t const  fwd = (White == side) ? -1 : 1;
+    index_t const fwd = (White == side) ? -1 : 1;
 
     // see if we can move 1 spot in front of this pawn
     index_t const col = move.from % 8;
@@ -30,7 +33,8 @@ void add_pawn_moves(move_t &move) {
         index_t to = to_col + to_row * 8;
         Piece op = board.get(to);
         if (isEmpty(op)) {
-            consider_move(side, move.from, to);
+            move.to = to;
+            consider_move(move, best);
 
             // see if we can move 2 spots in front of this pawn
             if (!hasMoved(p)) {
@@ -41,7 +45,8 @@ void add_pawn_moves(move_t &move) {
                     to = to_col + to_row * 8;
                     op = board.get(to);
                     if (isEmpty(op)) {
-                        consider_move(side, move.from, to);
+                        move.to = to;
+                        consider_move(move, best);
                     }
                 }
             }
@@ -57,20 +62,22 @@ void add_pawn_moves(move_t &move) {
             // get piece diagonally
             op = board.get(to);
             if (!isEmpty(op) && getSide(op) != side) {
-                consider_move(side, move.from, to);
+                move.to = to;
+                consider_move(move, best);
             }
 
             // check for en-passant
             if (isValidPos(to_col, to_row)) {
                 op = board.get(to);
                 if (!isEmpty(op) && getSide(op) != side) {
-                    index_t last_move_from_row = game.last_move.from / 8;
-                    index_t last_move_to_col = game.last_move.to % 8;
-                    index_t last_move_to_row = game.last_move.to / 8;
+                    index_t const last_move_from_row = game.last_move.from / 8;
+                    index_t const last_move_to_col = game.last_move.to % 8;
+                    index_t const last_move_to_row = game.last_move.to / 8;
                     if (last_move_to_col == to_col && last_move_to_row == row) {
                         if (abs(int(last_move_from_row) - int(last_move_to_row)) > 1) {
                             if (getType(op) == Pawn) {
-                                consider_move(side, move.from, to);
+                                move.to = to;
+                                consider_move(move, best);
                             }
                         }
                     }

@@ -10,18 +10,16 @@
 #include "MicroChess.h"
 #include "board.h"
 
-spot_t::spot_t() : type(Empty), side(Black), moved(0), check(0) {
+// implementation of the support object spot_t
+spot_t::spot_t() : type(Empty), side(Black), moved(False), check(False) {}
+spot_t::spot_t(Piece p) { *this = *((spot_t *) &p); }
+spot_t::spot_t(uint8_t t, uint8_t s, uint8_t m, uint8_t c) : type(t), side(s), moved(m), check(c) {}
 
-}
+// There are two ways to represent the board defined, tha can be used in the main board_t type.
 
-spot_t::spot_t(Piece p) {
-    *this = *((spot_t *) &p); 
-}
 
-spot_t::spot_t(uint8_t t, uint8_t s, uint8_t m, uint8_t c) : type(t), side(s), moved(m), check(c) {
-
-}
-
+// implementation of the board_t1 type used to represent the contents of a chess board
+// this version uses 64 bytes, 1 byte per spot
 Piece board_t1::get(index_t index) const 
 {
     return *((Piece*) &rows[index / 8].cols[index % 8]);
@@ -33,6 +31,8 @@ void board_t1::set(index_t index, Piece const piece)
 }    
 
 
+// implementation of the board_t2 type used to represent the contents of a chess board
+// this version uses 48 bytes, 6-bits per spot
 Piece board_t2::get(index_t index) const 
 {
     index_t const row = index / 8;

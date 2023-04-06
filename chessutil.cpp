@@ -113,7 +113,10 @@ char *getColor(Piece b)
 const char* addCommas(long int value) {
     static char buff[32];
     snprintf(buff, 32, "%ld", value);
-    for (int i = strlen(buff) - 3; i > 0; i -= 3) {
+
+    int start_idx = (buff[0] == '-') ? 1 : 0;
+
+    for (int i = strlen(buff) - 3; i > start_idx; i -= 3) {
         memmove(&buff[i + 1], &buff[i], strlen(buff) - i);
         buff[i] = ',';
     }
@@ -157,49 +160,6 @@ void show_stats() {
 
     printf(Debug1, "   max move count per turn: %d\n", game.stats.max_moves);
     printf(Debug1, "\n");
-}
-
-
-// runtime memory usage functions
-#include <unistd.h>
-
-#ifdef __arm__
-// should use uinstd.h to define sbrk but Due causes a conflict
-extern "C" char* sbrk(int incr);
-#else  // __ARM__
-extern char *__brkval;
-#endif  // __arm__
-
-int freeMemory() {
-    char top;
-#ifdef __arm__
-    return &top - reinterpret_cast<char*>(sbrk(0));
-#elif defined(CORE_TEENSY) || (ARDUINO > 103 && ARDUINO != 151)
-    return &top - __brkval;
-#else  // __arm__
-    return __brkval ? &top - __brkval : &top - __malloc_heap_start;
-#endif  // __arm__
-}
-
-void printMemoryStats() {
-    // ============================================================
-    // startup memory
-    int totalRam = 2048;
-    // int freeRam = freeMem();
-    int freeRam = freeMemory();
-    int usedRam = totalRam - freeRam;
-
-    printf(Debug2, "Total SRAM = %d\n", totalRam);
-    printf(Debug2, "Free SRAM = %d\n", freeRam);
-    printf(Debug2, "Used SRAM = %d\n", usedRam);
-
-    printf(Debug2, "sizeof(move_t) = %d\n", sizeof(move_t));
-    printf(Debug2, 
-        "meaning there is room for %d more move_t entries.\n", 
-        freeRam / sizeof(move_t) );
-    printf(Debug2, 
-        "or %d more move_t entries per move list.\n", 
-        ((freeRam / sizeof(move_t)) / 2) );
 }
 
 
@@ -256,7 +216,54 @@ void show_move(move_t const &move) {
         printf(Debug1, " taking a ");
         show_piece(op);
     }
+
+    char str_value[16] = "";
+    strcpy(str_value, addCommas(move.value));
+    printf(Debug1, " value: %s%s", (move.value < 0) ? "" : " ", str_value);
 }
+
+// runtime memory usage functions
+#include <unistd.h>
+
+#ifdef __arm__
+// should use uinstd.h to define sbrk but Due causes a conflict
+extern "C" char* sbrk(int incr);
+#else  // __ARM__
+extern char *__brkval;
+#endif  // __arm__
+
+int freeMemory() {
+    char top;
+#ifdef __arm__
+    return &top - reinterpret_cast<char*>(sbrk(0));
+#elif defined(CORE_TEENSY) || (ARDUINO > 103 && ARDUINO != 151)
+    return &top - __brkval;
+#else  // __arm__
+    return __brkval ? &top - __brkval : &top - __malloc_heap_start;
+#endif  // __arm__
+}
+
+void printMemoryStats() {
+    // ============================================================
+    // startup memory
+    int totalRam = 2048;
+    // int freeRam = freeMem();
+    int freeRam = freeMemory();
+    int usedRam = totalRam - freeRam;
+
+    printf(Debug2, "Total SRAM = %d\n", totalRam);
+    printf(Debug2, "Free SRAM = %d\n", freeRam);
+    printf(Debug2, "Used SRAM = %d\n", usedRam);
+
+    printf(Debug2, "sizeof(move_t) = %d\n", sizeof(move_t));
+    printf(Debug2, 
+        "meaning there is room for %d more move_t entries.\n", 
+        freeRam / sizeof(move_t) );
+    printf(Debug2, 
+        "or %d more move_t entries per move list.\n", 
+        ((freeRam / sizeof(move_t)) / 2) );
+}
+
 
 // use pre-computed bonus tables for speed!
 //                                [col/row][type][side] 

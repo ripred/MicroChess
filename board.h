@@ -98,7 +98,7 @@ public:
 
 struct board_t {
 private:
-    board_t2  board;
+    board_t1  board;
 
 public:
     Piece get(index_t index) const;

@@ -29,6 +29,8 @@ enum
 {
     MAX_PLY            =  0,    // max ply depth
 
+    MOVE_LIMIT         = 100,   // the maximum number of moves allowed in a game
+
     MAX_PIECES         = 32,    // max number of pieces in game.pieces[]
 
     NUM_BITS_PT        =  4,    // bits per field in point_t struct
@@ -73,7 +75,7 @@ extern print_t print_level;
 #define  ARRAYSZ(A) (sizeof(A) / sizeof(*(A)))
 
 // The max and min range for piece values
-#define  MAX_VALUE ((long const)( 0b0100000000000000))    // half the value of number of bits the 'value' field in move_t has
+#define  MAX_VALUE ((long const)( 0b010000000000000000))    // half the value of number of bits the 'value' field in move_t has
 #define  MIN_VALUE ((long const)(0 - MAX_VALUE))
 
 // the number of locations on the game board
@@ -195,14 +197,14 @@ void show_stats();
 
 long make_move(move_t const &move, Bool const restore);
 
-void consider_move(Color const side, index_t const from, index_t const to);
-move_t choose_best_move(Color const who);
+Bool consider_move(move_t &move, move_t &best);
+void choose_best_move(move_t &best_white, move_t &best_black);
 
-void add_pawn_moves(move_t &move);
-void add_knight_moves(move_t &move);
-void add_bishop_moves(move_t &move);
-void add_rook_moves(move_t &move);
-void add_queen_moves(move_t &move);
-void add_king_moves(move_t &move);
+void add_pawn_moves(move_t &move, move_t &best);
+void add_knight_moves(move_t &move, move_t &best);
+void add_bishop_moves(move_t &move, move_t &best);
+void add_rook_moves(move_t &move, move_t &best);
+void add_queen_moves(move_t &move, move_t &best);
+void add_king_moves(move_t &move, move_t &best);
 
 #endif // MICROCHESS_INCL

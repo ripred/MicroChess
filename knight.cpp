@@ -11,27 +11,27 @@
 #include "MicroChess.h"
 
 /*
- * add the moves for a knight to the proper list (game.moves1 or game.moves2)
+ * evaluate the moves for a knight against the best move so far
  *
  */
-// void add_knight_moves(index_t from, index_t fwd, Color side) {
-void add_knight_moves(move_t &move) {
+void add_knight_moves(move_t &move, move_t &best) {
     Piece   const p = board.get(move.from);
     Color   const side = getSide(p);
-    index_t const  fwd = (White == side) ? -1 : 1;
+    index_t const fwd = (White == side) ? -1 : 1;
 
     index_t const col = move.from % 8;
     index_t const row = move.from / 8;
 
     for (index_t i = 0; i < NUM_KNIGHT_OFFSETS; i++) {
-        offset_t *ptr = (offset_t *)pgm_get_far_address(knight_offsets);
-        index_t to_col = col + pgm_read_byte(&ptr[i].x) * fwd;
-        index_t to_row = row + pgm_read_byte(&ptr[i].y) * fwd;
+        offset_t const * const ptr = (offset_t *)pgm_get_far_address(knight_offsets);
+        index_t  const to_col = col + pgm_read_byte(&ptr[i].x) * fwd;
+        index_t  const to_row = row + pgm_read_byte(&ptr[i].y) * fwd;
         if (isValidPos(to_col, to_row)) {
-            index_t to = to_col + to_row * 8;
-            Piece const op = board.get(to);
+            index_t const to = to_col + to_row * 8;
+            Piece   const op = board.get(to);
             if (isEmpty(op) || getSide(op) != side) {
-                consider_move(side, move.from, to);
+                move.to = to;
+                consider_move(move, best);
             }
         }
     }
