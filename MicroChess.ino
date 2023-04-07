@@ -353,7 +353,7 @@ long make_move(move_t const &move, Bool const restore)
         move_t best_white = { -1, -1, MIN_VALUE };
         move_t best_black = { -1, -1, MAX_VALUE };
 
-        choose_best_move(best_white, best_black);
+        choose_best_move(best_white, best_black, consider_move);
 
         ++game.turn %= 2;
         game.ply--;
@@ -473,7 +473,7 @@ void reset_move_flags()
 // Evaluate all of the available moves for all pieces.
 // The best move for White is placed in best_white.
 // The best move for Black is placed in best_black.
-void choose_best_move(move_t &best_white, move_t &best_black) 
+void choose_best_move(move_t &best_white, move_t &best_black, generator_t callback) 
 {
     static Bool constexpr   enable_pawns = True;
     static Bool constexpr enable_knights = True;
@@ -511,7 +511,7 @@ void choose_best_move(move_t &best_white, move_t &best_black)
             while ((1)) {}
         }
 
-        piece_gen_t gen(move, best, &consider_move);
+        piece_gen_t gen(move, best, callback);
 
         switch (type) {
             case   Pawn: if ((enable_pawns))   {   add_pawn_moves(gen); }  break;
@@ -594,7 +594,7 @@ void play_game()
     printf(Debug3, "(\n"
                    "evaluating all available moves..\n\n");
 
-    choose_best_move(best_white, best_black);
+    choose_best_move(best_white, best_black, consider_move);
 
     move_t const &move = whites_turn ? best_white : best_black;
 

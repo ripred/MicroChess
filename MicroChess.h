@@ -213,7 +213,7 @@ extern long make_move(move_t const &move, Bool const restore);
 
 Bool consider_move(move_t &move, move_t &best);
 
-extern void choose_best_move(move_t &best_white, move_t &best_black);
+extern void choose_best_move(move_t &best_white, move_t &best_black, generator_t callback);
 
 extern void add_pawn_moves(piece_gen_t &gen);
 extern void add_knight_moves(piece_gen_t &gen);
