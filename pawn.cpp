@@ -14,7 +14,11 @@
  * evaluate the moves for a pawn against the best move so far
  *
  */
-void add_pawn_moves(move_t &move, move_t &best) {
+void add_pawn_moves(piece_gen_t &gen) {
+    move_t &move = gen.move;
+    move_t &best = gen.best;
+    generator_t *callback = gen.callme;
+
     Piece   const p = board.get(move.from);
     Color   const side = getSide(p);
     index_t const fwd = (White == side) ? -1 : 1;
@@ -34,7 +38,7 @@ void add_pawn_moves(move_t &move, move_t &best) {
         Piece op = board.get(to);
         if (isEmpty(op)) {
             move.to = to;
-            consider_move(move, best);
+            callback(move, best);
 
             // see if we can move 2 spots in front of this pawn
             if (!hasMoved(p)) {
@@ -46,7 +50,7 @@ void add_pawn_moves(move_t &move, move_t &best) {
                     op = board.get(to);
                     if (isEmpty(op)) {
                         move.to = to;
-                        consider_move(move, best);
+                        callback(move, best);
                     }
                 }
             }
@@ -63,7 +67,7 @@ void add_pawn_moves(move_t &move, move_t &best) {
             op = board.get(to);
             if (!isEmpty(op) && getSide(op) != side) {
                 move.to = to;
-                consider_move(move, best);
+                callback(move, best);
             }
 
             // check for en-passant
@@ -77,7 +81,7 @@ void add_pawn_moves(move_t &move, move_t &best) {
                         if (abs(int(last_move_from_row) - int(last_move_to_row)) > 1) {
                             if (getType(op) == Pawn) {
                                 move.to = to;
-                                consider_move(move, best);
+                                callback(move, best);
                             }
                         }
                     }

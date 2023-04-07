@@ -14,7 +14,11 @@
  * evaluate the moves for a bishop against the best move so far
  *
  */
-void add_bishop_moves(move_t &move, move_t &best) {
+void add_bishop_moves(piece_gen_t &gen) {
+    move_t &move = gen.move;
+    move_t &best = gen.best;
+    generator_t *callback = gen.callme;
+
     bool continue_dir[4] = { true, true, true, true };
     Piece   const p = board.get(move.from);
     Color   const side = getSide(p);
@@ -38,12 +42,12 @@ void add_bishop_moves(move_t &move, move_t &best) {
                 if (continue_dir[index]) {
                     if (isEmpty(op)) {
                         move.to = to;
-                        consider_move(move, best);
+                        callback(move, best);
                     } else {
                         continue_dir[index] = false;
                         if (side != getSide(op)) {
                             move.to = to;
-                            consider_move(move, best);
+                            callback(move, best);
                         }
                     }
                 }
@@ -52,12 +56,12 @@ void add_bishop_moves(move_t &move, move_t &best) {
                 if (continue_dir[index]) {
                     if (isEmpty(op)) {
                         move.to = to;
-                        consider_move(move, best);
+                        callback(move, best);
                     } else {
                         continue_dir[index] = false;
                         if (side != getSide(op)) {
                             move.to = to;
-                            consider_move(move, best);
+                            callback(move, best);
                         }
                     }
                 }

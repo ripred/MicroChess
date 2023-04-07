@@ -25,6 +25,11 @@ typedef unsigned char Bool;
 
 ////////////////////////////////////////////////////////////////////////////////////////
 // limits
+enum : uint32_t 
+{
+    PRN_SEED    = 0x232F89A3,   // default hash seed for psuedo random number generator
+};
+
 enum 
 {
     MAX_PLY            =  0,    // max ply depth
@@ -67,9 +72,6 @@ enum print_t {
     Never      = 99,    // never display
     Everything = 99,    // for use in setting print_level
 };
-
-// the global setting that affects the level of output detail
-extern print_t print_level;
 
 // macro to return the number of elements in an array of any data type
 #define  ARRAYSZ(A) (sizeof(A) / sizeof(*(A)))
@@ -152,7 +154,7 @@ const char* addCommas(long int value);
 int debug(char const * const fmt, ...);
 
 #define printf(level, str, ...) \
-if (print_level >= level) { \
+if (game.options.print_level >= level) { \
     static const char debug_string[] PROGMEM = str; \
     debug(debug_string, ##__VA_ARGS__); \
 }
@@ -189,22 +191,35 @@ extern offset_t const king_offsets[NUM_KING_OFFSETS] PROGMEM;
 
 extern game_t game;
 
-void show_move(move_t const &move);
-void show_pieces();
-void show_piece(Piece const p);
+typedef Bool (generator_t(move_t &, move_t &));
 
-void show_stats();
+class piece_gen_t {
+public:
+    move_t      & move;
+    move_t      & best;
+    generator_t  *callme;
 
-long make_move(move_t const &move, Bool const restore);
+    piece_gen_t(move_t &m, move_t &b, generator_t *cb) :
+        move(m), best(b), callme(cb) {}
+};
+
+extern void show_move(move_t const &move);
+extern void show_pieces();
+extern void show_piece(Piece const p);
+
+extern void show_stats();
+
+extern long make_move(move_t const &move, Bool const restore);
 
 Bool consider_move(move_t &move, move_t &best);
-void choose_best_move(move_t &best_white, move_t &best_black);
 
-void add_pawn_moves(move_t &move, move_t &best);
-void add_knight_moves(move_t &move, move_t &best);
-void add_bishop_moves(move_t &move, move_t &best);
-void add_rook_moves(move_t &move, move_t &best);
-void add_queen_moves(move_t &move, move_t &best);
-void add_king_moves(move_t &move, move_t &best);
+extern void choose_best_move(move_t &best_white, move_t &best_black);
+
+extern void add_pawn_moves(piece_gen_t &gen);
+extern void add_knight_moves(piece_gen_t &gen);
+extern void add_bishop_moves(piece_gen_t &gen);
+extern void add_rook_moves(piece_gen_t &gen);
+extern void add_queen_moves(piece_gen_t &gen);
+extern void add_king_moves(piece_gen_t &gen);
 
 #endif // MICROCHESS_INCL

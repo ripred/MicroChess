@@ -125,6 +125,20 @@ Bool is_better_move(
 }   // is_better_move(...)
 
 
+index_t king_loc = -1;
+Bool king_is_in_check = False;
+
+Bool check_king(move_t &move, move_t & /* best */)
+{
+    if (move.to == king_loc) {
+        king_is_in_check = True;
+        return True;
+    }
+
+    return False;
+}
+
+
 ////////////////////////////////////////////////////////////////////////////////////////
 // consider a move against the best white move or the best black move
 // depending on the color of the piece and set this as the best move
@@ -138,7 +152,10 @@ Bool consider_move(move_t &move, move_t &best)
     Color const oside = getSide(op);
 
     // don't allow us to take our own pieces
-    assert(Empty == otype || side != oside);
+    if (Empty != otype && side == oside) {
+        printf(Debug1, "Error: attempt to take own piece at line %d", __LINE__);
+        while ((true)) {}
+    }
 
     // Make the move_t object for the move (recursively) and it's evaluation
     move.value = make_move(move, True);
@@ -148,7 +165,7 @@ Bool consider_move(move_t &move, move_t &best)
     printf(dbg, "call to consider_move(%d, %2d, %2d, %5ld) = ", 
         side, move.from, move.to, move.value);
 
-    if (print_level >= dbg) {
+    if (game.options.print_level >= dbg) {
         show_move(move);
     }
 
@@ -215,7 +232,10 @@ long make_move(move_t const &move, Bool const restore)
     Color         oside = getSide(op);
 
     // ensure that we aren't trying to take our own piece
-    assert(Empty == otype || side != oside);
+    if (Empty != otype && side == oside) {
+        printf(Debug1, "attempt to take our own piece at line %d\n", __LINE__);
+        while ((true)) {}
+    }
 
     // track the number of moves considered so far
     if (restore) {
@@ -240,57 +260,50 @@ long make_move(move_t const &move, Bool const restore)
         return MAX_VALUE;
     }
 
-    // save away the current board state if we need to restore it
-    point_t pieces_copy[32];
-    index_t taken_count1;
-    index_t taken_count2;
-    index_t piece_count;
-    Piece   taken1[16];
-    Piece   taken2[16];
-    board_t board_copy;
-
-    if (restore) {
-        board_copy = board;
-
-        memcpy(taken1, game.taken1, sizeof(taken1));
-        taken_count1 = game.taken_count1;
-
-        memcpy(taken2, game.taken2, sizeof(taken2));
-        taken_count2 = game.taken_count2;
-
-        memcpy(pieces_copy, game.pieces, sizeof(pieces_copy));
-        piece_count = game.piece_count;
-    }
-
     // find the index of the piece being moved in the array of pieces in the game:
     index_t const piece_index = find_piece(from);
 
     if (piece_index < 0) {
-        printf(Error, "\n"
+        printf(Debug1, "\n"
             "error in make_move(...): could not find piece from move_t in pieces list: "
             "col = %d, row = %d\n\n",
             col, row);
 
-        print_level = Debug1;
+        game.options.print_level = Debug1;
         show();
         show_stats();
         while ((1)) {}
     }
 
-    // check for en-passant capture
+    // game.pieces[] index being captured
     index_t taken_index = -1;
+
+    // board index being captured
+    index_t captured = -1;
 
     if (type == Pawn && isEmpty(otype) && col != to_col) {
         // en-passant capture
         game.last_was_en_passant = True;
 
-        op = board.get(to_col + row * 8);
+        captured = to_col + row * 8;
+    }
+    else {
+        // See if the destination is not empty and not a piece on our side.
+        // i.e. an opponent's piece.
+        if (Empty != otype && side != oside) {
+            captured = to;
+        }
+    }
 
-        // make the unique change to the board that doesn't happen on other captures
-        board.set(to_col + row * 8, Empty);
+    // if a piece was taken, make the change on the board and to the game.pieces[] list
+    if (-1 != captured) {
+        op = board.get(captured);
+
+        // change the spot on the board for the taken piece to Empty
+        board.set(captured, Empty);
 
         // remember the piece index of the piece being taken
-        taken_index = find_piece(to_col + row * 8);
+        taken_index = find_piece(captured);
 
         // Decrement the piece count to point to the last entry
         game.piece_count--;
@@ -307,45 +320,20 @@ long make_move(move_t const &move, Bool const restore)
             game.taken2[game.taken_count2++] = op;
         }
     }
-    else {
-        // See if the destination is not empty and not a piece on our side.
-        // i.e. an opponent's piece.
-        if (Empty != otype && side != oside) {
-            // remember the piece index of the piece being taken
-            taken_index = find_piece(to);
 
-            // Decrement the piece count to point to the last entry
-            game.piece_count--;
-
-            // Replace the taken piece in the piece list with the last piece
-            // in the piece list (remove it by overwriting it).
-            game.pieces[taken_index] = game.pieces[game.piece_count];
-
-            // add the piece to the list of taken pieces
-            if (White == side) {
-                game.taken1[game.taken_count1++] = op;
-            }
-            else {
-                game.taken2[game.taken_count2++] = op;
-            }
-        }
-    }
-
-    // move the piece on the board
-    if (!game.last_was_en_passant) {
-        board.set(from, Empty);
-    }
-
-    // move the piece in the piece list
-    game.pieces[piece_index] = { to_col, to_row };
+    Piece place_piece = setMoved(p, True);
 
     // promote the pawn to a queen if it reached the back row
     if (Pawn == getType(p) && (to_row == ((White == side) ? index_t(0) : index_t(7)))) {
-        board.set(to, setMoved(setType(p, Queen), True));
+        place_piece = setType(place_piece, Queen);
     }
-    else {
-        board.set(to, setMoved(p, True));
-    }
+
+    // move the piece on the board
+    board.set(from, Empty);
+    board.set(to, place_piece);
+
+    // move the piece in the piece list
+    game.pieces[piece_index] = { to_col, to_row };
 
     // get the value of the board after the move(s)
     long value = evaluate();
@@ -362,31 +350,31 @@ long make_move(move_t const &move, Bool const restore)
         ++game.turn %= 2;
 
         reset_move_flags();
-        move_t best_white = { -1, -1, (White == game.turn) ? MIN_VALUE : MAX_VALUE };
-        move_t best_black = { -1, -1, (White == game.turn) ? MAX_VALUE : MIN_VALUE };
+        move_t best_white = { -1, -1, MIN_VALUE };
+        move_t best_black = { -1, -1, MAX_VALUE };
 
         choose_best_move(best_white, best_black);
 
         ++game.turn %= 2;
         game.ply--;
 
-        long side_factor = (White == side) ? +1 : -1;
-
-        value += side_factor * (best_white.value + best_black.value);
+        value += (best_white.value + best_black.value);
     }
 
     // if this move is just being evaluated then put the piece(s) back:
     if (restore) {
-        board = board_copy;
+        if (-1 == captured) {
+            board.set(to, op);
+        } else {
+            board.set(captured, op);
+            game.pieces[game.piece_count++] = game.pieces[taken_index];
+            game.pieces[taken_index] = { index_t(captured % 8), index_t(captured / 8) };
 
-        memcpy(game.pieces, pieces_copy, sizeof(pieces_copy));
-        game.piece_count = piece_count;
+            if (White == side) { game.taken_count1--; } else { game.taken_count2--; }
+        }
 
-        memcpy(game.taken1, taken1, sizeof(taken1));
-        game.taken_count1 = taken_count1;
-
-        memcpy(game.taken2, taken2, sizeof(taken2));
-        game.taken_count2 = taken_count2;
+        board.set(from, p);
+        game.pieces[piece_index] = { col, row };
     }
 
     return value;
@@ -513,27 +501,29 @@ void choose_best_move(move_t &best_white, move_t &best_black)
             ndx, game.piece_count, col, row, getColor(p), getName(p));
 
         if (isEmpty(type)) {
-            printf(Error, "error: Empty piece in piece list: game.eval_ndx = %d, board index = %d\n", 
+            printf(Debug1, "error: Empty piece in piece list: game.eval_ndx = %d, board index = %d\n", 
                 ndx, from);
 
-            print_level = Debug1;
+            game.options.print_level = Debug1;
             show_pieces();
             show();
             show_stats();
             while ((1)) {}
         }
 
+        piece_gen_t gen(move, best, &consider_move);
+
         switch (type) {
-            case   Pawn: if ((enable_pawns))   {   add_pawn_moves(move, best); }  break;
-            case Knight: if ((enable_knights)) { add_knight_moves(move, best); }  break;
-            case Bishop: if ((enable_bishops)) { add_bishop_moves(move, best); }  break;
-            case   Rook: if ((enable_rooks))   {   add_rook_moves(move, best); }  break;
-            case  Queen: if ((enable_queens))  {  add_queen_moves(move, best); }  break;
-            case   King: if ((enable_kings))   {   add_king_moves(move, best); }  break;
+            case   Pawn: if ((enable_pawns))   {   add_pawn_moves(gen); }  break;
+            case Knight: if ((enable_knights)) { add_knight_moves(gen); }  break;
+            case Bishop: if ((enable_bishops)) { add_bishop_moves(gen); }  break;
+            case   Rook: if ((enable_rooks))   {   add_rook_moves(gen); }  break;
+            case  Queen: if ((enable_queens))  {  add_queen_moves(gen); }  break;
+            case   King: if ((enable_kings))   {   add_king_moves(gen); }  break;
 
             default:
-                printf(Error, "error: invalid type = %d\n", type);
-                print_level = Debug1;
+                printf(Debug1, "error: invalid type = %d\n", type);
+                game.options.print_level = Debug1;
                 show();
                 show_stats();
                 while ((1)) {}
@@ -545,9 +535,32 @@ void choose_best_move(move_t &best_white, move_t &best_black)
 
 
 ////////////////////////////////////////////////////////////////////////////////////////
+// see if a move would violate the 3-move repetition rule
+Bool would_repeat(move_t const move) 
+{
+    if (game.hist_count < 3) {
+        return False;
+    }
+
+    move_t const &m1 = move;
+    move_t const &m2 = game.history[1];
+    move_t const &m3 = game.history[3];
+
+    Bool const repeat1 = (m1.from == m2.to);
+    Bool const repeat2 = (m2.from == m3.to);
+    Bool const repeat3 = (m3.from == m1.from);
+
+    return repeat1 && repeat2 && repeat3;
+
+}   // would_repeat(move_t const move)
+
+
+////////////////////////////////////////////////////////////////////////////////////////
 // add a move to the partial history list and check for 3-move repetition
 Bool add_to_history(move_t const &move)
 {
+    Bool result = would_repeat(move);
+
     memmove(&game.history[1], &game.history[0], sizeof(move_t) * 4);
 
     game.history[0] = move;
@@ -556,19 +569,7 @@ Bool add_to_history(move_t const &move)
         game.hist_count++;
     }
 
-    if (game.hist_count < 4) {
-        return False;
-    }
-
-    move_t const &m1 = game.history[0];
-    move_t const &m2 = game.history[2];
-    move_t const &m3 = game.history[4];
-
-    Bool const repeat1 = (m1.from == m2.to);
-    Bool const repeat2 = (m2.from == m3.to);
-    Bool const repeat3 = (m3.from == m1.from);
-
-    return repeat1 && repeat2 && repeat3;
+    return result;
 
 }   // add_to_history()
 
@@ -633,6 +634,9 @@ void play_game()
     // Display the move that we chose:
     printf(Debug1, "\nMove #%d: ", game.move_num + 1);
     show_move(move);
+    if (game.last_was_en_passant) {
+        printf(Debug1, " en passant capture")
+    }
     printf(Debug1, "\n");
 
     // Make the move:
@@ -643,10 +647,10 @@ void play_game()
     game.last_move_time = game.stats.move_time;
     game.last_moves_evaluated = game.stats.moves_gen_move_delta;
 
-    // remember the last move made
+    // Remember the last move made
     game.last_move = move;
 
-    // announce if either king is in check
+    // Announce if either king is in check
     if (game.white_king_in_check) {
         printf(Debug1, "White King is in check!\n");
         if (White == game.turn) {
@@ -663,6 +667,7 @@ void play_game()
 
     printf(Debug1, "\n");
 
+    // check for 3-move repetition
     if (add_to_history(move)) {
         printf(Debug1, "\n3-move repetition\n");
         printf(Debug1, "%s wins!\n", White == game.turn ? "Black" : "White");
@@ -700,16 +705,16 @@ void test_conv_t() {
 
 void set_game_options() {
     // set game.options.profiling to True (1) to disable output and profile the engine
-    game.options.profiling = False;
-    // game.options.profiling = True;
+    // game.options.profiling = False;
+    game.options.profiling = True;
 
     // set game.options.random to True (1) to use randomness in the game decisions
     game.options.random = False;
 
-    // game hash - default to 4 hex prime numbers
-    uint32_t seed = 0x232F89A3;
-    uint16_t upper = seed >> 16;
-    uint16_t lower = word(seed);
+    // game seed hash for prn generator - default to 4 hex prime numbers
+    game.options.seed = 0x232F89A3;
+    uint16_t upper = game.options.seed >> 16;
+    uint16_t lower = word(game.options.seed);
 
     // Enable random seed when program is debugged.
     // Disable random seed to reproduce issues or to profile.
@@ -717,19 +722,20 @@ void set_game_options() {
         printf(Debug1, "profiling. ");
 
         game.options.random = False;
-        print_level = None;
+        game.options.print_level = None;
     } 
 
     if (game.options.random) {
         // add a small degree of extra randomness from the environment
-        seed += analogRead(A0) + analogRead(A1) + micros();
-        upper = seed >> 16;
-        lower = word(seed);
+        game.options.seed += analogRead(A0) + analogRead(A1) + micros();
+        upper = game.options.seed >> 16;
+        lower = word(game.options.seed);
     }
 
-    printf(Always, "game hash: 0x%04X%04X\n\n", upper, lower);
+    printf(Always, "game hash: 0x%04X%04X\n", upper, lower);
+    printf(Always, "game ply limit: %d\n\n", game.options.maxply);
 
-    randomSeed(seed);
+    randomSeed(game.options.seed);
 
 }   // set_game_options()
 
@@ -760,7 +766,7 @@ void setup()
 
     Serial.println("finished.\n");
 
-    print_level = Debug1;
+    game.options.print_level = Debug1;
 
     // show the final board    
     show();

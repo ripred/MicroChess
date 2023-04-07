@@ -14,7 +14,11 @@
  * evaluate the moves for a king against the best move so far
  *
  */
-void add_king_moves(move_t &move, move_t &best) {
+void add_king_moves(piece_gen_t &gen) {
+    move_t &move = gen.move;
+    move_t &best = gen.best;
+    generator_t *callback = gen.callme;
+
     Piece   const p = board.get(move.from);
     Color   const side = getSide(p);
     index_t const fwd = (White == side) ? -1 : 1;
@@ -33,7 +37,7 @@ void add_king_moves(move_t &move, move_t &best) {
             Piece   const op = board.get(to);
             if (isEmpty(op) || getSide(op) != side) {
                 move.to = to;
-                consider_move(move, best);
+                callback(move, best);
             }
         }
     }

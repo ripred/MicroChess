@@ -12,8 +12,6 @@
 #include "MicroChess.h"
 #include <stdarg.h>
 
-print_t print_level = Debug1;
-
 // get the Type of a Piece
 Piece getType(Piece b) 
 {
@@ -117,7 +115,7 @@ const char* addCommas(long int value) {
     int start_idx = (buff[0] == '-') ? 1 : 0;
 
     for (int i = strlen(buff) - 3; i > start_idx; i -= 3) {
-        memmove(&buff[i + 1], &buff[i], strlen(buff) - i);
+        memmove(&buff[i + 1], &buff[i], strlen(buff) - i + 1);
         buff[i] = ',';
     }
     return buff;
@@ -158,7 +156,9 @@ void show_stats() {
     printf(Debug1, "  average moves per second: %s %s\n", 
         fstr, game.options.profiling ? "" : "(this includes waiting on the serial output)");
 
-    printf(Debug1, "   max move count per turn: %d\n", game.stats.max_moves);
+    char str_maxmoves[16] = "";
+    strcpy(str_maxmoves, addCommas(game.stats.max_moves));
+    printf(Debug1, "   max move count per turn: %s\n", str_maxmoves);
     printf(Debug1, "\n");
 }
 
@@ -189,7 +189,7 @@ void show_pieces()
         index_t const col = loc.x;
         index_t const row = loc.y;
         Piece  const p = board.get(col + row * 8);
-        printf(Debug1, "    game.pieces[%2d] = %2d, %2d: ", i, col, row);
+        printf(Debug1, "    game.pieces[%2d] = %2d, %2d (%2d): ", i, col, row, col + row * 8);
         show_piece(p);
         printf(Debug1, "\n");
     }
