@@ -345,6 +345,8 @@ static long constexpr material_bonus[7][2] PROGMEM = {
     { pieceValues[  King] * -1,     pieceValues[  King] * +1 }    //   King
 };
 
+
+// transposition tables for move generation
 static offset_t constexpr knight_offsets[NUM_KNIGHT_OFFSETS] PROGMEM = {
     { -2, +1 }, { -2, -1 }, { +2, +1 }, { +2, -1 }, 
     { +1, +2 }, { -1, +2 }, { +1, -2 }, { -1, -2 }  

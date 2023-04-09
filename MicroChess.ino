@@ -103,6 +103,11 @@ Bool is_better_move(
     move_t const &best, 
     Bool const use_random, 
     Color const side) {
+
+    if (-1 == move.from) {
+        return True;
+    }
+
     if (side == White) {
         if (move.value > best.value) {
             return True;
@@ -125,28 +130,6 @@ Bool is_better_move(
 }   // is_better_move(...)
 
 
-index_t king_loc = -1;
-Bool king_is_in_check = False;
-
-Bool check_king(move_t &move, move_t & /* best */)
-{
-    if (move.to == king_loc) {
-        king_is_in_check = True;
-        return True;
-    }
-
-    return False;
-}
-
-Bool test_king_in_check(index_t const loc) {
-    king_is_in_check = False;
-    king_loc = loc;
-    move_t w, b;
-    choose_best_move(w, b, check_king);
-
-    return king_is_in_check;
-}
-
 ////////////////////////////////////////////////////////////////////////////////////////
 // consider a move against the best white move or the best black move
 // depending on the color of the piece and set this as the best move
@@ -161,12 +144,20 @@ Bool consider_move(move_t &move, move_t &best)
 
     // don't allow us to take our own pieces
     if (Empty != otype && side == oside) {
-        printf(Debug1, "Error: attempt to take own piece at line %d", __LINE__);
-        while ((true)) {}
+        printf(Debug1, "Error: attempt to take own piece at line %d: ", __LINE__);
+        show_move(move);
+        printf(Debug1, "\n");
+        // while ((true)) {}
+        return False;
     }
 
     // Make the move_t object for the move (recursively) and it's evaluation
     move.value = make_move(move, True);
+
+    // penalize the move if it would cause us to lose by 3-move repetition
+    if (would_repeat(move)) {
+        move.value /= 2;
+    }
 
     // trace the call
     print_t const dbg = Debug2;
@@ -261,12 +252,14 @@ long make_move(move_t const &move, Bool const restore)
 
     // don't allow the kings to be taken
     if (King == otype) {
-        if (White == side) {
+        if (White == side && Black == oside) {
             game.black_king_in_check = True;
             return MIN_VALUE;
         }
-        game.white_king_in_check = True;
-        return MAX_VALUE;
+        if (Black == side && White == oside) {
+            game.white_king_in_check = True;
+            return MAX_VALUE;
+        }
     }
 
     // find the index of the piece being moved in the array of pieces in the game:
@@ -351,57 +344,13 @@ long make_move(move_t const &move, Bool const restore)
     index_t const white_king = game.white_king;
     index_t const black_king = game.black_king;
 
-#if 0
-    if (White == side) {
-        if (test_king_in_check(game.white_king)) {
-            if (restore) {
-                if (-1 == captured) {
-                    board.set(to, op);
-                } else {
-                    board.set(captured, op);
-                    game.pieces[game.piece_count++] = game.pieces[taken_index];
-                    game.pieces[taken_index] = { index_t(captured % 8), index_t(captured / 8) };
-
-                    if (White == side) { game.taken_count1--; } else { game.taken_count2--; }
-                }
-
-                board.set(from, p);
-                game.pieces[piece_index] = { col, row };
-
-                game.white_king = white_king;
-                game.black_king = black_king;
-            }
-            return MIN_VALUE;
-        }
-    }
-    else {
-        if (test_king_in_check(game.black_king)) {
-            if (restore) {
-                if (-1 == captured) {
-                    board.set(to, op);
-                } else {
-                    board.set(captured, op);
-                    game.pieces[game.piece_count++] = game.pieces[taken_index];
-                    game.pieces[taken_index] = { index_t(captured % 8), index_t(captured / 8) };
-
-                    if (White == side) { game.taken_count1--; } else { game.taken_count2--; }
-                }
-
-                board.set(from, p);
-                game.pieces[piece_index] = { col, row };
-
-                game.white_king = white_king;
-                game.black_king = black_king;
-            }
-            return MAX_VALUE;
-        }
-    }
-#endif
-
     if (King == type) {
         if (White == side) { game.white_king = to; }
         else { game.black_king = to; }
     }
+
+    move_t const last_move = game.last_move;
+    game.last_move = move;
 
     ////////////////////////////////////////////////////////////////////////////////////////
     // The move has been made and we have the value for the updated board.
@@ -418,18 +367,23 @@ long make_move(move_t const &move, Bool const restore)
         Bool const black_king_in_check = game.black_king_in_check;
 
         reset_move_flags();
-        move_t best_white = { -1, -1, MIN_VALUE };
-        move_t best_black = { -1, -1, MAX_VALUE };
 
-        choose_best_move(best_white, best_black, consider_move);
+        if (White == side) {
+            move_t best_black = { -1, -1, MAX_VALUE };
+            choose_best_move(Black, best_black, consider_move);
+            value += best_black.value;
+        }
+        else {
+            move_t best_white = { -1, -1, MIN_VALUE };
+            choose_best_move(White, best_white, consider_move);
+            value += best_white.value;
+        }
 
         game.white_king_in_check = white_king_in_check;
         game.black_king_in_check = black_king_in_check;
 
         ++game.turn %= 2;
         game.ply--;
-
-        value += (best_white.value + best_black.value);
     }
 
     // if this move is just being evaluated then put the piece(s) back:
@@ -449,6 +403,8 @@ long make_move(move_t const &move, Bool const restore)
 
         game.white_king = white_king;
         game.black_king = black_king;
+
+        game.last_move = last_move;
     }
 
     return value;
@@ -460,6 +416,7 @@ long make_move(move_t const &move, Bool const restore)
 /// Evaluate the identity (score) of the board state.
 /// Positive scores indicate an advantage for white and
 /// Negative scores indicate an advantage for black.
+/// Uses pre-computed material bonus tables for speed.
 long evaluate() 
 {
     // flags choices for which attributes are included in the board score
@@ -488,16 +445,22 @@ long evaluate()
             Piece   const ptype = getType(p);
             Color   const pside = getSide(p);
 
+            if (Empty == ptype) continue;
+
             if (filter & material) {
-                // now uses pre-computed material bonus table for speed!
                 materialTotal += pgm_read_dword(&material_bonus[ptype][pside]);
             }
 
-            if (filter & center) { 
-                // now uses pre-computed center bonus table for speed!
-                centerTotal += (King == ptype) ? 0 :
-                    (pgm_read_dword(&center_bonus[col][ptype][pside]) + 
-                     pgm_read_dword(&center_bonus[row][ptype][pside]));
+            // Let's not encourage the King to wander to
+            // the center of the board mmkay?
+            if (King == ptype) {
+                continue;
+            }
+
+            if (filter & center) {
+                centerTotal +=
+                    pgm_read_dword(&center_bonus[col][ptype][pside]) +
+                    pgm_read_dword(&center_bonus[row][ptype][pside]);
             }
         }
     }
@@ -547,7 +510,7 @@ void reset_move_flags()
 // Evaluate all of the available moves for all pieces.
 // The best move for White is placed in best_white.
 // The best move for Black is placed in best_black.
-void choose_best_move(move_t &best_white, move_t &best_black, generator_t callback) 
+void choose_best_move(Color const who, move_t &best, generator_t callback)
 {
     static Bool constexpr   enable_pawns = True;
     static Bool constexpr enable_knights = True;
@@ -565,11 +528,7 @@ void choose_best_move(move_t &best_white, move_t &best_black, generator_t callba
         Piece   const type = getType(p);
         Color   const side = getSide(p);
 
-        // construct a move_t object with the startng location
-        move_t move = { from, 0, 0 };
-
-        // select the proper "best move" object to compare against
-        move_t &best = (White == side) ? best_white : best_black;
+        if (side != who) { continue; }
 
         printf(Debug3, "ndx = %2d of %2d, point = %d,%d, %5s %s\n", 
             ndx, game.piece_count, col, row, getColor(p), getName(p));
@@ -587,6 +546,9 @@ void choose_best_move(move_t &best_white, move_t &best_black, generator_t callba
             show_stats();
             while ((1)) {}
         }
+
+        // construct a move_t object with the starting location
+        move_t move = { from, 0, 0 };
 
         piece_gen_t gen(move, best, callback);
 
@@ -664,15 +626,19 @@ void play_game()
     move_t best_white = { -1, -1, MIN_VALUE };
     move_t best_black = { -1, -1, MAX_VALUE };
 
-    reset_move_flags();
-
     game.stats.start_move_stats();
 
     // determine the next best moves
     printf(Debug3, "(\n"
                    "evaluating all available moves..\n\n");
 
-    choose_best_move(best_white, best_black, consider_move);
+    reset_move_flags();
+    choose_best_move(White, best_white, consider_move);
+    Bool const white_king_in_check = game.white_king_in_check;
+
+    reset_move_flags();
+    choose_best_move(Black, best_black, consider_move);
+    Bool const black_king_in_check = game.black_king_in_check;
 
     move_t const &move = whites_turn ? best_white : best_black;
 
@@ -695,19 +661,13 @@ void play_game()
     }
     
     // see if the game has been won
-    if ((whites_turn && no_white_moves) || (!whites_turn && no_black_moves)) {
-        printf(Debug1, "\nCheckmate!\n");
-   
-        if (no_white_moves) {
-            printf(Debug1, "\nWhite has no moves.\nBlack wins!\n");
-            game.state = BLACK_CHECKMATE;
-        }
-        else if (no_black_moves) {
-            printf(Debug1, "\nBlack has no moves.\nWhite wins!\n");
-            game.state = WHITE_CHECKMATE;
-        } 
-
-        return;
+    if (whites_turn && no_black_moves && black_king_in_check) {
+        printf(Debug1, "\nBlack has no moves.\nWhite wins!\n");
+        game.state = WHITE_CHECKMATE;
+    }
+    if (!whites_turn && no_white_moves && white_king_in_check) {
+        printf(Debug1, "\nWhite has no moves.\nBlack wins!\n");
+        game.state = BLACK_CHECKMATE;
     }
 
     // Display the move that we chose:
@@ -726,18 +686,15 @@ void play_game()
     game.last_move_time = game.stats.move_time;
     game.last_moves_evaluated = game.stats.moves_gen_move_delta;
 
-    // Remember the last move made
-    game.last_move = move;
-
     // Announce if either king is in check
-    if (game.white_king_in_check) {
+    if (white_king_in_check) {
         printf(Debug1, "White King is in check!\n");
         if (White == game.turn) {
             printf(Debug1, "illegal move\n");
         }
     }
 
-    if (game.black_king_in_check) {
+    if (black_king_in_check) {
         printf(Debug1, "Black King is in check!\n");
         if (Black == game.turn) {
             printf(Debug1, "illegal move\n");
@@ -764,8 +721,8 @@ void play_game()
 
 void set_game_options() {
     // set game.options.profiling to True (1) to disable output and profile the engine
-    // game.options.profiling = False;
-    game.options.profiling = True;
+    game.options.profiling = False;
+    // game.options.profiling = True;
 
     // set game.options.random to True (1) to use randomness in the game decisions
     // game.options.random = False;
@@ -787,7 +744,27 @@ void set_game_options() {
 
     if (game.options.random) {
         // add a small degree of extra randomness from the environment
-        game.options.seed += analogRead(A0) + analogRead(A1) + micros();
+        uint32_t some_bits = 1234567890;
+
+        uint8_t pins[11] = { 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12 };
+        for (int pass = 0; pass < 100; pass++) {
+            for (int pin = 0; pin < 11; pin++) {
+                pinMode(pins[pin], INPUT);
+                some_bits ^= digitalRead(pins[pin]) << (analogRead(A4) % 3);                
+            }
+        }
+        uint8_t bits = (game.options.seed >> 11) & 0xFF;
+        game.options.seed += 
+            bits +
+            (uint32_t(analogRead(A0)) << 24) +
+            (uint32_t(analogRead(A1)) << 16) +
+            (uint32_t(analogRead(A2)) << 17) +
+            (uint32_t(analogRead(A3)) << 11) +
+            uint32_t(analogRead(A4)) +
+            uint32_t(micros());
+
+        game.options.seed += some_bits;        
+
         upper = game.options.seed >> 16;
         lower = word(game.options.seed);
     }
@@ -954,9 +931,14 @@ void show()
 
             // display the current score
             case offset + 7:
+            {
                 value = evaluate();
-                printf(Debug1, "    Board value: %8ld %s", value, (value == 0) ? "" : 
+
+                char str_moves[16] = "";
+                strcpy(str_moves, addCommas(value));
+                printf(Debug1, "    Board value: %8s %s", str_moves, (value == 0) ? "" : 
                     (value  < 0) ? "Black's favor" : "White's favor");
+            }
                 break;
         }
         printf(Debug1, "%c", '\n');

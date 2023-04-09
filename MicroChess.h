@@ -32,7 +32,7 @@ enum : uint32_t
 
 enum 
 {
-    MAX_PLY            =  1,    // max ply depth
+    MAX_PLY            =  2,    // max ply depth
 
     MOVE_LIMIT         = 100,   // the maximum number of moves allowed in a game
 
@@ -172,8 +172,8 @@ static long constexpr pieceValues[8] = {
 
 // adjustable multipiers to alter importance of mobility or center proximity
 // during board evaluation. season to taste
-static long constexpr mobilityBonus = 3L;
-static long constexpr   centerBonus = 5L;
+static long constexpr mobilityBonus = 5L;
+static long constexpr   centerBonus = 10L;
 
 extern long const center_bonus[8][7][2] PROGMEM;
 extern long const material_bonus[7][2] PROGMEM;
@@ -213,7 +213,7 @@ extern long make_move(move_t const &move, Bool const restore);
 
 Bool consider_move(move_t &move, move_t &best);
 
-extern void choose_best_move(move_t &best_white, move_t &best_black, generator_t callback);
+extern void choose_best_move(Color const who, move_t &best, generator_t callback);
 
 extern void add_pawn_moves(piece_gen_t &gen);
 extern void add_knight_moves(piece_gen_t &gen);
