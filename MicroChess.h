@@ -32,7 +32,7 @@ enum : uint32_t
 
 enum 
 {
-    MAX_PLY            =  0,    // max ply depth
+    MAX_PLY            =  1,    // max ply depth
 
     MOVE_LIMIT         = 100,   // the maximum number of moves allowed in a game
 
@@ -160,20 +160,20 @@ if (game.options.print_level >= level) { \
 }
 
 static long constexpr pieceValues[8] = {
-            0,      // empty spot value
-          100,      // pawn value
-          300,      // knight value
-          300,      // bishop value
-          500,      // rook value
-          900,      // queen value
-    MAX_VALUE,      // king value
-            0       // padded for alignment and increased L1 and L2 cache hit gains
+             0,      // empty spot value
+          1000,      // pawn value
+          3000,      // knight value
+          3000,      // bishop value
+          5000,      // rook value
+          9000,      // queen value
+     MAX_VALUE,      // king value
+             0       // padded for alignment and increased L1 and L2 cache hit gains
 };
 
 // adjustable multipiers to alter importance of mobility or center proximity
 // during board evaluation. season to taste
 static long constexpr mobilityBonus = 3L;
-static long constexpr   centerBonus = 3L;
+static long constexpr   centerBonus = 5L;
 
 extern long const center_bonus[8][7][2] PROGMEM;
 extern long const material_bonus[7][2] PROGMEM;

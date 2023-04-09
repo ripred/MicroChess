@@ -145,6 +145,8 @@ void board_t::init() {
     set(14, makeSpot(  Pawn, Black, 0, 0));
     set(15, makeSpot(  Pawn, Black, 0, 0));
 
+    for (index_t i = 16; i < 48; i++) set(i, Empty);
+
     set(48, makeSpot(  Pawn, White, 0, 0));
     set(49, makeSpot(  Pawn, White, 0, 0));
     set(50, makeSpot(  Pawn, White, 0, 0));
@@ -153,7 +155,6 @@ void board_t::init() {
     set(53, makeSpot(  Pawn, White, 0, 0));
     set(54, makeSpot(  Pawn, White, 0, 0));
     set(55, makeSpot(  Pawn, White, 0, 0));
-
     set(56, makeSpot(  Rook, White, 0, 0));
     set(57, makeSpot(Knight, White, 0, 0));
     set(58, makeSpot(Bishop, White, 0, 0));

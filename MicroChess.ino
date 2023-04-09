@@ -138,6 +138,14 @@ Bool check_king(move_t &move, move_t & /* best */)
     return False;
 }
 
+Bool test_king_in_check(index_t const loc) {
+    king_is_in_check = False;
+    king_loc = loc;
+    move_t w, b;
+    choose_best_move(w, b, check_king);
+
+    return king_is_in_check;
+}
 
 ////////////////////////////////////////////////////////////////////////////////////////
 // consider a move against the best white move or the best black move
@@ -233,8 +241,9 @@ long make_move(move_t const &move, Bool const restore)
 
     // ensure that we aren't trying to take our own piece
     if (Empty != otype && side == oside) {
-        printf(Debug1, "attempt to take our own piece at line %d\n", __LINE__);
-        while ((true)) {}
+        // printf(Debug1, "attempt to take our own piece at line %d\n", __LINE__);
+        // while ((true)) {}
+        if (White == side) { return MIN_VALUE; } else { return MAX_VALUE; }
     }
 
     // track the number of moves considered so far
@@ -271,6 +280,7 @@ long make_move(move_t const &move, Bool const restore)
 
         game.options.print_level = Debug1;
         show();
+        game.stats.stop_game_stats();
         show_stats();
         while ((1)) {}
     }
@@ -338,6 +348,61 @@ long make_move(move_t const &move, Bool const restore)
     // get the value of the board after the move(s)
     long value = evaluate();
 
+    index_t const white_king = game.white_king;
+    index_t const black_king = game.black_king;
+
+#if 0
+    if (White == side) {
+        if (test_king_in_check(game.white_king)) {
+            if (restore) {
+                if (-1 == captured) {
+                    board.set(to, op);
+                } else {
+                    board.set(captured, op);
+                    game.pieces[game.piece_count++] = game.pieces[taken_index];
+                    game.pieces[taken_index] = { index_t(captured % 8), index_t(captured / 8) };
+
+                    if (White == side) { game.taken_count1--; } else { game.taken_count2--; }
+                }
+
+                board.set(from, p);
+                game.pieces[piece_index] = { col, row };
+
+                game.white_king = white_king;
+                game.black_king = black_king;
+            }
+            return MIN_VALUE;
+        }
+    }
+    else {
+        if (test_king_in_check(game.black_king)) {
+            if (restore) {
+                if (-1 == captured) {
+                    board.set(to, op);
+                } else {
+                    board.set(captured, op);
+                    game.pieces[game.piece_count++] = game.pieces[taken_index];
+                    game.pieces[taken_index] = { index_t(captured % 8), index_t(captured / 8) };
+
+                    if (White == side) { game.taken_count1--; } else { game.taken_count2--; }
+                }
+
+                board.set(from, p);
+                game.pieces[piece_index] = { col, row };
+
+                game.white_king = white_king;
+                game.black_king = black_king;
+            }
+            return MAX_VALUE;
+        }
+    }
+#endif
+
+    if (King == type) {
+        if (White == side) { game.white_king = to; }
+        else { game.black_king = to; }
+    }
+
     ////////////////////////////////////////////////////////////////////////////////////////
     // The move has been made and we have the value for the updated board.
     // Recursively look-ahead and accumulatively update the value here.
@@ -349,11 +414,17 @@ long make_move(move_t const &move, Bool const restore)
         game.ply++;
         ++game.turn %= 2;
 
+        Bool const white_king_in_check = game.white_king_in_check;
+        Bool const black_king_in_check = game.black_king_in_check;
+
         reset_move_flags();
         move_t best_white = { -1, -1, MIN_VALUE };
         move_t best_black = { -1, -1, MAX_VALUE };
 
         choose_best_move(best_white, best_black, consider_move);
+
+        game.white_king_in_check = white_king_in_check;
+        game.black_king_in_check = black_king_in_check;
 
         ++game.turn %= 2;
         game.ply--;
@@ -375,6 +446,9 @@ long make_move(move_t const &move, Bool const restore)
 
         board.set(from, p);
         game.pieces[piece_index] = { col, row };
+
+        game.white_king = white_king;
+        game.black_king = black_king;
     }
 
     return value;
@@ -497,16 +571,19 @@ void choose_best_move(move_t &best_white, move_t &best_black, generator_t callba
         // select the proper "best move" object to compare against
         move_t &best = (White == side) ? best_white : best_black;
 
-        printf(Debug3, "game.eval_ndx = %2d of %2d, point = %d,%d, %5s %s\n", 
+        printf(Debug3, "ndx = %2d of %2d, point = %d,%d, %5s %s\n", 
             ndx, game.piece_count, col, row, getColor(p), getName(p));
 
         if (isEmpty(type)) {
-            printf(Debug1, "error: Empty piece in piece list: game.eval_ndx = %d, board index = %d\n", 
+            continue; // ??
+
+            printf(Debug1, "error: Empty piece in piece list: ndx = %d, board index = %d\n", 
                 ndx, from);
 
             game.options.print_level = Debug1;
             show_pieces();
             show();
+            game.stats.stop_game_stats();
             show_stats();
             while ((1)) {}
         }
@@ -525,6 +602,7 @@ void choose_best_move(move_t &best_white, move_t &best_black, generator_t callba
                 printf(Debug1, "error: invalid type = %d\n", type);
                 game.options.print_level = Debug1;
                 show();
+                game.stats.stop_game_stats();
                 show_stats();
                 while ((1)) {}
                 break;
@@ -602,7 +680,7 @@ void play_game()
     if (game.move_num >= game.options.move_limit) {
         printf(Debug1, "\n"
         "move limit of %d exceeded\n", game.options.move_limit);
-        game.done = True;
+        game.state = FIFTY_MOVES;
         return;
     }
 
@@ -612,20 +690,21 @@ void play_game()
 
     if (no_white_moves && no_black_moves) {
         printf(Debug1, "\nStalemate!\n");
-        game.done = True;
+        game.state = STALEMATE;
         return;
     }
     
     // see if the game has been won
     if ((whites_turn && no_white_moves) || (!whites_turn && no_black_moves)) {
         printf(Debug1, "\nCheckmate!\n");
-        game.done = True;
-
+   
         if (no_white_moves) {
             printf(Debug1, "\nWhite has no moves.\nBlack wins!\n");
+            game.state = BLACK_CHECKMATE;
         }
         else if (no_black_moves) {
             printf(Debug1, "\nBlack has no moves.\nWhite wins!\n");
+            game.state = WHITE_CHECKMATE;
         } 
 
         return;
@@ -671,7 +750,7 @@ void play_game()
     if (add_to_history(move)) {
         printf(Debug1, "\n3-move repetition\n");
         printf(Debug1, "%s wins!\n", White == game.turn ? "Black" : "White");
-        game.done = True;
+        game.state = White == game.turn ? WHITE_3_MOVE_REP : BLACK_3_MOVE_REP;
     }
 
     // toggle whose turn it is
@@ -683,33 +762,14 @@ void play_game()
 }   // play_game()
 
 
-void test_conv_t() {
-    printf(Debug1, "sizeof(conv1_t): %zu\n", sizeof(conv1_t));
-    conv1_t cnv1;
-    cnv1.set_col(3);
-    cnv1.set_row(5);
-    printf(Debug1, "point: %d,%d index: %d\n", cnv1.get_col(), cnv1.get_row(), cnv1.get_index());
-
-    printf(Debug1, "sizeof(conv2_t): %zu\n", sizeof(conv2_t));
-    conv2_t cnv2;
-    cnv2.set_from_col(3);
-    cnv2.set_from_row(5);
-    cnv2.set_to_col(7);
-    cnv2.set_to_row(7);
-    printf(Debug1, "from point: %d,%d index: %d to point: %d,%d index: %d\n", 
-        cnv2.get_from_col(), cnv2.get_from_row(), cnv2.get_from_index(),
-        cnv2.get_to_col(), cnv2.get_to_row(), cnv2.get_to_index());
-
-}   // test_conv_t()
-
-
 void set_game_options() {
     // set game.options.profiling to True (1) to disable output and profile the engine
     // game.options.profiling = False;
     game.options.profiling = True;
 
     // set game.options.random to True (1) to use randomness in the game decisions
-    game.options.random = False;
+    // game.options.random = False;
+    game.options.random = True;
 
     // game seed hash for prn generator - default to 4 hex prime numbers
     game.options.seed = 0x232F89A3;
@@ -721,7 +781,7 @@ void set_game_options() {
     if (game.options.profiling) {
         printf(Debug1, "profiling. ");
 
-        game.options.random = False;
+        // game.options.random = False;
         game.options.print_level = None;
     } 
 
@@ -745,34 +805,64 @@ void setup()
 {
     Serial.begin(115200); while (!Serial); Serial.write('\n');
 
-    Serial.println("starting..");
+    uint32_t white_wins = 0;
+    uint32_t black_wins = 0;
 
-    // test_conv_t();
+    while ((true)) {
+        Serial.println("starting..");
 
-    set_game_options();
+        set_game_options();
 
-    game.stats.start_game_stats();
+        // initialize the board and the game:
+        board.init();
+        game.init();
 
-    // initialize the board and the game:
-    board.init();
-    game.init();
+        game.stats.start_game_stats();
 
-    do {
-        play_game();
+        do {
+            play_game();
 
-    } while (!game.done);
+        } while (PLAYING == game.state);
 
-    game.stats.stop_game_stats();
+        game.stats.stop_game_stats();
 
-    Serial.println("finished.\n");
+        Serial.println("finished.\n");
 
-    game.options.print_level = Debug1;
+        game.options.print_level = Debug1;
 
-    // show the final board    
-    show();
+        printf(Debug1, "%s\n\n",
+                   STALEMATE == game.state ? "Stalemate" : 
+             WHITE_CHECKMATE == game.state ? "Checkmate! White wins!" : 
+             BLACK_CHECKMATE == game.state ? "Checkmate! Black wins!" : 
+            WHITE_3_MOVE_REP == game.state ? "3-move repetition! Black wins!" : 
+            BLACK_3_MOVE_REP == game.state ? "3-move repetition! White wins!" : 
+                 FIFTY_MOVES == game.state ? "50-move limit reached!" : "Unknown");
 
-    // print out the game move counts and time statistics
-    show_stats();
+        // show the final board    
+        show();
+
+        // print out the game move counts and time statistics
+        show_stats();
+
+        switch (game.state) {
+            default:
+            case PLAYING:
+            case FIFTY_MOVES:
+                break;
+
+            case WHITE_CHECKMATE:
+            case BLACK_3_MOVE_REP:
+                white_wins++;
+                break;
+
+            case BLACK_CHECKMATE:
+            case WHITE_3_MOVE_REP:
+                black_wins++;
+                break;
+        }
+
+        printf(Debug1, "White wins: %ld, Black wins: %ld\n\n", white_wins, black_wins)
+    }
 
 }   // setup()
 

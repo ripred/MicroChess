@@ -137,8 +137,6 @@ int debug(char const * const progmem, ...) {
 
 
 void show_stats() {
-    game.stats.stop_game_stats();
-
     // print out the game move counts and time statistics
     char fstr[16]= "";
     double fmoves = game.stats.moves_gen_game;
