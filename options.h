@@ -21,6 +21,10 @@ public:
     uint32_t    seed;           // the starting seed hash for prn's
     print_t     print_level;    // the verbosity setting for the level of output
 
+    // adjustable multipiers to alter importance of mobility or center proximity
+    // during board evaluation. season to taste
+    static long constexpr mobilityBonus = 3L;
+    static long constexpr   centerBonus = 5L;
 public:
 
     options_t() : 

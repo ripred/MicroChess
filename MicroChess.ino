@@ -623,24 +623,32 @@ void play_game()
 
     Bool const whites_turn = White == game.turn;
 
-    move_t best_white = { -1, -1, MIN_VALUE };
-    move_t best_black = { -1, -1, MAX_VALUE };
-
     game.stats.start_move_stats();
 
     // determine the next best moves
     printf(Debug3, "(\n"
                    "evaluating all available moves..\n\n");
 
+    // get the best move for white
     reset_move_flags();
+    move_t best_white = { -1, -1, MIN_VALUE };
     choose_best_move(White, best_white, consider_move);
     Bool const white_king_in_check = game.white_king_in_check;
+    Bool const no_white_moves = (-1 == best_white.from);
+    Bool const white_en_passant = game.last_was_en_passant;
 
+    // get the best move for black
     reset_move_flags();
+    move_t best_black = { -1, -1, MAX_VALUE };
     choose_best_move(Black, best_black, consider_move);
     Bool const black_king_in_check = game.black_king_in_check;
+    Bool const no_black_moves = (-1 == best_black.from);
+    Bool const black_en_passant = game.last_was_en_passant;
 
-    move_t const &move = whites_turn ? best_white : best_black;
+    // gather the move statistics
+    game.stats.stop_move_stats();
+    game.last_move_time = game.stats.move_time;
+    game.last_moves_evaluated = game.stats.moves_gen_move_delta;
 
     // see if we've hit the move limit
     if (game.move_num >= game.options.move_limit) {
@@ -651,9 +659,6 @@ void play_game()
     }
 
     // see if we have a stalemate
-    Bool const no_white_moves = (-1 == best_white.from);
-    Bool const no_black_moves = (-1 == best_black.from);
-
     if (no_white_moves && no_black_moves) {
         printf(Debug1, "\nStalemate!\n");
         game.state = STALEMATE;
@@ -665,26 +670,25 @@ void play_game()
         printf(Debug1, "\nBlack has no moves.\nWhite wins!\n");
         game.state = WHITE_CHECKMATE;
     }
+
     if (!whites_turn && no_white_moves && white_king_in_check) {
         printf(Debug1, "\nWhite has no moves.\nBlack wins!\n");
         game.state = BLACK_CHECKMATE;
     }
 
-    // Display the move that we chose:
+    move_t const &move = whites_turn ? best_white : best_black;
+
+    // Display the move that we chose * Before Modifying the Board *
     printf(Debug1, "\nMove #%d: ", game.move_num + 1);
     show_move(move);
-    if (game.last_was_en_passant) {
-        printf(Debug1, " en passant capture")
-    }
-    printf(Debug1, "\n");
 
     // Make the move:
     make_move(move, False);
 
-    game.stats.stop_move_stats();
-
-    game.last_move_time = game.stats.move_time;
-    game.last_moves_evaluated = game.stats.moves_gen_move_delta;
+    if (white_en_passant || black_en_passant) {
+        printf(Debug1, " en passant capture")
+    }
+    printf(Debug1, "\n");
 
     // Announce if either king is in check
     if (white_king_in_check) {

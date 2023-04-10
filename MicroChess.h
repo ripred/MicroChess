@@ -170,10 +170,16 @@ static long constexpr pieceValues[8] = {
              0       // padded for alignment and increased L1 and L2 cache hit gains
 };
 
-// adjustable multipiers to alter importance of mobility or center proximity
-// during board evaluation. season to taste
-static long constexpr mobilityBonus = 5L;
-static long constexpr   centerBonus = 10L;
+// Alias' for the current game state
+enum state_t {
+    PLAYING,
+    STALEMATE,
+    WHITE_CHECKMATE,
+    BLACK_CHECKMATE,
+    WHITE_3_MOVE_REP,
+    BLACK_3_MOVE_REP,
+    FIFTY_MOVES
+};
 
 extern long const center_bonus[8][7][2] PROGMEM;
 extern long const material_bonus[7][2] PROGMEM;

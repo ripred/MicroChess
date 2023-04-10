@@ -31,17 +31,6 @@ public:
 };  // point_t
 
 
-// Alias' for the current game state
-enum state_t {
-    PLAYING,
-    STALEMATE,
-    WHITE_CHECKMATE,
-    BLACK_CHECKMATE,
-    WHITE_3_MOVE_REP,
-    BLACK_3_MOVE_REP,
-    FIFTY_MOVES
-};
-
 ////////////////////////////////////////////////////////////////////////////////////////
 // the state of a game
 struct game_t 

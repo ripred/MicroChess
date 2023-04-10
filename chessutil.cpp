@@ -220,6 +220,46 @@ void show_move(move_t const &move) {
     printf(Debug1, " value: %s%s", (move.value < 0) ? "" : " ", str_value);
 }
 
+
+
+// functions to convert the board contents to and from a 64-byte ascii string
+void to_string(char * const out) {
+    char const icons[] = "pnbrqkPNBRQK";
+
+    for (index_t i = 0; i < index_t(BOARD_SIZE); i++) {
+        Piece const piece = board.get(i);
+        index_t const x = i % 8;
+        index_t const y = i / 8;
+        char const c = isEmpty(piece) ? 
+            ((y ^ x) & 1 ? '.' : '*') :
+            icons[((getSide(piece) * 6) + getType(piece) - 1)];
+        out[i] = c;
+    }
+}
+
+
+void from_string(char const * const in) {
+    char const icons[] = "pnbrqkPNBRQK";
+    game.piece_count = 0;
+
+    for (index_t i = 0; i < index_t(BOARD_SIZE); i++) {
+        char const c = in[i];
+        char const * const ptr = strchr(icons, c);
+        if (nullptr != ptr) {
+            index_t const row = i / 8;
+            index_t const ndx = ptr - icons;
+            Color const side = ndx < 6 ? Black : White;
+            Piece const type = ndx % 6;
+            Bool const moved = (Pawn == type && 
+                ((White == side && 1 == row) || 
+                 (Black == side && 6 == row))) ? True : False;
+            board.set(i, makeSpot(type, side, moved, False));
+            game.pieces[game.piece_count++] = { index_t(i % 8), index_t(i / 8) };
+        }
+    }
+}
+
+
 // runtime memory usage functions
 #include <unistd.h>
 
@@ -268,69 +308,69 @@ void printMemoryStats() {
 static long constexpr center_bonus[   8   ][  7 ][  2 ] PROGMEM = {
     //                   Black         ,                White 
     {
-        { 0 *  Empty * centerBonus * -1,    0 *  Empty * centerBonus * +1 },       // col/row offset 0; 3 from center
-        { 0 *   Pawn * centerBonus * -1,    0 *   Pawn * centerBonus * +1 },
-        { 0 * Knight * centerBonus * -1,    0 * Knight * centerBonus * +1 },
-        { 0 * Bishop * centerBonus * -1,    0 * Bishop * centerBonus * +1 },
-        { 0 *   Rook * centerBonus * -1,    0 *   Rook * centerBonus * +1 },
-        { 0 *  Queen * centerBonus * -1,    0 *  Queen * centerBonus * +1 },
-        { 0 *   King * centerBonus * -1,    0 *   King * centerBonus * +1 },
+        { 0 *  Empty * game.options.centerBonus * -1,    0 *  Empty * game.options.centerBonus * +1 },       // col/row offset 0; 3 from center
+        { 0 *   Pawn * game.options.centerBonus * -1,    0 *   Pawn * game.options.centerBonus * +1 },
+        { 0 * Knight * game.options.centerBonus * -1,    0 * Knight * game.options.centerBonus * +1 },
+        { 0 * Bishop * game.options.centerBonus * -1,    0 * Bishop * game.options.centerBonus * +1 },
+        { 0 *   Rook * game.options.centerBonus * -1,    0 *   Rook * game.options.centerBonus * +1 },
+        { 0 *  Queen * game.options.centerBonus * -1,    0 *  Queen * game.options.centerBonus * +1 },
+        { 0 *   King * game.options.centerBonus * -1,    0 *   King * game.options.centerBonus * +1 },
     }, {
-        { 1 *  Empty * centerBonus * -1,    1 *  Empty * centerBonus * +1 },       // col/row offset 1; 2 from center
-        { 1 *   Pawn * centerBonus * -1,    1 *   Pawn * centerBonus * +1 },
-        { 1 * Knight * centerBonus * -1,    1 * Knight * centerBonus * +1 },
-        { 1 * Bishop * centerBonus * -1,    1 * Bishop * centerBonus * +1 },
-        { 1 *   Rook * centerBonus * -1,    1 *   Rook * centerBonus * +1 },
-        { 1 *  Queen * centerBonus * -1,    1 *  Queen * centerBonus * +1 },
-        { 1 *   King * centerBonus * -1,    1 *   King * centerBonus * +1 },
+        { 1 *  Empty * game.options.centerBonus * -1,    1 *  Empty * game.options.centerBonus * +1 },       // col/row offset 0; 3 from center
+        { 1 *   Pawn * game.options.centerBonus * -1,    1 *   Pawn * game.options.centerBonus * +1 },
+        { 1 * Knight * game.options.centerBonus * -1,    1 * Knight * game.options.centerBonus * +1 },
+        { 1 * Bishop * game.options.centerBonus * -1,    1 * Bishop * game.options.centerBonus * +1 },
+        { 1 *   Rook * game.options.centerBonus * -1,    1 *   Rook * game.options.centerBonus * +1 },
+        { 1 *  Queen * game.options.centerBonus * -1,    1 *  Queen * game.options.centerBonus * +1 },
+        { 1 *   King * game.options.centerBonus * -1,    1 *   King * game.options.centerBonus * +1 },
     }, {
-        { 2 *  Empty * centerBonus * -1,    2 *  Empty * centerBonus * +1 },       // col/row offset 2; 1 from center
-        { 2 *   Pawn * centerBonus * -1,    2 *   Pawn * centerBonus * +1 },
-        { 2 * Knight * centerBonus * -1,    2 * Knight * centerBonus * +1 },
-        { 2 * Bishop * centerBonus * -1,    2 * Bishop * centerBonus * +1 },
-        { 2 *   Rook * centerBonus * -1,    2 *   Rook * centerBonus * +1 },
-        { 2 *  Queen * centerBonus * -1,    2 *  Queen * centerBonus * +1 },
-        { 2 *   King * centerBonus * -1,    2 *   King * centerBonus * +1 },
+        { 2 *  Empty * game.options.centerBonus * -1,    2 *  Empty * game.options.centerBonus * +1 },       // col/row offset 0; 3 from center
+        { 2 *   Pawn * game.options.centerBonus * -1,    2 *   Pawn * game.options.centerBonus * +1 },
+        { 2 * Knight * game.options.centerBonus * -1,    2 * Knight * game.options.centerBonus * +1 },
+        { 2 * Bishop * game.options.centerBonus * -1,    2 * Bishop * game.options.centerBonus * +1 },
+        { 2 *   Rook * game.options.centerBonus * -1,    2 *   Rook * game.options.centerBonus * +1 },
+        { 2 *  Queen * game.options.centerBonus * -1,    2 *  Queen * game.options.centerBonus * +1 },
+        { 2 *   King * game.options.centerBonus * -1,    2 *   King * game.options.centerBonus * +1 },
     }, {
-        { 3 *  Empty * centerBonus * -1,    3 *  Empty * centerBonus * +1 },       // col/row offset 3; 0 from center
-        { 3 *   Pawn * centerBonus * -1,    3 *   Pawn * centerBonus * +1 },
-        { 3 * Knight * centerBonus * -1,    3 * Knight * centerBonus * +1 },
-        { 3 * Bishop * centerBonus * -1,    3 * Bishop * centerBonus * +1 },
-        { 3 *   Rook * centerBonus * -1,    3 *   Rook * centerBonus * +1 },
-        { 3 *  Queen * centerBonus * -1,    3 *  Queen * centerBonus * +1 },
-        { 3 *   King * centerBonus * -1,    3 *   King * centerBonus * +1 },
+        { 3 *  Empty * game.options.centerBonus * -1,    3 *  Empty * game.options.centerBonus * +1 },       // col/row offset 0; 3 from center
+        { 3 *   Pawn * game.options.centerBonus * -1,    3 *   Pawn * game.options.centerBonus * +1 },
+        { 3 * Knight * game.options.centerBonus * -1,    3 * Knight * game.options.centerBonus * +1 },
+        { 3 * Bishop * game.options.centerBonus * -1,    3 * Bishop * game.options.centerBonus * +1 },
+        { 3 *   Rook * game.options.centerBonus * -1,    3 *   Rook * game.options.centerBonus * +1 },
+        { 3 *  Queen * game.options.centerBonus * -1,    3 *  Queen * game.options.centerBonus * +1 },
+        { 3 *   King * game.options.centerBonus * -1,    3 *   King * game.options.centerBonus * +1 },
     }, {
-        { 3 *  Empty * centerBonus * -1,    3 *  Empty * centerBonus * +1 },       // col/row offset 4; 0 from center
-        { 3 *   Pawn * centerBonus * -1,    3 *   Pawn * centerBonus * +1 },
-        { 3 * Knight * centerBonus * -1,    3 * Knight * centerBonus * +1 },
-        { 3 * Bishop * centerBonus * -1,    3 * Bishop * centerBonus * +1 },
-        { 3 *   Rook * centerBonus * -1,    3 *   Rook * centerBonus * +1 },
-        { 3 *  Queen * centerBonus * -1,    3 *  Queen * centerBonus * +1 },
-        { 3 *   King * centerBonus * -1,    3 *   King * centerBonus * +1 },
+        { 3 *  Empty * game.options.centerBonus * -1,    3 *  Empty * game.options.centerBonus * +1 },       // col/row offset 0; 3 from center
+        { 3 *   Pawn * game.options.centerBonus * -1,    3 *   Pawn * game.options.centerBonus * +1 },
+        { 3 * Knight * game.options.centerBonus * -1,    3 * Knight * game.options.centerBonus * +1 },
+        { 3 * Bishop * game.options.centerBonus * -1,    3 * Bishop * game.options.centerBonus * +1 },
+        { 3 *   Rook * game.options.centerBonus * -1,    3 *   Rook * game.options.centerBonus * +1 },
+        { 3 *  Queen * game.options.centerBonus * -1,    3 *  Queen * game.options.centerBonus * +1 },
+        { 3 *   King * game.options.centerBonus * -1,    3 *   King * game.options.centerBonus * +1 },
     }, {
-        { 2 *  Empty * centerBonus * -1,    2 *  Empty * centerBonus * +1 },       // col/row offset 5; 1 from center
-        { 2 *   Pawn * centerBonus * -1,    2 *   Pawn * centerBonus * +1 },
-        { 2 * Knight * centerBonus * -1,    2 * Knight * centerBonus * +1 },
-        { 2 * Bishop * centerBonus * -1,    2 * Bishop * centerBonus * +1 },
-        { 2 *   Rook * centerBonus * -1,    2 *   Rook * centerBonus * +1 },
-        { 2 *  Queen * centerBonus * -1,    2 *  Queen * centerBonus * +1 },
-        { 2 *   King * centerBonus * -1,    2 *   King * centerBonus * +1 },
+        { 2 *  Empty * game.options.centerBonus * -1,    2 *  Empty * game.options.centerBonus * +1 },       // col/row offset 0; 3 from center
+        { 2 *   Pawn * game.options.centerBonus * -1,    2 *   Pawn * game.options.centerBonus * +1 },
+        { 2 * Knight * game.options.centerBonus * -1,    2 * Knight * game.options.centerBonus * +1 },
+        { 2 * Bishop * game.options.centerBonus * -1,    2 * Bishop * game.options.centerBonus * +1 },
+        { 2 *   Rook * game.options.centerBonus * -1,    2 *   Rook * game.options.centerBonus * +1 },
+        { 2 *  Queen * game.options.centerBonus * -1,    2 *  Queen * game.options.centerBonus * +1 },
+        { 2 *   King * game.options.centerBonus * -1,    2 *   King * game.options.centerBonus * +1 },
     }, {
-        { 1 *  Empty * centerBonus * -1,    1 *  Empty * centerBonus * +1 },       // col/row offset 6; 2 from center
-        { 1 *   Pawn * centerBonus * -1,    1 *   Pawn * centerBonus * +1 },
-        { 1 * Knight * centerBonus * -1,    1 * Knight * centerBonus * +1 },
-        { 1 * Bishop * centerBonus * -1,    1 * Bishop * centerBonus * +1 },
-        { 1 *   Rook * centerBonus * -1,    1 *   Rook * centerBonus * +1 },
-        { 1 *  Queen * centerBonus * -1,    1 *  Queen * centerBonus * +1 },
-        { 1 *   King * centerBonus * -1,    1 *   King * centerBonus * +1 },
+        { 1 *  Empty * game.options.centerBonus * -1,    1 *  Empty * game.options.centerBonus * +1 },       // col/row offset 0; 3 from center
+        { 1 *   Pawn * game.options.centerBonus * -1,    1 *   Pawn * game.options.centerBonus * +1 },
+        { 1 * Knight * game.options.centerBonus * -1,    1 * Knight * game.options.centerBonus * +1 },
+        { 1 * Bishop * game.options.centerBonus * -1,    1 * Bishop * game.options.centerBonus * +1 },
+        { 1 *   Rook * game.options.centerBonus * -1,    1 *   Rook * game.options.centerBonus * +1 },
+        { 1 *  Queen * game.options.centerBonus * -1,    1 *  Queen * game.options.centerBonus * +1 },
+        { 1 *   King * game.options.centerBonus * -1,    1 *   King * game.options.centerBonus * +1 },
     }, {
-        { 0 *  Empty * centerBonus * -1,    0 *  Empty * centerBonus * +1 },       // col/row offset 7; 3 from center
-        { 0 *   Pawn * centerBonus * -1,    0 *   Pawn * centerBonus * +1 },
-        { 0 * Knight * centerBonus * -1,    0 * Knight * centerBonus * +1 },
-        { 0 * Bishop * centerBonus * -1,    0 * Bishop * centerBonus * +1 },
-        { 0 *   Rook * centerBonus * -1,    0 *   Rook * centerBonus * +1 },
-        { 0 *  Queen * centerBonus * -1,    0 *  Queen * centerBonus * +1 },
-        { 0 *   King * centerBonus * -1,    0 *   King * centerBonus * +1 }
+        { 0 *  Empty * game.options.centerBonus * -1,    0 *  Empty * game.options.centerBonus * +1 },       // col/row offset 0; 3 from center
+        { 0 *   Pawn * game.options.centerBonus * -1,    0 *   Pawn * game.options.centerBonus * +1 },
+        { 0 * Knight * game.options.centerBonus * -1,    0 * Knight * game.options.centerBonus * +1 },
+        { 0 * Bishop * game.options.centerBonus * -1,    0 * Bishop * game.options.centerBonus * +1 },
+        { 0 *   Rook * game.options.centerBonus * -1,    0 *   Rook * game.options.centerBonus * +1 },
+        { 0 *  Queen * game.options.centerBonus * -1,    0 *  Queen * game.options.centerBonus * +1 },
+        { 0 *   King * game.options.centerBonus * -1,    0 *   King * game.options.centerBonus * +1 },
     }
 };
 
