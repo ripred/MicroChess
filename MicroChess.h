@@ -32,7 +32,7 @@ enum : uint32_t
 
 enum 
 {
-    MAX_PLY            =  2,    // max ply depth
+    MAX_PLY            =  0,    // max ply depth
 
     MOVE_LIMIT         = 100,   // the maximum number of moves allowed in a game
 
@@ -41,11 +41,11 @@ enum
     NUM_BITS_PT        =  4,    // bits per field in point_t struct
     NUM_BITS_SPOT      =  7,    // bits per field in move_t struct
 
-    NUM_KNIGHT_OFFSETS =  8,    // number of offsets to check for knight moves
-    NUM_BISHOP_OFFSETS = 28,    // number of offsets to check for bishop moves
-    NUM_ROOK_OFFSETS   = 28,    // number of offsets to check for rook moves
-    NUM_QUEEN_OFFSETS  = 56,    // number of offsets to check for queen moves
-    NUM_KING_OFFSETS   =  8,    // number of offsets to check for king moves
+    NUM_KNIGHT_OFFSETS =  8,    // number of entries in the transposition table for the knight
+    NUM_BISHOP_OFFSETS = 28,    // number of entries in the transposition table for the bishop
+    NUM_ROOK_OFFSETS   = 28,    // number of entries in the transposition table for the rook
+    NUM_QUEEN_OFFSETS  = 56,    // number of entries in the transposition table for the queen
+    NUM_KING_OFFSETS   =  8,    // number of entries in the transposition table for the king
 };
 
 typedef   int8_t   index_t;
