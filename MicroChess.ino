@@ -156,7 +156,7 @@ Bool consider_move(move_t &move, move_t &best)
 
     // penalize the move if it would cause us to lose by 3-move repetition
     if (would_repeat(move)) {
-        move.value /= 2;
+        move.value /= 100;
     }
 
     // trace the call
@@ -210,11 +210,24 @@ inline index_t find_piece(index_t const index)
 // move a piece on the board, taking a piece if necessary. evaluate the value of the 
 // board after the move. optionally restore the board back to it's original state after
 // evaluating the value of the move
+
+// BUGBUG!!
+// Change the way that pieces are deleted!
+// By making the deleted piece equal to the last in the list and decrementin the number of pieces
+// we end up skipping the evaluation of that last piece each time we do this if the index of the taken
+// piece is less than the current evaluation index!!
+
 long make_move(move_t const &move, Bool const restore) 
 {
     // get the attributes for the piece being moved
     index_t const col = move.from % 8;
     index_t const row = move.from / 8;
+
+    // check for a deleted piece and skip it if so
+    if (-1 == col || -1 == row) {
+        if (White == game.turn) { return MIN_VALUE; } else { return MAX_VALUE; }
+    }
+
     index_t const from = move.from;
     Piece   const p = board.get(from);
     Piece   const type = getType(p);
@@ -308,20 +321,12 @@ long make_move(move_t const &move, Bool const restore)
         // remember the piece index of the piece being taken
         taken_index = find_piece(captured);
 
-        // Decrement the piece count to point to the last entry
-        game.piece_count--;
-
-        // Replace the taken piece in the piece list with the last piece
-        // in the piece list (remove it by overwriting it).
-        game.pieces[taken_index] = game.pieces[game.piece_count];
+        // Soft-delete the piece taken in the piece list
+        game.pieces[taken_index] = { -1, -1 };
 
         // add the piece to the list of taken pieces
-        if (White == side) {
-            game.taken1[game.taken_count1++] = op;
-        }
-        else {
-            game.taken2[game.taken_count2++] = op;
-        }
+        if (White == side) { game.taken1[game.taken_count1++] = op; }
+        else { game.taken2[game.taken_count2++] = op; }
     }
 
     Piece place_piece = setMoved(p, True);
@@ -392,9 +397,7 @@ long make_move(move_t const &move, Bool const restore)
             board.set(to, op);
         } else {
             board.set(captured, op);
-            game.pieces[game.piece_count++] = game.pieces[taken_index];
             game.pieces[taken_index] = { index_t(captured % 8), index_t(captured / 8) };
-
             if (White == side) { game.taken_count1--; } else { game.taken_count2--; }
         }
 
@@ -441,6 +444,8 @@ long evaluate()
         for (index_t piece_index = 0; piece_index < game.piece_count; piece_index++) {
             index_t const col = game.pieces[piece_index].x;
             index_t const row = game.pieces[piece_index].y;
+            if (-1 == col || -1 == row) continue;
+
             Piece   const p = board.get(col + row * 8);
             Piece   const ptype = getType(p);
             Color   const pside = getSide(p);
@@ -507,10 +512,10 @@ void reset_move_flags()
 
 
 ////////////////////////////////////////////////////////////////////////////////////////
-// Evaluate all of the available moves for all pieces.
-// The best move for White is placed in best_white.
-// The best move for Black is placed in best_black.
-void choose_best_move(Color const who, move_t &best, generator_t callback)
+// Evaluate all of the available moves for the specified side.
+// The best move is stored in best.
+// The callback is called for each move.
+index_t choose_best_move(Color const who, move_t &best, generator_t callback, move_t * const moves /* = nullptr */)
 {
     static Bool constexpr   enable_pawns = True;
     static Bool constexpr enable_knights = True;
@@ -519,10 +524,14 @@ void choose_best_move(Color const who, move_t &best, generator_t callback)
     static Bool constexpr  enable_queens = True;
     static Bool constexpr   enable_kings = True;
 
+    index_t move_num = 0;
+
     // walk through the pieces list and generate all moves for each piece
     for (index_t ndx = 0; ndx < game.piece_count; ndx++) {
         index_t const col = game.pieces[ndx].x;
         index_t const row = game.pieces[ndx].y;
+        if (-1 == col || -1 == row) continue;
+
         index_t const from = col + row * 8;
         Piece   const p = board.get(from);
         Piece   const type = getType(p);
@@ -569,9 +578,26 @@ void choose_best_move(Color const who, move_t &best, generator_t callback)
                 while ((1)) {}
                 break;
         }
+
+        if (nullptr != moves) {
+            moves[move_num] = move;
+        }
+
+        move_num++;
     }
 
+    return move_num;
+
 }   // choose_best_move()
+
+
+////////////////////////////////////////////////////////////////////////////////////////
+// go through a list of moves and remove all illegal moves that put the king in check
+// index_t sanitize_moves(move_t *moves, index_t num_moves) 
+// {
+//     index_t remaining = num_moves;
+//     return remaining;
+// }
 
 
 ////////////////////////////////////////////////////////////////////////////////////////
@@ -627,18 +653,21 @@ void play_game()
     printf(Debug3, "(\n"
                    "evaluating all available moves..\n\n");
 
-    // get the best move for white
+    move_t  moves[64];
+    index_t num_moves = 0;
+
+    // get the best move and flags for white
     reset_move_flags();
     move_t best_white = { -1, -1, MIN_VALUE };
-    choose_best_move(White, best_white, consider_move);
+    num_moves = choose_best_move(White, best_white, consider_move, moves);
     Bool const white_king_in_check = game.white_king_in_check;
     Bool const no_white_moves = (-1 == best_white.from);
     Bool const white_en_passant = game.last_was_en_passant;
 
-    // get the best move for black
+    // get the best move and flags for black
     reset_move_flags();
     move_t best_black = { -1, -1, MAX_VALUE };
-    choose_best_move(Black, best_black, consider_move);
+    num_moves = choose_best_move(Black, best_black, consider_move, moves);
     Bool const black_king_in_check = game.black_king_in_check;
     Bool const no_black_moves = (-1 == best_black.from);
     Bool const black_en_passant = game.last_was_en_passant;
@@ -723,7 +752,7 @@ void play_game()
 
 void set_game_options() {
     // set the maximum ply level (number of moves we look ahead)) for the game
-    game.options.maxply = 3;
+    game.options.maxply = 2;
 
     // set game.options.profiling to True (1) to disable output and profile the engine
     game.options.profiling = False;
@@ -787,6 +816,7 @@ void setup()
 {
     Serial.begin(115200); while (!Serial); Serial.write('\n');
 
+    uint32_t state_totals[6] = { 0, 0, 0, 0, 0, 0 };
     uint32_t white_wins = 0;
     uint32_t black_wins = 0;
 
@@ -812,19 +842,63 @@ void setup()
 
         game.options.print_level = Debug1;
 
-        printf(Debug1, "%s\n\n",
-                   STALEMATE == game.state ? "Stalemate" : 
-             WHITE_CHECKMATE == game.state ? "Checkmate! White wins!" : 
-             BLACK_CHECKMATE == game.state ? "Checkmate! Black wins!" : 
-            WHITE_3_MOVE_REP == game.state ? "3-move repetition! Black wins!" : 
-            BLACK_3_MOVE_REP == game.state ? "3-move repetition! White wins!" : 
-                 FIFTY_MOVES == game.state ? "50-move limit reached!" : "Unknown");
+        switch (game.state) {
+            case STALEMATE:
+                printf(Debug1, "Stalemate\n");
+                break;
+            
+            case WHITE_CHECKMATE:
+                printf(Debug1, "Checkmate! White wins!\n");
+                break;
+
+            case BLACK_CHECKMATE:
+                printf(Debug1, "Checkmate! Black wins!\n");
+                break;
+
+            case WHITE_3_MOVE_REP:
+                printf(Debug1, "3-move repetition! Black wins!\n");
+                break;
+
+            case BLACK_3_MOVE_REP:
+                printf(Debug1, "3-move repetition! White wins!\n");
+                break;
+
+            case FIFTY_MOVES:
+                printf(Debug1, "50-move limit reached!\n");
+                break;
+
+            default:
+            case PLAYING:
+                break;
+        }
 
         // show the final board    
         show();
 
         // print out the game move counts and time statistics
         show_stats();
+
+        state_totals[game.state]++;
+
+        char str_wcheck[16] = "";
+        char str_bcheck[16] = "";
+        char str_wrep[16] = "";
+        char str_brep[16] = "";
+        char str_fifty[16] = "";
+
+        strcpy(str_wcheck, addCommas(state_totals[WHITE_CHECKMATE]));
+        strcpy(str_bcheck, addCommas(state_totals[BLACK_CHECKMATE]));
+        strcpy(str_wrep, addCommas(state_totals[WHITE_3_MOVE_REP]));
+        strcpy(str_brep, addCommas(state_totals[BLACK_3_MOVE_REP]));
+        strcpy(str_fifty, addCommas(state_totals[FIFTY_MOVES]));
+
+        printf(Debug1, "   White Checkmate   Black Checkmate  White 3-Move Rep  Black 3-Move Rep     50-Move Limit\n");
+        printf(Debug1, "%18s%18s%18s%18s%18s\n",
+            str_wcheck,
+            str_bcheck,
+            str_wrep,
+            str_brep,
+            str_fifty);
 
         switch (game.state) {
             default:
