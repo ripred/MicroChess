@@ -64,7 +64,7 @@
  *  [ ] add castling.
  *  [+] update the show_move(...) function to properly display when a pawn executes 
  *      an en-passant capture. ?
- *  [-] add and implement a "deleted" flag for pieces in the game.pieces[] list so they are ignored
+ *  [+] add and implement a "deleted" flag for pieces in the game.pieces[] list so they are ignored
  *      during moves that take pieces instead of needing to move/copy the taken piece from the list
  *  [ ] add minimax algorithm.
  *  [ ] add alpha-beta pruning.
@@ -73,7 +73,8 @@
  * 
  * BUGBUGS: to fix!
  * 
- *  [ ] Empty piece in piece list error when ply > 0
+ *  [+] Empty piece in piece list error when ply > 0!
+ *      Turns out the bug was from when deleting a piece by repacing it with the last piece!
  *  [ ] 
  * 
  * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
@@ -210,13 +211,6 @@ inline index_t find_piece(index_t const index)
 // move a piece on the board, taking a piece if necessary. evaluate the value of the 
 // board after the move. optionally restore the board back to it's original state after
 // evaluating the value of the move
-
-// BUGBUG!!
-// Change the way that pieces are deleted!
-// By making the deleted piece equal to the last in the list and decrementin the number of pieces
-// we end up skipping the evaluation of that last piece each time we do this if the index of the taken
-// piece is less than the current evaluation index!!
-
 long make_move(move_t const &move, Bool const restore) 
 {
     // get the attributes for the piece being moved
@@ -233,6 +227,9 @@ long make_move(move_t const &move, Bool const restore)
     Piece   const type = getType(p);
     Color   const side = getSide(p);
 
+    Bool const whites_turn = White == side;
+    long const worst_value = whites_turn ? MIN_VALUE : MAX_VALUE;
+
     // get the attributes for the destination location
     index_t const to_col = move.to % 8;
     index_t const to_row = move.to / 8;
@@ -245,13 +242,19 @@ long make_move(move_t const &move, Bool const restore)
 
     // ensure that we aren't trying to take our own piece
     if (Empty != otype && side == oside) {
-        // printf(Debug1, "attempt to take our own piece at line %d\n", __LINE__);
-        // while ((true)) {}
-        if (White == side) { return MIN_VALUE; } else { return MAX_VALUE; }
+        printf(Debug1, "attempt to take our own piece at line %d\n", __LINE__);
+        while ((true)) {}
+        // return worst_value;
     }
 
-    // track the number of moves considered so far
+    // save the current last 5 moves in the game history
+    move_t history[5];
+    index_t hist_count = game.hist_count;    
+
     if (restore) {
+        memcpy(history, game.history, sizeof(history));
+
+        // track the number of moves considered so far
         game.stats.inc_moves_count();
 
         // track the max number of moves generated during a turn
@@ -265,31 +268,31 @@ long make_move(move_t const &move, Bool const restore)
 
     // don't allow the kings to be taken
     if (King == otype) {
-        if (White == side && Black == oside) {
+        if (whites_turn && Black == oside) {
             game.black_king_in_check = True;
-            return MIN_VALUE;
+            return worst_value;
         }
-        if (Black == side && White == oside) {
+        if (!whites_turn && White == oside) {
             game.white_king_in_check = True;
-            return MAX_VALUE;
+            return worst_value;
         }
     }
 
     // find the index of the piece being moved in the array of pieces in the game:
     index_t const piece_index = find_piece(from);
 
-    if (piece_index < 0) {
-        printf(Debug1, "\n"
-            "error in make_move(...): could not find piece from move_t in pieces list: "
-            "col = %d, row = %d\n\n",
-            col, row);
+    // if (piece_index < 0) {
+    //     printf(Debug1, "\n"
+    //         "error in make_move(...): could not find piece from move_t in pieces list: "
+    //         "col = %d, row = %d\n\n",
+    //         col, row);
 
-        game.options.print_level = Debug1;
-        show();
-        game.stats.stop_game_stats();
-        show_stats();
-        while ((1)) {}
-    }
+    //     game.options.print_level = Debug1;
+    //     show();
+    //     game.stats.stop_game_stats();
+    //     show_stats();
+    //     while ((1)) {}
+    // }
 
     // game.pieces[] index being captured
     index_t taken_index = -1;
@@ -325,14 +328,14 @@ long make_move(move_t const &move, Bool const restore)
         game.pieces[taken_index] = { -1, -1 };
 
         // add the piece to the list of taken pieces
-        if (White == side) { game.taken1[game.taken_count1++] = op; }
+        if (whites_turn) { game.taken1[game.taken_count1++] = op; }
         else { game.taken2[game.taken_count2++] = op; }
     }
 
     Piece place_piece = setMoved(p, True);
 
     // promote the pawn to a queen if it reached the back row
-    if (Pawn == getType(p) && (to_row == ((White == side) ? index_t(0) : index_t(7)))) {
+    if (Pawn == getType(p) && (to_row == ((whites_turn) ? index_t(0) : index_t(7)))) {
         place_piece = setType(place_piece, Queen);
     }
 
@@ -349,8 +352,9 @@ long make_move(move_t const &move, Bool const restore)
     index_t const white_king = game.white_king;
     index_t const black_king = game.black_king;
 
+    // keep track of the kings
     if (King == type) {
-        if (White == side) { game.white_king = to; }
+        if (whites_turn) { game.white_king = to; }
         else { game.black_king = to; }
     }
 
@@ -373,15 +377,15 @@ long make_move(move_t const &move, Bool const restore)
 
         reset_move_flags();
 
-        if (White == side) {
+        if (whites_turn) {
             move_t best_black = { -1, -1, MAX_VALUE };
             choose_best_move(Black, best_black, consider_move);
-            value += best_black.value;
+            value = best_black.value;
         }
         else {
             move_t best_white = { -1, -1, MIN_VALUE };
             choose_best_move(White, best_white, consider_move);
-            value += best_white.value;
+            value = best_white.value;
         }
 
         game.white_king_in_check = white_king_in_check;
@@ -398,7 +402,7 @@ long make_move(move_t const &move, Bool const restore)
         } else {
             board.set(captured, op);
             game.pieces[taken_index] = { index_t(captured % 8), index_t(captured / 8) };
-            if (White == side) { game.taken_count1--; } else { game.taken_count2--; }
+            if (whites_turn) { game.taken_count1--; } else { game.taken_count2--; }
         }
 
         board.set(from, p);
@@ -408,6 +412,9 @@ long make_move(move_t const &move, Bool const restore)
         game.black_king = black_king;
 
         game.last_move = last_move;
+
+        memcpy(game.history, history, sizeof(history));
+        game.hist_count = hist_count;
     }
 
     return value;
@@ -512,6 +519,73 @@ void reset_move_flags()
 
 
 ////////////////////////////////////////////////////////////////////////////////////////
+// Sanitize a list of moves to remove any that leave the king in check.
+// Returns the nubmer of moves left in the updated list
+index_t sanitize_moves(move_t *moves, index_t count) {
+    if (0 == count) return 0;
+
+    Bool const whites_turn = White == getSide(board.get(moves[0].from));
+
+    // eliminate moves that leave our king in check
+    for (index_t i = 0; i < count; i++) {
+        reset_move_flags();
+        make_move(moves[i], True);
+        if (whites_turn) {
+            if (game.white_king_in_check) {
+                moves[i].from = -1;
+                moves[i].to = -1;
+            }
+        }
+        else {
+            if (game.black_king_in_check) {
+                moves[i].from = -1;
+                moves[i].to = -1;
+            }
+        }
+    }
+
+    move_t new_moves[16];
+    index_t new_move_count = 0;
+
+    for (index_t i = 0; i < count; i++) {
+        if (-1 != moves[i].from && -1 != moves[i].to) {
+            new_moves[new_move_count++] = moves[i];
+        }
+    }
+
+    for (index_t i = 0; i < new_move_count; i++) {
+        moves[i] = new_moves[i];
+    }
+
+    count = new_move_count;
+
+    if (count > 1) {
+        // lambda comparator to sort the moves in ascending order
+        auto const ac = [](const void *a, const void *b) -> int {
+            move_t const move_a = *((move_t*) a);
+            move_t const move_b = *((move_t*) b);
+            return (move_a.value == move_b.value) ?  
+                0 : (move_a.value  < move_b.value) ? +1 : -1;
+        };
+
+        // lambda comparator to sort the moves in decending order
+        auto const dc = [](const void *a, const void *b) -> int {
+            move_t const move_a = *((move_t*) a);
+            move_t const move_b = *((move_t*) b);
+            return (move_a.value == move_b.value) ?  
+                0 : (move_a.value  < move_b.value) ? -1 : +1;
+        };
+
+        auto comparator = whites_turn ? ac : dc;
+        qsort(moves, count, sizeof(move_t), comparator);
+    }
+
+    return count;
+
+}   // sanitize_moves(move_t *moves, index_t count)
+
+
+////////////////////////////////////////////////////////////////////////////////////////
 // Evaluate all of the available moves for the specified side.
 // The best move is stored in best.
 // The callback is called for each move.
@@ -524,7 +598,11 @@ index_t choose_best_move(Color const who, move_t &best, generator_t callback, mo
     static Bool constexpr  enable_queens = True;
     static Bool constexpr   enable_kings = True;
 
-    index_t move_num = 0;
+    Bool const whites_turn = White == who ? True : False;
+    long const worst_value = whites_turn ? MIN_VALUE : MAX_VALUE;
+
+    // the number of pieces we have a move for
+    index_t count = 0;
 
     // walk through the pieces list and generate all moves for each piece
     for (index_t ndx = 0; ndx < game.piece_count; ndx++) {
@@ -537,29 +615,15 @@ index_t choose_best_move(Color const who, move_t &best, generator_t callback, mo
         Piece   const type = getType(p);
         Color   const side = getSide(p);
 
-        if (side != who) { continue; }
+        if (Empty == type || side != who) { continue; }
 
-        printf(Debug3, "ndx = %2d of %2d, point = %d,%d, %5s %s\n", 
-            ndx, game.piece_count, col, row, getColor(p), getName(p));
-
-        if (isEmpty(type)) {
-            continue; // ??
-
-            printf(Debug1, "error: Empty piece in piece list: ndx = %d, board index = %d\n", 
-                ndx, from);
-
-            game.options.print_level = Debug1;
-            show_pieces();
-            show();
-            game.stats.stop_game_stats();
-            show_stats();
-            while ((1)) {}
-        }
+        // printf(Debug3, "ndx = %2d of %2d, point = %d,%d, %5s %s\n", 
+        //     ndx, game.piece_count, col, row, getColor(p), getName(p));
 
         // construct a move_t object with the starting location
-        move_t move = { from, 0, 0 };
-
-        piece_gen_t gen(move, best, callback);
+        move_t move = { from, 0, worst_value };
+        move_t best_piece_move = { -1, -1, worst_value };
+        piece_gen_t gen(move, best_piece_move, callback);
 
         switch (type) {
             case   Pawn: if ((enable_pawns))   {   add_pawn_moves(gen); }  break;
@@ -579,25 +643,40 @@ index_t choose_best_move(Color const who, move_t &best, generator_t callback, mo
                 break;
         }
 
-        if (nullptr != moves) {
-            moves[move_num] = move;
+        // All of the moves for this piece have been generated and evaluated and the best move
+        // is stored in 'best_piece_move'. If the best move for the piece is legal then compare
+        // it against the best move so far and update it if it is better.
+        if (-1 != best_piece_move.from && -1 != best_piece_move.to) {
+            if ((-1 == best.from) || (best_piece_move.value > best.value)) {
+                best = best_piece_move;
+            }
+            else if ((best_piece_move.value == best.value) && game.options.random && random(2)) {
+                best = best_piece_move;
+            }
+
+            if (nullptr != moves) {
+                moves[count] = best_piece_move;
+            }
+            count++;
         }
 
-        move_num++;
+        if (count >= 16) {
+            printf(Debug1, "Error: too many moves for array a line %d\n", __LINE__);
+            while ((true)) {}
+        }
     }
 
-    return move_num;
+    if (nullptr != moves) {
+        count = sanitize_moves(moves, count);
+        best = { -1, -1, worst_value };
+        if (count > 0) {
+            best = moves[0];
+        }
+    }
+
+    return count;
 
 }   // choose_best_move()
-
-
-////////////////////////////////////////////////////////////////////////////////////////
-// go through a list of moves and remove all illegal moves that put the king in check
-// index_t sanitize_moves(move_t *moves, index_t num_moves) 
-// {
-//     index_t remaining = num_moves;
-//     return remaining;
-// }
 
 
 ////////////////////////////////////////////////////////////////////////////////////////
@@ -645,7 +724,7 @@ void play_game()
 {
     show();
 
-    Bool const whites_turn = White == game.turn;
+    Bool const whites_turn = (White == game.turn) ? True : False;
 
     game.stats.start_move_stats();
 
@@ -653,24 +732,34 @@ void play_game()
     printf(Debug3, "(\n"
                    "evaluating all available moves..\n\n");
 
-    move_t  moves[64];
-    index_t num_moves = 0;
+    move_t moves[16];
 
-    // get the best move and flags for white
     reset_move_flags();
+
     move_t best_white = { -1, -1, MIN_VALUE };
-    num_moves = choose_best_move(White, best_white, consider_move, moves);
-    Bool const white_king_in_check = game.white_king_in_check;
-    Bool const no_white_moves = (-1 == best_white.from);
-    Bool const white_en_passant = game.last_was_en_passant;
+    Bool white_king_in_check = game.white_king_in_check;
+    Bool no_white_moves = (-1 == best_white.from);
+    Bool white_en_passant = game.last_was_en_passant;
 
-    // get the best move and flags for black
-    reset_move_flags();
     move_t best_black = { -1, -1, MAX_VALUE };
-    num_moves = choose_best_move(Black, best_black, consider_move, moves);
-    Bool const black_king_in_check = game.black_king_in_check;
-    Bool const no_black_moves = (-1 == best_black.from);
-    Bool const black_en_passant = game.last_was_en_passant;
+    Bool black_king_in_check = game.black_king_in_check;
+    Bool no_black_moves = (-1 == best_black.from);
+    Bool black_en_passant = game.last_was_en_passant;
+
+    if (whites_turn) {
+        // get the best move and flags for white
+        choose_best_move(White, best_white, consider_move, moves);
+        white_king_in_check = game.white_king_in_check;
+        no_white_moves = (-1 == best_white.from);
+        white_en_passant = game.last_was_en_passant;
+    }
+    else {
+        // get the best move and flags for black
+        choose_best_move(Black, best_black, consider_move, moves);
+        black_king_in_check = game.black_king_in_check;
+        no_black_moves = (-1 == best_black.from);
+        black_en_passant = game.last_was_en_passant;
+    }
 
     // gather the move statistics
     game.stats.stop_move_stats();
@@ -679,28 +768,30 @@ void play_game()
 
     // see if we've hit the move limit
     if (game.move_num >= game.options.move_limit) {
-        printf(Debug1, "\n"
-        "move limit of %d exceeded\n", game.options.move_limit);
+        // printf(Debug1, "\n"
+        // "move limit of %d exceeded\n", game.options.move_limit);
         game.state = FIFTY_MOVES;
         return;
     }
 
     // see if we have a stalemate
     if (no_white_moves && no_black_moves) {
-        printf(Debug1, "\nStalemate!\n");
+        // printf(Debug1, "\nStalemate!\n");
         game.state = STALEMATE;
         return;
     }
     
     // see if the game has been won
     if (whites_turn && no_black_moves && black_king_in_check) {
-        printf(Debug1, "\nBlack has no moves.\nWhite wins!\n");
+        // printf(Debug1, "\nBlack has no moves.\nWhite wins!\n");
         game.state = WHITE_CHECKMATE;
+        return;
     }
 
     if (!whites_turn && no_white_moves && white_king_in_check) {
-        printf(Debug1, "\nWhite has no moves.\nBlack wins!\n");
+        // printf(Debug1, "\nWhite has no moves.\nBlack wins!\n");
         game.state = BLACK_CHECKMATE;
+        return;
     }
 
     move_t const &move = whites_turn ? best_white : best_black;
@@ -736,9 +827,9 @@ void play_game()
 
     // check for 3-move repetition
     if (add_to_history(move)) {
-        printf(Debug1, "\n3-move repetition\n");
-        printf(Debug1, "%s wins!\n", White == game.turn ? "Black" : "White");
-        game.state = White == game.turn ? WHITE_3_MOVE_REP : BLACK_3_MOVE_REP;
+        // printf(Debug1, "\n3-move repetition\n");
+        // printf(Debug1, "%s wins!\n", White == game.turn ? "Black" : "White");
+        game.state = whites_turn ? WHITE_3_MOVE_REP : BLACK_3_MOVE_REP;
     }
 
     // toggle whose turn it is
@@ -848,23 +939,23 @@ void setup()
                 break;
             
             case WHITE_CHECKMATE:
-                printf(Debug1, "Checkmate! White wins!\n");
+                printf(Debug1, "Checkmate! White wins!\n\n");
                 break;
 
             case BLACK_CHECKMATE:
-                printf(Debug1, "Checkmate! Black wins!\n");
+                printf(Debug1, "Checkmate! Black wins!\n\n");
                 break;
 
             case WHITE_3_MOVE_REP:
-                printf(Debug1, "3-move repetition! Black wins!\n");
+                printf(Debug1, "3-move repetition! Black wins!\n\n");
                 break;
 
             case BLACK_3_MOVE_REP:
-                printf(Debug1, "3-move repetition! White wins!\n");
+                printf(Debug1, "3-move repetition! White wins!\n\n");
                 break;
 
             case FIFTY_MOVES:
-                printf(Debug1, "50-move limit reached!\n");
+                printf(Debug1, "50-move limit reached!\n\n");
                 break;
 
             default:
@@ -878,7 +969,7 @@ void setup()
         // print out the game move counts and time statistics
         show_stats();
 
-        state_totals[game.state]++;
+        state_totals[game.state - 1]++;
 
         char str_wcheck[16] = "";
         char str_bcheck[16] = "";
@@ -886,11 +977,11 @@ void setup()
         char str_brep[16] = "";
         char str_fifty[16] = "";
 
-        strcpy(str_wcheck, addCommas(state_totals[WHITE_CHECKMATE]));
-        strcpy(str_bcheck, addCommas(state_totals[BLACK_CHECKMATE]));
-        strcpy(str_wrep, addCommas(state_totals[WHITE_3_MOVE_REP]));
-        strcpy(str_brep, addCommas(state_totals[BLACK_3_MOVE_REP]));
-        strcpy(str_fifty, addCommas(state_totals[FIFTY_MOVES]));
+        strcpy(str_wcheck, addCommas(state_totals[WHITE_CHECKMATE - 1]));
+        strcpy(str_bcheck, addCommas(state_totals[BLACK_CHECKMATE - 1]));
+        strcpy(str_wrep, addCommas(state_totals[WHITE_3_MOVE_REP - 1]));
+        strcpy(str_brep, addCommas(state_totals[BLACK_3_MOVE_REP - 1]));
+        strcpy(str_fifty, addCommas(state_totals[FIFTY_MOVES - 1]));
 
         printf(Debug1, "   White Checkmate   Black Checkmate  White 3-Move Rep  Black 3-Move Rep     50-Move Limit\n");
         printf(Debug1, "%18s%18s%18s%18s%18s\n",

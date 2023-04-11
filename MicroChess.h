@@ -34,7 +34,7 @@ enum
 {
     MAX_PLY            =  0,    // max ply depth
 
-    MOVE_LIMIT         = 100,   // the maximum number of moves allowed in a game
+    MOVE_LIMIT         = 50,    // the maximum number of moves allowed in a game
 
     MAX_PIECES         = 32,    // max number of pieces in game.pieces[]
 
@@ -77,7 +77,7 @@ enum print_t {
 #define  ARRAYSZ(A) (sizeof(A) / sizeof(*(A)))
 
 // The max and min range for piece values
-#define  MAX_VALUE ((long const)( 0b010000000000000000))    // half the value of number of bits the 'value' field in move_t has
+#define  MAX_VALUE ((long const)(LONG_MAX))
 #define  MIN_VALUE ((long const)(0 - MAX_VALUE))
 
 // the number of locations on the game board
@@ -216,6 +216,8 @@ extern void show_piece(Piece const p);
 extern void show_stats();
 
 extern long make_move(move_t const &move, Bool const restore);
+
+extern Bool would_repeat(move_t const move);
 
 Bool consider_move(move_t &move, move_t &best);
 
