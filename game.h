@@ -37,7 +37,7 @@ struct game_t
 {
 public:
     // the last 5 moves are kept to recognize 3-move repetition
-    move_t      history[5];
+    move_t      history[MAX_REPS * 2 - 1];
     index_t     hist_count;
 
     // the pieces on the board

@@ -15,20 +15,20 @@ struct stat_t {
     // move counts
     uint16_t    max_moves;                  // max moves generated during make_all_moves()
 
-    uint32_t    moves_gen_game;             // moves generated entire game
+    uint32_t    moves_gen_game;             // moves generated over the entire game
 
     uint32_t    moves_gen_move_start;       // value of moves_gen_game on move start
     uint32_t    moves_gen_move_end;         // value of moves_gen_game on move end
     uint32_t    moves_gen_move_delta;       // total moves considered for this move
 
     // time tracking
-    uint32_t    game_start;
-    uint32_t    game_end;
-    uint32_t    game_time;
+    uint32_t    game_start;                 // millis() at start of game
+    uint32_t    game_end;                   // millis() at end of game
+    uint32_t    game_time;                  // the difference between the two
 
-    uint32_t    move_start;
-    uint32_t    move_end;
-    uint32_t    move_time;
+    uint32_t    move_start;                 // millis() at the start of the last move
+    uint32_t    move_end;                   // millis() at the end of the last move
+    uint32_t    move_time;                  // the difference between the two
 
     // constructor:
     stat_t();

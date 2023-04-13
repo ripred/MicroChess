@@ -13,9 +13,8 @@
 // the settings for a game
 struct options_t {
 public:
-    uint8_t
-           random : 1,          // add randomness to the game?
-        profiling : 1;          // are we profiling the engine?
+    uint8_t     random : 1,     // add randomness to the game?
+             profiling : 1;     // are we profiling the engine?
     uint8_t     maxply;         // the maximum ply level
     uint8_t     move_limit;     // the maximum number of moves allowed in a full game
     uint32_t    seed;           // the starting seed hash for prn's

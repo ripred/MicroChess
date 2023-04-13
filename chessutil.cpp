@@ -167,14 +167,21 @@ void show_piece(Piece const p)
     Piece const type = getType(p);
     Color const side = getSide(p);
 
-    printf(Debug1, "%s %6s", 
-        (Empty == type ?  "" : (White == side ?  "White" : "Black")), 
-        (Empty == type ?  "Empty" :
-          Pawn == type ?   "Pawn" :
-        Knight == type ? "Knight" :
-        Bishop == type ? "Bishop" :
-          Rook == type ?   "Rook" :
-         Queen == type ?  "Queen" : "King"));
+    if (White == side) {
+        printf(Debug1, "White");
+    }
+    else {
+        printf(Debug1, "Black");
+    }
+
+    switch (type) {
+        case  Empty: printf(Debug1, " Empty");  break;
+        case   Pawn: printf(Debug1, " Pawn");   break;
+        case Knight: printf(Debug1, " Knight"); break;
+        case Bishop: printf(Debug1, " Bishop"); break;
+        case  Queen: printf(Debug1, " Queen");  break;
+        case   King: printf(Debug1, " King");   break;
+    }
 }
 
 
@@ -260,8 +267,10 @@ void from_string(char const * const in) {
 }
 
 
+////////////////////////////////////////////////////////////////////////////////////////
 // runtime memory usage functions
 #include <unistd.h>
+
 
 #ifdef __arm__
 // should use uinstd.h to define sbrk but Due causes a conflict
@@ -281,6 +290,7 @@ int freeMemory() {
 #endif  // __arm__
 }
 
+
 void printMemoryStats() {
     // ============================================================
     // startup memory
@@ -290,23 +300,16 @@ void printMemoryStats() {
     int usedRam = totalRam - freeRam;
 
     printf(Debug2, "Total SRAM = %d\n", totalRam);
-    printf(Debug2, "Free SRAM = %d\n", freeRam);
-    printf(Debug2, "Used SRAM = %d\n", usedRam);
-
-    printf(Debug2, "sizeof(move_t) = %d\n", sizeof(move_t));
-    printf(Debug2, 
-        "meaning there is room for %d more move_t entries.\n", 
-        freeRam / sizeof(move_t) );
-    printf(Debug2, 
-        "or %d more move_t entries per move list.\n", 
-        ((freeRam / sizeof(move_t)) / 2) );
+    printf(Debug2, " Free SRAM = %d\n",  freeRam);
+    printf(Debug2, " Used SRAM = %d\n",  usedRam);
 }
 
 
+////////////////////////////////////////////////////////////////////////////////////////
 // use pre-computed bonus tables for speed!
 //                                [col/row][type][side] 
 static long constexpr center_bonus[   8   ][  7 ][  2 ] PROGMEM = {
-    //                   Black         ,                White 
+    //                      Black                   ,                      White 
     {
         { 0 *  Empty * game.options.centerBonus * -1,    0 *  Empty * game.options.centerBonus * +1 },       // col/row offset 0; 3 from center
         { 0 *   Pawn * game.options.centerBonus * -1,    0 *   Pawn * game.options.centerBonus * +1 },
@@ -386,6 +389,7 @@ static long constexpr material_bonus[7][2] PROGMEM = {
 };
 
 
+////////////////////////////////////////////////////////////////////////////////////////
 // transposition tables for move generation
 static offset_t constexpr knight_offsets[NUM_KNIGHT_OFFSETS] PROGMEM = {
     { -2, +1 }, { -2, -1 }, { +2, +1 }, { +2, -1 }, 
@@ -418,6 +422,6 @@ static offset_t constexpr queen_offsets[NUM_QUEEN_OFFSETS] PROGMEM = {
 };
 
 static offset_t constexpr king_offsets[NUM_KING_OFFSETS] PROGMEM = {
-    { -1,  0 }, { -1, +1 }, { +1,  0 }, { +1, +1 }, 
-    {  0, +1 }, { -1, -1 }, {  0, -1 }, { +1, -1 }
+    { -1,  0 }, {  0, -1 }, { -1, -1 }, { +1, -1 }, 
+    { +1,  0 }, {  0, +1 }, { -1, +1 }, { +1, +1 }
 };

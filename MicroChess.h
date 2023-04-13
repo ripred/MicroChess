@@ -32,9 +32,11 @@ enum : uint32_t
 
 enum 
 {
-    MAX_PLY            =  0,    // max ply depth
+    MAX_PLY            =  3,    // max ply depth
 
     MOVE_LIMIT         = 50,    // the maximum number of moves allowed in a game
+
+    MAX_REPS           =  3,    // the max number of times a pair of moves can be repeated
 
     MAX_PIECES         = 32,    // max number of pieces in game.pieces[]
 

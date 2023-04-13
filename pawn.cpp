@@ -73,11 +73,12 @@ void add_pawn_moves(piece_gen_t &gen) {
             index_t const last_move_from_row = game.last_move.from / 8;
             index_t const last_move_to_col = game.last_move.to % 8;
             index_t const last_move_to_row = game.last_move.to / 8;
+
             if (last_move_to_col == to_col && last_move_to_row == row) {
                 if (abs(int(last_move_from_row) - int(last_move_to_row)) > 1) {
-                    op = board.get(last_move_to_col + last_move_to_row * 8);
-                    if (getType(op) == Pawn && getSide(op) != side && side == game.turn) {
-                        move.to = to;
+                    op = board.get(last_move_to_col + row * 8);
+                    if (getType(op) == Pawn && getSide(op) != side) {
+                        move.to = to_col + (row + fwd) * 8;
                         callback(move, best);
                     }
                 }
