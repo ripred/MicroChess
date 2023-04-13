@@ -11,6 +11,7 @@
 #include <avr/pgmspace.h>
 #include "MicroChess.h"
 #include <stdarg.h>
+#include <ctype.h>
 
 // get the Type of a Piece
 Piece getType(Piece b) 
@@ -135,30 +136,53 @@ int debug(char const * const progmem, ...) {
     return Serial.write(buff, strlen(buff));
 }
 
+const char* ftostr(double value, int dec /* = 2 */, char * const buff /* = nullptr */)
+{
+    static char str[16];
+    dtostrf(value, sizeof(str), dec, str);
+    char *p = str;
+    while (isspace(*p)) p++;
+    // char const * const begin = p;
+    while (isdigit(*p) || ('-' == *p)) p++;
+
+    char tmp[24];
+    strcpy(tmp, addCommas(long(value)));
+    strcat(tmp, p);
+
+    if (buff) strcpy(buff, tmp);
+    return p;
+
+} // ftostr(double value, int dec = 2)
+
 
 void show_stats() {
-    // print out the game move counts and time statistics
-    char fstr[16]= "";
-    double fmoves = game.stats.moves_gen_game;
-    double ftime = game.stats.game_time / 1000.0;
+    char str[16]= "";
 
+    // print out the game move counts and time statistics
     printf(Debug1, "======================================================================\n");
 
-    dtostrf(ftime, 8, 4, fstr);
-    printf(Debug1, "           total game time: %s seconds\n", fstr);
+    double ftime = game.stats.game_stats.duration() / 1000.0;
+    ftostr(ftime, 4, str);
+    printf(Debug1, "           total game time: %s seconds\n", str);
 
-    printf(Debug1, "           number of moves: %d\n", game.move_num);
-    printf(Debug1, "total game moves evaluated: %s\n", addCommas(game.stats.moves_gen_game));
+    uint32_t move_count = game.stats.move_stats.counter();
+    ftostr(move_count, 0, str);
+    printf(Debug1, "           number of moves: %s\n", str);
 
-    dtostrf(fmoves / ftime, 8, 4, fstr);
-    printf(Debug1, "  average moves per second: %s %s\n", 
-        fstr, game.options.profiling ? "" : "(this includes waiting on the serial output)");
+    uint32_t game_count = game.stats.game_stats.counter();
+    ftostr(game_count, 0, str);
+    printf(Debug1, "total game moves evaluated: %s\n", str);
 
-    char str_maxmoves[16] = "";
-    strcpy(str_maxmoves, addCommas(game.stats.max_moves));
-    printf(Debug1, "   max move count per turn: %s\n", str_maxmoves);
+    uint32_t moves_per_sec = game.stats.game_stats.moveps();
+    ftostr(moves_per_sec, 0, str);
+    printf(Debug1, "  average moves per second: %s %s\n", str, 
+        game.options.profiling ? "" : "(this includes waiting on the serial output)");
+
+    ftostr(game.stats.max_moves, 0, str);
+    printf(Debug1, "   max move count per turn: %s\n", str);
     printf(Debug1, "\n");
-}
+
+} // show_stats()
 
 
 // display a Piece's color and type
@@ -182,11 +206,11 @@ void show_piece(Piece const p)
         case  Queen: printf(Debug1, " Queen");  break;
         case   King: printf(Debug1, " King");   break;
     }
-}
+} // show_piece(Piece const p) 
 
 
 // debug function to display all of the point_t's in the game.pieces[game.piece_count] list:
-void show_pieces() 
+void show_pieces()
 {
     printf(Debug1, "game.pieces[%2d] = {\n", game.piece_count);
     for (int i = 0; i < game.piece_count; i++) {
@@ -199,11 +223,13 @@ void show_pieces()
         printf(Debug1, "\n");
     }
     printf(Debug1, "};\n");
-}
+
+} // show_pieces()
 
 
 // display a piece being moved
-void show_move(move_t const &move) {
+void show_move(move_t const &move)
+{
     index_t const    col = move.from % 8;
     index_t const    row = move.from / 8;
     Piece   const      p = board.get(move.from);
@@ -225,12 +251,13 @@ void show_move(move_t const &move) {
     char str_value[16] = "";
     strcpy(str_value, addCommas(move.value));
     printf(Debug1, " value: %s%s", (move.value < 0) ? "" : " ", str_value);
-}
 
+} // show_move(move_t const &move)
 
 
 // functions to convert the board contents to and from a 64-byte ascii string
-void to_string(char * const out) {
+void to_string(char * const out)
+{
     char const icons[] = "pnbrqkPNBRQK";
 
     for (index_t i = 0; i < index_t(BOARD_SIZE); i++) {
@@ -242,10 +269,12 @@ void to_string(char * const out) {
             icons[((getSide(piece) * 6) + getType(piece) - 1)];
         out[i] = c;
     }
-}
+
+} // to_string(char * const out)
 
 
-void from_string(char const * const in) {
+void from_string(char const * const in)
+{
     char const icons[] = "pnbrqkPNBRQK";
     game.piece_count = 0;
 
@@ -264,7 +293,8 @@ void from_string(char const * const in) {
             game.pieces[game.piece_count++] = { index_t(i % 8), index_t(i / 8) };
         }
     }
-}
+
+} // from_string(char const * const in)
 
 
 ////////////////////////////////////////////////////////////////////////////////////////
@@ -295,7 +325,6 @@ void printMemoryStats() {
     // ============================================================
     // startup memory
     int totalRam = 2048;
-    // int freeRam = freeMem();
     int freeRam = freeMemory();
     int usedRam = totalRam - freeRam;
 

@@ -9,15 +9,15 @@
 #ifndef MICROCHESS_INCL
 #define MICROCHESS_INCL
 
-#include <Arduino.h>
-
 #pragma pack(0)
 
-#include <stdio.h>
-#include <limits.h>
-#include <stddef.h>
-#include <string.h>
+#include <Arduino.h>
 #include <inttypes.h>
+#include <stddef.h>
+#include <limits.h>
+#include <string.h>
+#include <stdlib.h>
+#include <stdio.h>
 
 typedef unsigned char Color;
 typedef unsigned char Piece;
@@ -111,9 +111,6 @@ static Piece const Check    = 0b00100000u;
 // show the game board
 void show();
 
-// test the validation macro
-// Bool isValidTest();
-
 // get the Type of a Piece
 Piece getType(Piece b);
 
@@ -151,13 +148,15 @@ char *getName(Piece b);
 
 char *getColor(Piece b);
 
+const char* ftostr(double value, int dec = 2, char * const buff = nullptr);
+
 const char* addCommas(long int value);
 
 int debug(char const * const fmt, ...);
 
-#define printf(level, str, ...) \
-if (game.options.print_level >= level) { \
-    static const char debug_string[] PROGMEM = str; \
+#define printf(__level, __str, ...) \
+if (game.options.print_level >= __level) { \
+    static const char debug_string[] PROGMEM = __str; \
     debug(debug_string, ##__VA_ARGS__); \
 }
 
@@ -187,10 +186,10 @@ extern long const center_bonus[8][7][2] PROGMEM;
 extern long const material_bonus[7][2] PROGMEM;
 
 extern offset_t const knight_offsets[NUM_KNIGHT_OFFSETS] PROGMEM;
-extern offset_t const rook_offsets[NUM_ROOK_OFFSETS] PROGMEM;
+extern offset_t const   rook_offsets[NUM_ROOK_OFFSETS]   PROGMEM;
 extern offset_t const bishop_offsets[NUM_BISHOP_OFFSETS] PROGMEM;
-extern offset_t const queen_offsets[NUM_QUEEN_OFFSETS] PROGMEM;
-extern offset_t const king_offsets[NUM_KING_OFFSETS] PROGMEM;
+extern offset_t const  queen_offsets[NUM_QUEEN_OFFSETS]  PROGMEM;
+extern offset_t const   king_offsets[NUM_KING_OFFSETS]   PROGMEM;
 
 #include "board.h"
 #include "move.h"
@@ -216,6 +215,8 @@ extern void show_pieces();
 extern void show_piece(Piece const p);
 
 extern void show_stats();
+
+extern void set_led_strip();
 
 extern long make_move(move_t const &move, Bool const restore);
 

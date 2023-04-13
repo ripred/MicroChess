@@ -3,32 +3,67 @@
  * 
  * the MicroChess project: https://github.com/ripred/MicroChess
  * 
- * header file for MicroChess
+ * The stat_t structure holds the move counts for a game and
+ * the starting end ending times for the game.
+ * 
+ * The structure also holds the same information for 
+ * 
  * 
  */
 #ifndef STATS_INCL
 #define STATS_INCL
 
+#include <stdint.h>
+
+// the movetime_t structure holds a start time and an end time
+// and a count of how many moves were evaluated during that time.
+// This is used to calculate the average number of moves evaluated
+// per second.
+struct movetime_t {
+private:
+    uint32_t    start;
+    uint32_t    stop;
+    uint32_t    dur;
+    uint32_t    count;
+    Bool        running;
+    double      moves_per_sec;
+
+public:
+
+    // Constructor
+    movetime_t();
+
+    // init method
+    void init();
+
+    // Begin the timer
+    void begin();
+
+    // End the timer
+    void end();
+
+    // Get the time so far or the total time depending
+    // on whether the timer is running or not.
+    uint32_t duration() const;
+
+    // Increment the counter
+    uint32_t increment();
+
+    // Get the counter
+    uint32_t counter() const;
+
+    // Get the moves per second
+    double moveps() const;
+
+};  // movetime_t
+
+
 ////////////////////////////////////////////////////////////////////////////////////////
 // the statistics of a game
 struct stat_t {
-    // move counts
-    uint16_t    max_moves;                  // max moves generated during make_all_moves()
-
-    uint32_t    moves_gen_game;             // moves generated over the entire game
-
-    uint32_t    moves_gen_move_start;       // value of moves_gen_game on move start
-    uint32_t    moves_gen_move_end;         // value of moves_gen_game on move end
-    uint32_t    moves_gen_move_delta;       // total moves considered for this move
-
-    // time tracking
-    uint32_t    game_start;                 // millis() at start of game
-    uint32_t    game_end;                   // millis() at end of game
-    uint32_t    game_time;                  // the difference between the two
-
-    uint32_t    move_start;                 // millis() at the start of the last move
-    uint32_t    move_end;                   // millis() at the end of the last move
-    uint32_t    move_time;                  // the difference between the two
+    movetime_t  game_stats;
+    movetime_t  move_stats;
+    uint32_t    max_moves;
 
     // constructor:
     stat_t();
