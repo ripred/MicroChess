@@ -46,6 +46,22 @@ void set_led_strip()
     clrs[White][ Queen] = CRGB(wclr,    0, wclr);
     clrs[White][  King] = CRGB(   0, wclr, wclr);
 
+    // FastLED.clear();
+    // for (index_t index = 0; index < game.piece_count; index++) {
+    //     point_t &loc = game.pieces[index];
+    //     if (-1 == loc.x || -1 == loc.y) { continue; }
+
+    //     index_t const board_index = ((loc.y & 1) ? (7-loc.x) : loc.x) + loc.y * 8;
+    //     Piece   const piece = board.get(board_index);
+    //     Piece   const type = getType(piece);
+    //     Color   const side = getSide(piece);
+    //     index_t const led_index = BOARD_SIZE - (loc.x + loc.y * 8) - 1;
+
+    //     index_t ex = (loc.y & 1) ? 7 - loc.x : loc.x;
+
+    //     leds[led_index] = (Empty == type) ? (((ex^loc.y)&1) ? CRGB(0,0,0) : CRGB(2,3,3)) : clrs[side][type];
+    // }
+
     for (index_t y = 0; y < 8; y++) {
         for (index_t x = 0; x < 8; x++) {
             index_t const board_index = ((y & 1) ? (7-x) : x) + y * 8;

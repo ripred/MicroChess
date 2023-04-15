@@ -304,10 +304,10 @@ long make_move(move_t const &move, Bool const restore)
 
         captured_piece = board.get(captured);
 
-        // if (isEmpty(captured_piece)) {
-        //     printf(Debug1, "Error: Attempt to take empty piece at line %d\n", __LINE__);
-        //     while ((true)) {}
-        // }
+        if (isEmpty(captured_piece)) {
+            printf(Debug1, "Error: Attempt to take empty piece at line %d\n", __LINE__);
+            while ((true)) {}
+        }
     }
 
     if (-1 == captured) {
@@ -318,10 +318,10 @@ long make_move(move_t const &move, Bool const restore)
 
             captured_piece = board.get(captured);
 
-            // if (isEmpty(captured_piece)) {
-            //     printf(Debug1, "Error: Attempt to take empty piece at line %d\n", __LINE__);
-            //     while ((true)) {}
-            // }
+            if (isEmpty(captured_piece)) {
+                printf(Debug1, "Error: Attempt to take empty piece at line %d\n", __LINE__);
+                while ((true)) {}
+            }
         }
     }
 
@@ -330,17 +330,17 @@ long make_move(move_t const &move, Bool const restore)
         // remember the piece index of the piece being taken
         taken_index = find_piece(captured);
 
-        // if (-1 == taken_index) {
-        //     printf(Debug1, "Error: could not find taken piece in pieces[] array at line %d\n", __LINE__);
-        //     printf(Debug1, "captured (board) index = %d\n", captured);
-        //     printf(Debug1, "restore: \n", restore);
-        //     show_move(move);
-        //     printf(Debug1, "\n");
-        //     show_pieces();
-        //     printf(Debug1, "\n");
-        //     show();
-        //     while ((true)) {}
-        // }
+        if (-1 == taken_index) {
+            printf(Debug1, "Error: could not find taken piece in pieces[] array at line %d\n", __LINE__);
+            printf(Debug1, "captured (board) index = %d\n", captured);
+            printf(Debug1, "restore: %d\n", restore);
+            show_move(move);
+            printf(Debug1, "\n");
+            show_pieces();
+            printf(Debug1, "\n");
+            show();
+            while ((true)) {}
+        }
 
         // change the spot on the board for the taken piece to Empty
         board.set(captured, Empty);
@@ -355,10 +355,10 @@ long make_move(move_t const &move, Bool const restore)
             game.white_taken_count++;
 
             // BUGBUG: remove after testing
-            // if (game.white_taken_count > 16) {
-            //     printf(Debug1, "\nError: Attempt to take more than 16 pieces at line %d\n", __LINE__);
-            //     while ((true)) {}
-            // }
+            if (game.white_taken_count > 16) {
+                printf(Debug1, "\nError: Attempt to take more than 16 pieces at line %d\n", __LINE__);
+                while ((true)) {}
+            }
         }
         else {
             game.taken_by_black[game.black_taken_count] = captured_piece;
@@ -366,10 +366,10 @@ long make_move(move_t const &move, Bool const restore)
             game.black_taken_count++;
 
             // BUGBUG: remove after testing
-            // if (game.black_taken_count > 16) {
-            //     printf(Debug1, "\nError: Attempt to take more than 16 pieces at line %d\n", __LINE__);
-            //     while ((true)) {}
-            // }
+            if (game.black_taken_count > 16) {
+                printf(Debug1, "\nError: Attempt to take more than 16 pieces at line %d\n", __LINE__);
+                while ((true)) {}
+            }
         }
     }
 
@@ -418,9 +418,11 @@ long make_move(move_t const &move, Bool const restore)
     //       Implement minimax and alpha-beta pruning!
     ////////////////////////////////////////////////////////////////////////////////////////
 
+#define   MAXMAX_PLY   2
+
     if (
         game.ply < game.options.maxply ||
-        ((-1 != captured) && (game.ply  < 3))) {
+        ((-1 != captured) && (game.ply  < MAXMAX_PLY))) {
         game.ply++;
         ++game.turn %= 2;
 
@@ -657,9 +659,9 @@ index_t choose_best_move(Color const who, move_t &best, generator_t callback)
         if (-1 == col || -1 == row) continue;
 
         index_t const from = col + row * 8;
-        Piece   const p = board.get(from);
-        Piece   const type = getType(p);
-        Color   const side = getSide(p);
+        Piece   const piece = board.get(from);
+        Piece   const type = getType(piece);
+        Color   const side = getSide(piece);
 
         if (Empty == type || side != who) { continue; }
 
@@ -677,7 +679,7 @@ index_t choose_best_move(Color const who, move_t &best, generator_t callback)
             case   King: if ((enable_kings))   {   add_king_moves(gen); }  break;
 
             default:
-                printf(Debug1, "error: invalid type = %d\n", type);
+                printf(Debug1, "error: invalid type = %d at line %d\n", type, __LINE__);
                 game.options.print_level = Debug1;
                 show();
                 game.stats.stop_game_stats();
@@ -690,7 +692,8 @@ index_t choose_best_move(Color const who, move_t &best, generator_t callback)
         // is stored in 'best_piece_move'. If the best move for the piece is legal then compare
         // it against the best move so far and update it if it is better.
         if (-1 != best_piece_move.from && -1 != best_piece_move.to) {
-            if ((-1 == best.from) || (best_piece_move.value > best.value)) {
+            // if ((-1 == best.from) || (best_piece_move.value > best.value)) {
+            if ((whites_turn && best_piece_move.value > best.value) || (!whites_turn && best_piece_move.value < best.value)) {
                 best = best_piece_move;
             }
             else if ((best_piece_move.value == best.value) && game.options.random && random(2)) {
@@ -976,20 +979,24 @@ void setup()
 
         state_totals[game.state - 1]++;
 
+        char str_stalemate[16] = "";
         char str_wcheck[16] = "";
         char str_bcheck[16] = "";
         char str_wrep[16] = "";
         char str_brep[16] = "";
         char str_fifty[16] = "";
 
+        strcpy(str_stalemate, addCommas(state_totals[STALEMATE - 1]));
+        strcpy(str_wcheck, addCommas(state_totals[WHITE_CHECKMATE - 1]));
         strcpy(str_wcheck, addCommas(state_totals[WHITE_CHECKMATE - 1]));
         strcpy(str_bcheck, addCommas(state_totals[BLACK_CHECKMATE - 1]));
         strcpy(str_wrep, addCommas(state_totals[WHITE_3_MOVE_REP - 1]));
         strcpy(str_brep, addCommas(state_totals[BLACK_3_MOVE_REP - 1]));
         strcpy(str_fifty, addCommas(state_totals[FIFTY_MOVES - 1]));
 
-        printf(Debug1, "   White Checkmate   Black Checkmate  White 3-Move Rep  Black 3-Move Rep        Move Limit\n");
-        printf(Debug1, "%18s%18s%18s%18s%18s\n",
+        printf(Debug1, "         Stalemate   White Checkmate   Black Checkmate  White 3-Move Rep  Black 3-Move Rep        Move Limit\n");
+        printf(Debug1, "%18s%18s%18s%18s%18s%18s\n",
+            str_stalemate,
             str_wcheck,
             str_bcheck,
             str_wrep,
@@ -999,6 +1006,7 @@ void setup()
         switch (game.state) {
             default:
             case PLAYING:
+            case STALEMATE:
             case FIFTY_MOVES:
                 break;
 
