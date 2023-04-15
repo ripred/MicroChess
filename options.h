@@ -20,12 +20,12 @@ public:
     uint32_t    move_limit;     // the maximum number of moves allowed in a full game
     uint32_t    seed;           // the starting seed hash for prn's
     print_t     print_level;    // the verbosity setting for the level of output
-    Bool        continuous;     // True if we play gamesone after another
+    Bool        continuous;     // True if we play games continuously one after another
 
     // adjustable multipiers to alter importance of mobility or center proximity
     // during board evaluation. season to taste
     static long constexpr mobilityBonus = 3L;
-    static long constexpr   centerBonus = 10L;
+    static long constexpr   centerBonus = 0L;
 public:
 
     options_t() : 

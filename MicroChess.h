@@ -78,8 +78,13 @@ enum print_t {
 // macro to return the number of elements in an array of any data type
 #define  ARRAYSZ(A) (sizeof(A) / sizeof(*(A)))
 
+// macros to manipulate a continguous segment of memory as a series of bits
+// #define _setbit(_A, _B)     ((char*)(_A))[(_B) / 8] |=  (0x80 >> ((_B) % 8))
+// #define _clrbit(_A, _B)     ((char*)(_A))[(_B) / 8] &= ~(0x80 >> ((_B) % 8))
+// #define _getbit(_A, _B)     ((char*)(_A))[(_B) / 8] &   (0x80 >> ((_B) % 8))
+
 // The max and min range for piece values
-#define  MAX_VALUE ((long const)(LONG_MAX))
+#define  MAX_VALUE ((long const)(LONG_MAX / 2))
 #define  MIN_VALUE ((long const)(0 - MAX_VALUE))
 
 // the number of locations on the game board
@@ -218,16 +223,18 @@ extern void show_pieces();
 
 extern void show_stats();
 
+extern void init_led_strip();
 extern void set_led_strip();
 
 extern long make_move(move_t const &move, Bool const restore);
 
 extern Bool would_repeat(move_t const move);
+
 Bool add_to_history(move_t const &move);
 
 Bool consider_move(move_t &move, move_t &best);
 
-extern index_t choose_best_move(Color const who, move_t &best, generator_t callback, move_t * const moves = nullptr);
+extern index_t choose_best_move(Color const who, move_t &best, generator_t callback);
 
 extern void add_pawn_moves(piece_gen_t &gen);
 extern void add_knight_moves(piece_gen_t &gen);

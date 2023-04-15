@@ -15,14 +15,18 @@
 
 FASTLED_USING_NAMESPACE
 
+CRGB leds[BOARD_SIZE];
+
+void init_led_strip() {
+    // tell FastLED about the LED strip configuration
+    FastLED.addLeds<WS2811,DATA_PIN,GRB>(leds, BOARD_SIZE).setCorrection(TypicalLEDStrip);
+}
+
+
 // set the LED strip to match the board state
 // 
 void set_led_strip() 
 {
-    // tell FastLED about the LED strip configuration
-    CRGB leds[BOARD_SIZE];
-    FastLED.addLeds<WS2811,DATA_PIN,GRB>(leds, BOARD_SIZE).setCorrection(TypicalLEDStrip);
-
     CRGB clrs[2][7];
 
     index_t wclr = 16;

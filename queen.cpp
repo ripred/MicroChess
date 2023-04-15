@@ -19,7 +19,7 @@ void add_queen_moves(piece_gen_t &gen) {
     move_t &best = gen.best;
     generator_t *callback = gen.callme;
 
-    index_t dirs[8][2] = { {0,1}, {0,-1}, {-1,0}, {1,0}, {-1,1}, {1,1}, {-1,-1}, {1,-1} };
+    index_t const dirs[8][2] = { {0,1}, {0,-1}, {-1,0}, {1,0}, {-1,1}, {1,1}, {-1,-1}, {1,-1} };
     Bool continue_dir[8] = { True, True, True, True, True, True, True, True };
     Piece   const p = board.get(move.from);
     Color   const side = getSide(p);
