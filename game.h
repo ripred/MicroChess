@@ -10,6 +10,7 @@
 #define GAME_INCL
 
 #include "Arduino.h"
+#include <stdint.h>
 #include "board.h"
 #include "stats.h"
 #include "options.h"
@@ -36,6 +37,18 @@ public:
 struct game_t 
 {
 public:
+    // the game options
+    static options_t options;
+
+    static long const center_bonus[8][7][2] PROGMEM;
+    static long const material_bonus[7][2] PROGMEM;
+
+    static offset_t const knight_offsets[NUM_KNIGHT_OFFSETS] PROGMEM;
+    static offset_t const   rook_offsets[NUM_ROOK_OFFSETS]   PROGMEM;
+    static offset_t const bishop_offsets[NUM_BISHOP_OFFSETS] PROGMEM;
+    static offset_t const  queen_offsets[NUM_QUEEN_OFFSETS]  PROGMEM;
+    static offset_t const   king_offsets[NUM_KING_OFFSETS]   PROGMEM;
+
     // the last 5 moves are kept to recognize 3-move repetition
     move_t      history[MAX_REPS * 2 - 1];
     index_t     hist_count;
@@ -58,6 +71,7 @@ public:
     Bool        black_king_in_check;
 
     // the last move made
+    long        last_value;
     move_t      last_move;
     uint8_t     last_was_en_passant : 1;    // true when last move was an en-passaant capture
     uint32_t    last_move_time;
@@ -72,9 +86,6 @@ public:
     // increasing move number
     uint16_t    move_num;
 
-    // the game options
-    options_t   options;
-
     // the current ply level
     uint8_t     ply;
 
@@ -84,49 +95,10 @@ public:
 
 public:
     // constructor
-    game_t()
-    {
-        init();
-    }
+    game_t();
 
-    void init()
-    {
-        // initialize list of pieces in the game based of of the board contents:
-        piece_count = 0;
-        for (uint8_t ndx=0; ndx < BOARD_SIZE; ++ndx) {
-            if (Empty == getType(board.get(ndx))) continue;
-            if (piece_count < MAX_PIECES) {
-                pieces[piece_count++] = point_t( ndx % 8, ndx / 8);
-            }
-        }
-
-        hist_count = 0;
-
-        stats.init();
-
-        white_taken_count = 0;
-        black_taken_count = 0;
-
-        last_move = { -1, -1, 0 };
-        last_was_en_passant = False;
-        last_move_time = 0;
-        last_moves_evaluated = 0;
-
-        white_king_in_check = False;
-        black_king_in_check = False;
-
-        state = PLAYING;
-
-        turn = White;
-
-        move_num = 0;
-
-        ply = 0;
-
-        white_king = 60;
-        black_king = 4;
-
-    }
+    // init function
+    void init();
 
 };  // game_t
 

@@ -187,15 +187,6 @@ enum state_t {
     FIFTY_MOVES
 };
 
-extern long const center_bonus[8][7][2] PROGMEM;
-extern long const material_bonus[7][2] PROGMEM;
-
-extern offset_t const knight_offsets[NUM_KNIGHT_OFFSETS] PROGMEM;
-extern offset_t const   rook_offsets[NUM_ROOK_OFFSETS]   PROGMEM;
-extern offset_t const bishop_offsets[NUM_BISHOP_OFFSETS] PROGMEM;
-extern offset_t const  queen_offsets[NUM_QUEEN_OFFSETS]  PROGMEM;
-extern offset_t const   king_offsets[NUM_KING_OFFSETS]   PROGMEM;
-
 #include "board.h"
 #include "move.h"
 #include "game.h"

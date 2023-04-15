@@ -27,7 +27,7 @@ void add_rook_moves(piece_gen_t &gen) {
     index_t const row = move.from / 8;
 
     for (unsigned i=0; i < NUM_ROOK_OFFSETS; i++) {
-        offset_t const * const ptr = pgm_get_far_address(rook_offsets);
+        offset_t const * const ptr = pgm_get_far_address(game.rook_offsets);
         index_t  const xoff = pgm_read_byte(&ptr[i].x);
         index_t  const yoff = pgm_read_byte(&ptr[i].y);
         index_t  const to_col = col + xoff;

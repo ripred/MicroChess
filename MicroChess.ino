@@ -104,7 +104,7 @@ Bool is_better_move(
     }
 
     if (side == White) {
-        if (move.value > best.value) {
+        if (move.value > best.value && (MAX_VALUE != move.value)) {
             return True;
         }
         else if (move.value == best.value) {
@@ -112,7 +112,7 @@ Bool is_better_move(
         }
     }
     else {
-        if (move.value < best.value) {
+        if (move.value < best.value && (MIN_VALUE != move.value)) {
             return True;
         }
         else if (move.value == best.value) {
@@ -396,6 +396,10 @@ long make_move(move_t const &move, Bool const restore)
 
     long value = evaluate();
 
+    if (!restore && value != MIN_VALUE && value != MAX_VALUE) {
+        game.last_value = value;
+    }
+
     // set our move as the last move
     game.last_move = move;
 
@@ -561,7 +565,7 @@ long evaluate()
             if (Empty == ptype) continue;
 
             if (filter & material) {
-                materialTotal += pgm_read_dword(&material_bonus[ptype][pside]);
+                materialTotal += pgm_read_dword(&game.material_bonus[ptype][pside]);
             }
 
             // Let's not encourage the King to wander to
@@ -572,8 +576,8 @@ long evaluate()
 
             if (filter & center) {
                 centerTotal +=
-                    pgm_read_dword(&center_bonus[col][ptype][pside]) +
-                    pgm_read_dword(&center_bonus[row][ptype][pside]);
+                    pgm_read_dword(&game.center_bonus[col][ptype][pside]) +
+                    pgm_read_dword(&game.center_bonus[row][ptype][pside]);
             }
         }
     }
@@ -830,7 +834,7 @@ void set_game_options()
     // game.options.profiling = True;
 
     // set the maximum ply level (the number of turns we look ahead) for the game
-    game.options.maxply = 3;
+    game.options.maxply = 2;
 
     // set the limit on the total number of moves allowed in the game
     // Officially the limit is 50 moves
@@ -1062,24 +1066,18 @@ void show()
                     double const moves_per_sec = num_moves / (game.last_move_time / 1000.0);
 
                     char str_moves[16] = "";
-                    strcpy(str_moves, addCommas(num_moves));
+                    ftostr(num_moves, 0, str_moves);
 
                     char str_moves_per_sec[16] = "";
-                    strcpy(str_moves_per_sec, addCommas(moves_per_sec));
+                    ftostr(moves_per_sec, 3, str_moves_per_sec);
 
                     char str_time[16] = "";
-                    strcpy(str_time, addCommas(game.last_move_time));
+                    ftostr(game.last_move_time, 0, str_time);
 
                     printf(Debug1, "    %s moves in %s ms (%s moves/sec)", 
                         str_moves, str_time, str_moves_per_sec);
                 }
                 break;
-
-            // display the number of moves evaluated on the last move
-            // case offset + 2:
-            //     if (0 == game.last_moves_evaluated) break;
-            //     printf(Debug1, "    Moves evaluated: %s", addCommas(game.last_moves_evaluated));
-            //     break;
 
             // display the pieces taken by White
             case offset + 4:
@@ -1088,12 +1086,7 @@ void show()
                     Piece const piece = game.taken_by_white[i];
                     Piece const ptype = getType(piece);
                     Color const pside = getSide(piece);
-
-                    index_t icon_index = (pside * 6) + ptype - 1;
-                    // if (icon_index < 0 || icon_index >= int(sizeof(icons) - 1)) {
-                    //     printf(Debug1, "Error: invalid piece in taken2 array %d, ptype: %d, pside: %d\n", icon_index, ptype, pside);
-                    // }
-                    char c = icons[icon_index];
+                    char c = icons[(pside * 6) + ptype - 1];
                     printf(Debug1, "%c ", c);
                 }
                 break;
@@ -1105,12 +1098,7 @@ void show()
                     Piece const piece = game.taken_by_black[i];
                     Piece const ptype = getType(piece);
                     Color const pside = getSide(piece);
-
-                    index_t icon_index = (pside * 6) + ptype - 1;
-                    // if (icon_index < 0 || icon_index >= int(sizeof(icons) - 1)) {
-                    //     printf(Debug1, "Error: invalid piece in taken2 array %d, ptype: %d, pside: %d\n", icon_index, ptype, pside);
-                    // }
-                    char c = icons[icon_index];
+                    char c = icons[(pside * 6) + ptype - 1];
                     printf(Debug1, "%c ", c);
                 }
                 break;
@@ -1118,11 +1106,11 @@ void show()
             // display the current score
             case offset + 7:
             {
-                value = evaluate();
+                value = game.last_value;
 
-                char str_moves[16] = "";
-                strcpy(str_moves, addCommas(value));
-                printf(Debug1, "    Board value: %8s %s", str_moves, (value == 0) ? "" : 
+                char str_score[16] = "";
+                ftostr(value, 0, str_score);
+                printf(Debug1, "    Board value: %8s %s", str_score, (value == 0) ? "" : 
                     (value  < 0) ? "Black's favor" : "White's favor");
             }
                 break;
