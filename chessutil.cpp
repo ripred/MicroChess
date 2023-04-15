@@ -185,6 +185,56 @@ void show_stats() {
 } // show_stats()
 
 
+////////////////////////////////////////////////////////////////////////////////////////
+// see if a move would violate the 3-move repetition rule
+// 
+// returns True if the move would violate the rule and end the game, otherwise False
+Bool would_repeat(move_t move) 
+{
+    index_t const total = MAX_REPS * 2 - 1;
+
+    if (game.hist_count < total) {
+        return False;
+    }
+
+    Bool result = True;
+
+    move_t &m= move;
+
+    for (index_t i = 1; i < total; i += 2) {
+        if (game.history[i].to == m.from && game.history[i].from == m.to) {
+            m = game.history[i];
+        }
+        else {
+            result = False;
+            break;
+        }
+    }
+
+    return result;
+
+}   // would_repeat(move_t const move)
+
+
+////////////////////////////////////////////////////////////////////////////////////////
+// Add a move to the partial history list and check for 3-move repetition
+// 
+// returns True if the move violates the rule and end the game, otherwise False
+Bool add_to_history(move_t const &move)
+{
+    Bool result = would_repeat(move);
+
+    memmove(&game.history[1], &game.history[0], sizeof(move_t) * (ARRAYSZ(game.history) - 1));
+    game.history[0] = move;
+    if (game.hist_count < index_t(ARRAYSZ(game.history))) {
+        game.hist_count++;
+    }
+
+    return result;
+
+}   // add_to_history()
+
+
 // display a Piece's color and type
 void show_piece(Piece const p) 
 {
@@ -201,10 +251,12 @@ void show_piece(Piece const p)
     switch (type) {
         case  Empty: printf(Debug1, " Empty");  break;
         case   Pawn: printf(Debug1, " Pawn");   break;
+        case   Rook: printf(Debug1, " Rook");   break;
         case Knight: printf(Debug1, " Knight"); break;
         case Bishop: printf(Debug1, " Bishop"); break;
         case  Queen: printf(Debug1, " Queen");  break;
         case   King: printf(Debug1, " King");   break;
+            default: printf(Debug1, "Error: invalid Piece type: %d\n", type); break;
     }
 } // show_piece(Piece const p) 
 
@@ -217,9 +269,16 @@ void show_pieces()
         point_t const &loc = game.pieces[i];
         index_t const col = loc.x;
         index_t const row = loc.y;
-        Piece  const p = board.get(col + row * 8);
-        printf(Debug1, "    game.pieces[%2d] = %2d, %2d (%2d): ", i, col, row, col + row * 8);
-        show_piece(p);
+
+        if (-1 == col && -1 == row) {
+            printf(Debug1, "    game.pieces[%2d] = Empty", i);
+        }
+        else {
+            Piece  const p = board.get(col + row * 8);
+            printf(Debug1, "    game.pieces[%2d] = %2d, %2d (%2d): ", i, col, row, col + row * 8);
+            show_piece(p);
+        }
+
         printf(Debug1, "\n");
     }
     printf(Debug1, "};\n");

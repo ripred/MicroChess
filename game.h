@@ -45,9 +45,10 @@ public:
     uint8_t     piece_count;
 
     // the pieces that have been taken
-    Piece       taken1[16], taken2[16];
-    uint8_t     taken_count1;
-    uint8_t     taken_count2;
+    Piece       taken_by_white[16];
+    Piece       taken_by_black[16];
+    uint8_t     white_taken_count;
+    uint8_t     black_taken_count;
 
     // the statistics of the game
     stat_t      stats;
@@ -103,8 +104,8 @@ public:
 
         stats.init();
 
-        taken_count1 = 0;
-        taken_count2 = 0;
+        white_taken_count = 0;
+        black_taken_count = 0;
 
         last_move = { -1, -1, 0 };
         last_was_en_passant = False;

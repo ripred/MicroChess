@@ -200,19 +200,21 @@ extern game_t game;
 
 typedef Bool (generator_t(move_t &, move_t &));
 
-class piece_gen_t {
-public:
+// The piece_gen_t type is a parameter passing structure used
+// to speed up the move generation calls for the piece types
+struct piece_gen_t {
     move_t      & move;
     move_t      & best;
     generator_t  *callme;
 
     piece_gen_t(move_t &m, move_t &b, generator_t *cb) :
         move(m), best(b), callme(cb) {}
-};
 
+}; // piece_gen_t
+
+extern void show_piece(Piece const p);
 extern void show_move(move_t const &move);
 extern void show_pieces();
-extern void show_piece(Piece const p);
 
 extern void show_stats();
 
@@ -221,6 +223,7 @@ extern void set_led_strip();
 extern long make_move(move_t const &move, Bool const restore);
 
 extern Bool would_repeat(move_t const move);
+Bool add_to_history(move_t const &move);
 
 Bool consider_move(move_t &move, move_t &best);
 
