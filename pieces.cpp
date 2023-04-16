@@ -6,7 +6,6 @@
  * move generation for pawns
  * 
  */
-
 #include <Arduino.h>
 #include <avr/pgmspace.h>
 #include <stdint.h>
@@ -31,8 +30,7 @@ void add_pawn_moves(piece_gen_t &gen) {
 
             // see if we can move 2 spots in front of this pawn
             if (!hasMoved(board.get(gen.move.from))) {
-                to_col = (gen.move.from % 8);
-                to_row = (gen.move.from / 8) + ((White == getSide(board.get(gen.move.from))) ? -1 : 1) * 2;
+                to_row += ((White == getSide(board.get(gen.move.from))) ? -1 : 1);
                 if (isValidPos(to_col, to_row)) {
                     // get piece at location 2 spots in front of pawn
                     gen.move.to = to_col + to_row * 8;
@@ -46,7 +44,7 @@ void add_pawn_moves(piece_gen_t &gen) {
     }
 
     // see if we can capture a piece diagonally
-    for (int i = -1; i <= 1; i += 2) {
+    for (index_t i = -1; i <= 1; i += 2) {
         to_col = (gen.move.from % 8) + i;
         to_row = (gen.move.from / 8) + ((White == getSide(board.get(gen.move.from))) ? -1 : 1);
         gen.move.to = to_col + to_row * 8;
@@ -78,6 +76,23 @@ void add_pawn_moves(piece_gen_t &gen) {
 }
 
 
+// void check_offset_pieces(index_t const num_offsets, piece_gen_t &gen, offset_t const * const offsets)
+// {
+//     for (index_t i = 0; i < num_offsets; i++) {
+//         offset_t const * const ptr = (offset_t *) pgm_get_far_address(offsets);
+//         index_t  const to_col = (gen.move.from % 8) + pgm_read_byte(&ptr[i].x);
+//         index_t  const to_row = (gen.move.from / 8) + pgm_read_byte(&ptr[i].y);
+//         if (isValidPos(to_col, to_row)) {
+//             gen.move.to = to_col + to_row * 8;
+//             Piece   const op = board.get(gen.move.to);
+//             if (isEmpty(op) || getSide(op) != getSide(board.get(gen.move.from))) {
+//                 gen.callme(gen.move, gen.best);
+//             }
+//         }
+//     }
+// }
+
+
 /*
  * evaluate the moves for a knight against the best move so far
  *
@@ -88,7 +103,9 @@ void add_knight_moves(piece_gen_t &gen) {
         { +1, +2 }, { -1, +2 }, { +1, -2 }, { -1, -2 }  
     };
 
-    for (index_t i = 0; i < NUM_KNIGHT_OFFSETS; i++) {
+    // check_offset_pieces(ARRAYSZ(knight_offsets), gen, knight_offsets);
+
+    for (index_t i = 0; i < index_t(ARRAYSZ(knight_offsets)); i++) {
         offset_t const * const ptr = (offset_t *)pgm_get_far_address(knight_offsets);
         index_t  const to_col = (gen.move.from % 8) + pgm_read_byte(&ptr[i].x);
         index_t  const to_row = (gen.move.from / 8) + pgm_read_byte(&ptr[i].y);
@@ -109,7 +126,7 @@ void add_knight_moves(piece_gen_t &gen) {
  */
 void add_rook_moves(piece_gen_t &gen) {
     //                                    S       N      W       E
-    int8_t const dirs[4][2] PROGMEM = { {0,1}, {0,-1}, {-1,0}, {1,0} };
+    index_t const dirs[4][2] PROGMEM = { {0,1}, {0,-1}, {-1,0}, {1,0} };
 
     for (auto const &dir : dirs) {
         index_t x = (gen.move.from % 8) + pgm_read_byte(dir[0]);
@@ -143,7 +160,7 @@ void add_rook_moves(piece_gen_t &gen) {
  */
 void add_bishop_moves(piece_gen_t &gen) {
     //                                     NW      SW      NE      SE
-    int8_t const dirs[4][2] PROGMEM = { {-1,-1}, {-1,1}, {1,-1}, {1,1} };
+    index_t const dirs[4][2] PROGMEM = { {-1,-1}, {-1,1}, {1,-1}, {1,1} };
 
     for (auto const &dir : dirs) {
         index_t x = (gen.move.from % 8) + pgm_read_byte(dir[0]);
@@ -197,7 +214,7 @@ void add_king_moves(piece_gen_t &gen) {
         index_t  const to_row = (gen.move.from / 8) + pgm_read_byte(&ptr[i].y);
         if (isValidPos(to_col, to_row)) {
             gen.move.to = to_col + to_row * 8;
-            Piece   const op = board.get(gen.move.to);
+            Piece const op = board.get(gen.move.to);
             if (isEmpty(op) || getSide(op) != getSide(board.get(gen.move.from))) {
                 gen.callme(gen.move, gen.best);
             }

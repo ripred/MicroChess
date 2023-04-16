@@ -421,13 +421,13 @@ long make_move(move_t const &move, Bool const restore)
     //       Implement minimax and alpha-beta pruning!
     ////////////////////////////////////////////////////////////////////////////////////////
 
-#define   MAXMAX_PLY   2
+    #define   MAXMAX_PLY   3
 
+    // flag indicating whether we are traversing into quiescent moves
     Bool quiescent = ((-1 != captured) && (game.ply  < MAXMAX_PLY));
 
-    if (
-        game.ply < game.options.maxply || quiescent) {
-
+    if (game.ply < game.options.maxply || quiescent) {
+        // optionally flash a 'quiescent' indicator
         if (game.options.live_update) {
             static Bool last_quiescent = False;
             if (quiescent != last_quiescent) {
@@ -436,6 +436,7 @@ long make_move(move_t const &move, Bool const restore)
             }
         }
 
+        // explore the future! (plies)
         game.ply++;
         ++game.turn %= 2;
 
@@ -539,15 +540,15 @@ long make_move(move_t const &move, Bool const restore)
 long evaluate() 
 {
     // flags choices for which attributes are included in the board score
-    static uint8_t const material = 0x01u;
-    static uint8_t const   center = 0x02u;
+    uint8_t const material = 0x01u;
+    uint8_t const   center = 0x02u;
     // static uint8_t const mobility = 0x04u;
 
     // Adjust as desired
     // Note: Do not include mobility unless you are prepared to evaluate all moves
     // for both sides for future plies. On the first pass when neither side has any moves
     // this gives favor to White when the Black response moves have not been generated yet
-    static uint8_t const   filter = material | center;
+    uint8_t const   filter = material | center;
 
     // calculate the value of the board
     long materialTotal = 0L;
@@ -648,7 +649,7 @@ void choose_best_move(Color const who, move_t &best, generator_t callback)
     static Bool constexpr  enable_queens = True;
     static Bool constexpr   enable_kings = True;
 
-    Bool const whites_turn = White == who ? True : False;
+    Bool const whites_turn = (White == who) ? True : False;
     long const worst_value = whites_turn ? MIN_VALUE : MAX_VALUE;
 
     // walk through the pieces list and generate all moves for each piece
@@ -831,7 +832,7 @@ void set_game_options()
     // game.options.profiling = True;
 
     // set the maximum ply level (the number of turns we look ahead) for the game
-    game.options.maxply = 2;
+    game.options.maxply = 3;
 
     // set the limit on the total number of moves allowed in the game
     // Officially the limit is 50 moves
@@ -843,6 +844,9 @@ void set_game_options()
 
     // set whether we play continuously or not
     game.options.continuous = game.options.random;
+
+    // set the 'live update' flag
+    game.options.live_update = True;
 
     // game seed hash for PRN generator - default to 4 hex prime numbers
     game.options.seed = 0x232F89A3;
@@ -917,8 +921,6 @@ void setup()
     uint32_t black_wins = 0;
 
     do {
-        Serial.println("starting..");
-
         set_game_options();
 
         // initialize the board and the game:
@@ -934,38 +936,17 @@ void setup()
 
         game.stats.stop_game_stats();
 
-        Serial.println("finished.\n");
-
         game.options.print_level = Debug1;
 
         switch (game.state) {
-            case STALEMATE:
-                printf(Debug1, "Stalemate\n\n");
-                break;
-            
-            case WHITE_CHECKMATE:
-                printf(Debug1, "Checkmate! White wins!\n\n");
-                break;
-
-            case BLACK_CHECKMATE:
-                printf(Debug1, "Checkmate! Black wins!\n\n");
-                break;
-
-            case WHITE_3_MOVE_REP:
-                printf(Debug1, "3-move repetition! Black wins!\n\n");
-                break;
-
-            case BLACK_3_MOVE_REP:
-                printf(Debug1, "3-move repetition! White wins!\n\n");
-                break;
-
-            case FIFTY_MOVES:
-                printf(Debug1, "%d-move limit reached!\n\n", game.options.move_limit);
-                break;
-
-            default:
-            case PLAYING:
-                break;
+            case STALEMATE:         printf(Debug1, "Stalemate\n\n");                                        break;
+            case WHITE_CHECKMATE:   printf(Debug1, "Checkmate! White wins!\n\n");                           break;
+            case BLACK_CHECKMATE:   printf(Debug1, "Checkmate! Black wins!\n\n");                           break;
+            case WHITE_3_MOVE_REP:  printf(Debug1, "3-move repetition! Black wins!\n\n");                   break;
+            case BLACK_3_MOVE_REP:  printf(Debug1, "3-move repetition! White wins!\n\n");                   break;
+            case FIFTY_MOVES:       printf(Debug1, "%d-move limit reached!\n\n", game.options.move_limit);  break;
+            default: 
+            case PLAYING:           break;
         }
 
         // show the final board    
@@ -975,30 +956,15 @@ void setup()
         show_stats();
 
         state_totals[game.state - 1]++;
-
-        char str_stalemate[16] = "";
-        char str_wcheck[16] = "";
-        char str_bcheck[16] = "";
-        char str_wrep[16] = "";
-        char str_brep[16] = "";
-        char str_fifty[16] = "";
-
-        strcpy(str_stalemate, addCommas(state_totals[STALEMATE - 1]));
-        strcpy(str_wcheck, addCommas(state_totals[WHITE_CHECKMATE - 1]));
-        strcpy(str_wcheck, addCommas(state_totals[WHITE_CHECKMATE - 1]));
-        strcpy(str_bcheck, addCommas(state_totals[BLACK_CHECKMATE - 1]));
-        strcpy(str_wrep, addCommas(state_totals[WHITE_3_MOVE_REP - 1]));
-        strcpy(str_brep, addCommas(state_totals[BLACK_3_MOVE_REP - 1]));
-        strcpy(str_fifty, addCommas(state_totals[FIFTY_MOVES - 1]));
+        char str[16] = "";
 
         printf(Debug1, "         Stalemate   White Checkmate   Black Checkmate  White 3-Move Rep  Black 3-Move Rep        Move Limit\n");
-        printf(Debug1, "%18s%18s%18s%18s%18s%18s\n",
-            str_stalemate,
-            str_wcheck,
-            str_bcheck,
-            str_wrep,
-            str_brep,
-            str_fifty);
+        printf(Debug1, "%18s", ftostr(state_totals[       STALEMATE - 1], 0, str));
+        printf(Debug1, "%18s", ftostr(state_totals[ WHITE_CHECKMATE - 1], 0, str));
+        printf(Debug1, "%18s", ftostr(state_totals[ BLACK_CHECKMATE - 1], 0, str));
+        printf(Debug1, "%18s", ftostr(state_totals[WHITE_3_MOVE_REP - 1], 0, str));
+        printf(Debug1, "%18s", ftostr(state_totals[BLACK_3_MOVE_REP - 1], 0, str));
+        printf(Debug1, "%18s", ftostr(state_totals[     FIFTY_MOVES - 1], 0, str));
 
         switch (game.state) {
             default:
@@ -1031,7 +997,7 @@ void loop() {}
 // 
 void show()
 {
-    static char const icons[] = "pnbrqkPNBRQK";
+    static char const icons[] PROGMEM = "pnbrqkPNBRQK";
 
     static const bool dev = true;
 
@@ -1045,7 +1011,7 @@ void show()
             Piece const piece = board.get(y * 8 + x);
             printf(Debug1, " %c ", 
                 isEmpty(piece) ? ((y ^ x) & 1 ? '*' : '.') :
-                icons[((getSide(piece) * 6) + getType(piece) - 1)]);
+                pgm_read_byte(&icons[((getSide(piece) * 6) + getType(piece) - 1)]));
         }
 
         // display the extra status info on certain lines:
@@ -1091,8 +1057,7 @@ void show()
                     Piece const piece = game.taken_by_white[i];
                     Piece const ptype = getType(piece);
                     Color const pside = getSide(piece);
-                    char c = icons[(pside * 6) + ptype - 1];
-                    printf(Debug1, "%c ", c);
+                    printf(Debug1, "%c ", pgm_read_byte(&icons[(pside * 6) + ptype - 1]));
                 }
                 break;
 
@@ -1103,8 +1068,7 @@ void show()
                     Piece const piece = game.taken_by_black[i];
                     Piece const ptype = getType(piece);
                     Color const pside = getSide(piece);
-                    char c = icons[(pside * 6) + ptype - 1];
-                    printf(Debug1, "%c ", c);
+                    printf(Debug1, "%c ", pgm_read_byte(&icons[(pside * 6) + ptype - 1]));
                 }
                 break;
 
