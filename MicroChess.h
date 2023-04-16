@@ -44,9 +44,9 @@ enum
     NUM_BITS_SPOT      =  7,    // bits per field in move_t struct
 
     NUM_KNIGHT_OFFSETS =  8,    // number of entries in the transposition table for the knight
-    NUM_BISHOP_OFFSETS = 28,    // number of entries in the transposition table for the bishop
-    NUM_ROOK_OFFSETS   = 28,    // number of entries in the transposition table for the rook
-    NUM_QUEEN_OFFSETS  = 56,    // number of entries in the transposition table for the queen
+    // NUM_BISHOP_OFFSETS = 28,    // number of entries in the transposition table for the bishop
+    // NUM_ROOK_OFFSETS   = 28,    // number of entries in the transposition table for the rook
+    // NUM_QUEEN_OFFSETS  = 56,    // number of entries in the transposition table for the queen
     NUM_KING_OFFSETS   =  8,    // number of entries in the transposition table for the king
 };
 
@@ -194,7 +194,10 @@ enum state_t {
 
 extern game_t game;
 
+
+// define a data type for a callback move generation handler
 typedef Bool (generator_t(move_t &, move_t &));
+
 
 // The piece_gen_t type is a parameter passing structure used
 // to speed up the move generation calls for the piece types
@@ -208,12 +211,19 @@ struct piece_gen_t {
 
 }; // piece_gen_t
 
+
+// display a piece, or a move, or the piece list
 extern void show_piece(Piece const p);
 extern void show_move(move_t const &move);
 extern void show_pieces();
 
+// show the game time and move statistics
 extern void show_stats();
 
+// show the current memory statistics
+extern void printMemoryStats();
+
+// control an external LED strip to display the board state
 extern void init_led_strip();
 extern void set_led_strip();
 
@@ -221,11 +231,11 @@ extern long make_move(move_t const &move, Bool const restore);
 
 extern Bool would_repeat(move_t const move);
 
-Bool add_to_history(move_t const &move);
+extern Bool add_to_history(move_t const &move);
 
-Bool consider_move(move_t &move, move_t &best);
+extern void choose_best_move(Color const who, move_t &best, generator_t callback);
 
-extern index_t choose_best_move(Color const who, move_t &best, generator_t callback);
+extern Bool consider_move(move_t &move, move_t &best);
 
 extern void add_pawn_moves(piece_gen_t &gen);
 extern void add_knight_moves(piece_gen_t &gen);

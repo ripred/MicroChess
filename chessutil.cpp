@@ -383,11 +383,9 @@ int freeMemory() {
 void printMemoryStats() {
     // ============================================================
     // startup memory
-    int totalRam = 2048;
-    int freeRam = freeMemory();
-    int usedRam = totalRam - freeRam;
+    int constexpr totalRam = 2048;
+    int const freeRam = freeMemory();
+    int const usedRam = totalRam - freeRam;
 
-    printf(Debug2, "Total SRAM = %d\n", totalRam);
-    printf(Debug2, " Free SRAM = %d\n",  freeRam);
-    printf(Debug2, " Used SRAM = %d\n",  usedRam);
+    printf(Debug1, "Used SRAM = %d, Free SRAM = %d\n", usedRam, freeRam);
 }

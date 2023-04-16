@@ -43,12 +43,6 @@ public:
     static long const center_bonus[8][7][2] PROGMEM;
     static long const material_bonus[7][2] PROGMEM;
 
-    static offset_t const knight_offsets[NUM_KNIGHT_OFFSETS] PROGMEM;
-    static offset_t const   rook_offsets[NUM_ROOK_OFFSETS]   PROGMEM;
-    static offset_t const bishop_offsets[NUM_BISHOP_OFFSETS] PROGMEM;
-    static offset_t const  queen_offsets[NUM_QUEEN_OFFSETS]  PROGMEM;
-    static offset_t const   king_offsets[NUM_KING_OFFSETS]   PROGMEM;
-
     // the last 5 moves are kept to recognize 3-move repetition
     move_t      history[MAX_REPS * 2 - 1];
     index_t     hist_count;
@@ -88,10 +82,6 @@ public:
 
     // the current ply level
     uint8_t     ply;
-
-    // the location of the two kings
-    index_t     white_king;
-    index_t     black_king;
 
 public:
     // constructor

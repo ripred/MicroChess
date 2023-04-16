@@ -15,6 +15,7 @@
 struct options_t {
 public:
     uint8_t     random : 1,     // add randomness to the game?
+           live_update : 1,     // periodically update the LED strip and other external indicators as we choose a move
              profiling : 1;     // are we profiling the engine?
     uint8_t     maxply;         // the maximum ply level
     uint32_t    move_limit;     // the maximum number of moves allowed in a full game
@@ -25,11 +26,12 @@ public:
     // adjustable multipiers to alter importance of mobility or center proximity
     // during board evaluation. season to taste
     static long constexpr mobilityBonus = 3L;
-    static long constexpr   centerBonus = 50L;
+    static long constexpr   centerBonus = 1L;
 public:
 
     options_t() : 
         random(False), 
+        live_update(False),
         profiling(False), 
         maxply(MAX_PLY),
         move_limit(MOVE_LIMIT),
