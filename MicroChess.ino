@@ -192,7 +192,7 @@ inline index_t find_piece(index_t const index)
 // evaluating the value of the move.
 // 
 // This is a big and complicated function.
-// It performs 5 Basics steps:
+// It performs 5 major steps:
 // 
 //  1) Identify the piece being moved
 //  2) Identify any piece being captured and remove it if so
@@ -318,8 +318,10 @@ long make_move(move_t const &move, Bool const restore)
     index_t const white_taken_count = game.white_taken_count;
     index_t const black_taken_count = game.black_taken_count;
 
-    // save the current last move and en-passant flag
+    // save the current last move and move flags
     Bool const last_was_en_passant = game.last_was_en_passant;
+    Bool const last_was_castle = game.last_was_castle;
+    Bool const last_was_timeout = game.last_was_timeout;
     move_t const last_move = game.last_move;
 
     Piece captured_piece = Empty;
@@ -439,6 +441,7 @@ long make_move(move_t const &move, Bool const restore)
                 // castle on the King's side
                 index_t board_rook = 7 + (vars.from / 8) * 8;
                 castly_rook = find_piece(board_rook);
+                board.set(board_rook, setMoved(board.get(board_rook), True));
                 game.pieces[castly_rook].x = 5;
                 game.last_was_castle = True;
             }
@@ -446,6 +449,7 @@ long make_move(move_t const &move, Bool const restore)
                 // castle on the Queen's side
                 index_t board_rook = 0 + (vars.from / 8) * 8;
                 castly_rook = find_piece(board_rook);
+                board.set(board_rook, setMoved(board.get(board_rook), True));
                 game.pieces[castly_rook].x = 3;
                 game.last_was_castle = True;
             }
@@ -474,8 +478,29 @@ long make_move(move_t const &move, Bool const restore)
     // The move has been made and we have the value for the updated board.
     // Recursively look-ahead and accumulatively update the value here.
     // 
-    // TODO: Once this is working in brute-force mode,
-    //       Implement minimax and alpha-beta pruning!
+    // This is working in brute-force mode!!
+    // 
+    // TODO: Implement minimax and alpha-beta pruning!!
+    // 
+    // Minimax Algorithm Pseudo-code:
+    // 
+    // function minimax(node, depth, maximizingPlayer) is
+    //     if depth = 0 or node is a terminal node then
+    //         return the heuristic value of node
+    //     if maximizingPlayer then
+    //         value := −∞
+    //         for each child of node do
+    //             value := max(value, minimax(child, depth − 1, FALSE))
+    //         return value
+    //     else (* minimizing player *)
+    //         value := +∞
+    //         for each child of node do
+    //             value := min(value, minimax(child, depth − 1, TRUE))
+    //         return value
+    // 
+    // (* Initial call *)
+    // minimax(origin, depth, TRUE)
+    // 
     ////////////////////////////////////////////////////////////////////////////////////////
 
     #define   MAXMAX_PLY   4
@@ -497,7 +522,9 @@ long make_move(move_t const &move, Bool const restore)
             // that we always set the 'kig-in-check' flags for any moves based on whether
             // any of the opponent's 1-level responses place the king in check.
 
-            if (!timeout() || (game.ply < 1)) {
+            game.last_was_timeout = timeout();
+
+            if (!game.last_was_timeout || (game.ply < 1)) {
                 // optionally flash a 'quiescent' indicator
                 if (game.options.live_update) {
                     // static Bool last_quiescent = False;
@@ -538,6 +565,7 @@ long make_move(move_t const &move, Bool const restore)
                     value = best_white.value;
                 }
 
+                // punish moves that place our King in check
                 if (game.ply >= 1) {
                     if ((vars.whites_turn && game.white_king_in_check) || 
                     (!vars.whites_turn && game.black_king_in_check)) {
@@ -559,7 +587,7 @@ long make_move(move_t const &move, Bool const restore)
     }
 
 
-    if (game.options.live_update && (0 == game.ply)) {
+    if (game.options.live_update && (game.ply < 1)) {
         static move_t last_update = { -1, -1, 0 };
         if (last_update.from != move.from || last_update.to != move.to) {
             last_update = move;
@@ -606,6 +634,8 @@ long make_move(move_t const &move, Bool const restore)
 
         // restore the en passant 
         game.last_was_en_passant = last_was_en_passant;
+        game.last_was_timeout = last_was_timeout;
+        game.last_was_castle = last_was_castle;
 
         // restore the king's locations
         game.wking = wking;
@@ -620,6 +650,9 @@ long make_move(move_t const &move, Bool const restore)
             else {
                 game.pieces[castly_rook].x = 7;
             }
+
+            index_t const rook = game.pieces[castly_rook].x + game.pieces[castly_rook].y * 8;
+            board.set(rook, setMoved(board.get(rook), False));
         }
     }
 
@@ -841,11 +874,9 @@ void play_game()
     reset_move_flags();
 
     move_t best_white = { -1, -1, MIN_VALUE };
-    Bool white_king_in_check = game.white_king_in_check;
     Bool no_white_moves = (-1 == best_white.from);
 
     move_t best_black = { -1, -1, MAX_VALUE };
-    Bool black_king_in_check = game.black_king_in_check;
     Bool no_black_moves = (-1 == best_black.from);
 
     // reset the ply depth watermark
@@ -854,14 +885,12 @@ void play_game()
     if (whites_turn) {
         // get the best move and flags for white
         choose_best_move(White, best_white, consider_move);
-        white_king_in_check = game.white_king_in_check;
         no_white_moves = (-1 == best_white.from);
     }
     else
     {
         // get the best move and flags for black
         choose_best_move(Black, best_black, consider_move);
-        black_king_in_check = game.black_king_in_check;
         no_black_moves = (-1 == best_black.from);
     }
 
@@ -886,30 +915,30 @@ void play_game()
     make_move(move, False);
 
     if (game.last_was_en_passant) {
-        printf(Debug1, " en passant capture")
+        printf(Debug1, " en passant capture ")
     }
 
     if (game.last_was_timeout) {
-        printf(Debug1, " - timeout")
+        printf(Debug1, " - timeout ")
     }
 
     if (game.last_was_castle) {
-        printf(Debug1, " castling")
+        printf(Debug1, " castling ")
     }
 
     printf(Debug1, "\n");
 
     // Announce if either king is in check
-    if (white_king_in_check) {
+    if (game.white_king_in_check) {
         printf(Debug1, "White King is in check!\n");
-        if (White == game.turn) {
+        if (whites_turn) {
             printf(Debug1, "illegal move\n");
         }
     }
 
-    if (black_king_in_check) {
+    if (game.black_king_in_check) {
         printf(Debug1, "Black King is in check!\n");
-        if (Black == game.turn) {
+        if (!whites_turn) {
             printf(Debug1, "illegal move\n");
         }
     }
@@ -921,28 +950,28 @@ void play_game()
         game.state = whites_turn ? WHITE_3_MOVE_REP : BLACK_3_MOVE_REP;
     }
 
-    if (whites_turn && white_king_in_check) {
+    if (whites_turn && game.white_king_in_check) {
         no_white_moves = True;
     }
 
-    if (!whites_turn && black_king_in_check) {
+    if (!whites_turn && game.black_king_in_check) {
         no_black_moves = True;
+    }
+
+    // see if the game has been won
+    if (whites_turn && no_black_moves && game.black_king_in_check) {
+        game.state = WHITE_CHECKMATE;
+        return;
+    }
+
+    if (!whites_turn && no_white_moves && game.white_king_in_check) {
+        game.state = BLACK_CHECKMATE;
+        return;
     }
 
     // see if we have a stalemate
     if (no_white_moves && no_black_moves) {
         game.state = STALEMATE;
-        return;
-    }
-    
-    // see if the game has been won
-    if (whites_turn && no_black_moves && black_king_in_check) {
-        game.state = WHITE_CHECKMATE;
-        return;
-    }
-
-    if (!whites_turn && no_white_moves && white_king_in_check) {
-        game.state = BLACK_CHECKMATE;
         return;
     }
 
@@ -965,7 +994,7 @@ void set_game_options()
     // game.options.profiling = True;
 
     // set the maximum ply level (the number of turns we look ahead) for the game
-    game.options.maxply = 1;
+    game.options.maxply = 2;
 
     // set the limit on the total number of moves allowed in the game
     // Officially the limit is 50 moves
