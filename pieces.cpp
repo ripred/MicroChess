@@ -98,7 +98,7 @@ void add_pawn_moves(piece_gen_t &gen) {
  *
  */
 void add_knight_moves(piece_gen_t &gen) {
-    static offset_t constexpr knight_offsets[NUM_KNIGHT_OFFSETS] PROGMEM = {
+    static offset_t constexpr knight_offsets[] PROGMEM = {
         { -2, +1 }, { -2, -1 }, { +2, +1 }, { +2, -1 }, 
         { +1, +2 }, { -1, +2 }, { +1, -2 }, { -1, -2 }  
     };
@@ -129,8 +129,8 @@ void add_rook_moves(piece_gen_t &gen) {
     index_t const dirs[4][2] PROGMEM = { {0,1}, {0,-1}, {-1,0}, {1,0} };
 
     for (auto const &dir : dirs) {
-        index_t x = (gen.move.from % 8) + pgm_read_byte(dir[0]);
-        index_t y = (gen.move.from / 8) + pgm_read_byte(dir[1]);
+        index_t x = (gen.move.from % 8) + pgm_read_byte(&dir[0]);
+        index_t y = (gen.move.from / 8) + pgm_read_byte(&dir[1]);
 
         while (isValidPos(x, y)) {
             gen.move.to = x + y * 8;
@@ -163,8 +163,8 @@ void add_bishop_moves(piece_gen_t &gen) {
     index_t const dirs[4][2] PROGMEM = { {-1,-1}, {-1,1}, {1,-1}, {1,1} };
 
     for (auto const &dir : dirs) {
-        index_t x = (gen.move.from % 8) + pgm_read_byte(dir[0]);
-        index_t y = (gen.move.from / 8) + pgm_read_byte(dir[1]);
+        index_t x = (gen.move.from % 8) + pgm_read_byte(&dir[0]);
+        index_t y = (gen.move.from / 8) + pgm_read_byte(&dir[1]);
 
         while (isValidPos(x, y)) {
             gen.move.to = x + y * 8;
@@ -203,12 +203,12 @@ void add_queen_moves(piece_gen_t &gen) {
  *
  */
 void add_king_moves(piece_gen_t &gen) {
-    static offset_t constexpr king_offsets[NUM_KING_OFFSETS] PROGMEM = {
+    static offset_t constexpr king_offsets[] PROGMEM = {
         { -1,  0 }, {  0, -1 }, { -1, -1 }, { +1, -1 }, 
         { +1,  0 }, {  0, +1 }, { -1, +1 }, { +1, +1 }
     };
 
-    for (index_t i = 0; i < NUM_KING_OFFSETS; i++) {
+    for (index_t i = 0; i < index_t(ARRAYSZ(king_offsets)); i++) {
         offset_t const * const ptr = (offset_t *)pgm_get_far_address(king_offsets);
         index_t  const to_col = (gen.move.from % 8) + pgm_read_byte(&ptr[i].x);
         index_t  const to_row = (gen.move.from / 8) + pgm_read_byte(&ptr[i].y);

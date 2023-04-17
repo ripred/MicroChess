@@ -133,13 +133,21 @@ Bool is_better_move(
 // returns True if the move is the new best move, False otherwise
 Bool consider_move(move_t &move, move_t &best) 
 {
+    Bool const low_mem = freeMemory() < game.options.low_mem_limit;
+    if (low_mem) {
+        digitalWrite(DEBUG1_PIN, HIGH);
+        delayMicroseconds(200);
+        digitalWrite(DEBUG1_PIN, LOW);
+        return False;
+    }
+
     Piece const p = board.get(move.from);
     Color const side = getSide(p);
 
     // Make the move_t object for the move (recursively) and it's evaluation
     move.value = make_move(move, True);
 
-    // penalize the move if it would cause us to lose by 3-move repetition
+    // penalize the move if it would cause us to lose by move repetition
     if (would_repeat(move)) {
         move.value += ((White == side) ? -1 : +1) * 5000;
     }
@@ -421,60 +429,74 @@ long make_move(move_t const &move, Bool const restore)
     //       Implement minimax and alpha-beta pruning!
     ////////////////////////////////////////////////////////////////////////////////////////
 
-    #define   MAXMAX_PLY   3
+    // #define   MAXMAX_PLY   (game.options.maxply + 1)
+    #define   MAXMAX_PLY   4
 
-    // flag indicating whether we are traversing into quiescent moves
-    Bool quiescent = ((-1 != captured) && (game.ply  < MAXMAX_PLY));
-
-    if (game.ply < game.options.maxply || quiescent) {
-        // optionally flash a 'quiescent' indicator
-        if (game.options.live_update) {
-            static Bool last_quiescent = False;
-            if (quiescent != last_quiescent) {
-                last_quiescent = quiescent;
-                digitalWrite(5, quiescent);
-            }
-        }
-
-        // explore the future! (plies)
-        game.ply++;
-        ++game.turn %= 2;
-
-        Bool const white_king_in_check = game.white_king_in_check;
-        Bool const black_king_in_check = game.black_king_in_check;
-
-        index_t const white_taken_count2 = game.white_taken_count;
-        index_t const black_taken_count2 = game.black_taken_count;
-
-        reset_move_flags();
-
-        if (vars.whites_turn) {
-            move_t best_black = { -1, -1, MAX_VALUE };
-            choose_best_move(Black, best_black, consider_move);
-            value += best_black.value;
-        }
-        else {
-            move_t best_white = { -1, -1, MIN_VALUE };
-            choose_best_move(White, best_white, consider_move);
-            value = best_white.value;
-        }
-
-        if (game.ply >= 1) {
-            if ((vars.whites_turn && game.white_king_in_check) || 
-            (!vars.whites_turn && game.black_king_in_check)) {
-                value += worst_value;
-            }
-        }
-
-        game.white_taken_count = white_taken_count2;
-        game.black_taken_count = black_taken_count2;
-
-        game.white_king_in_check = white_king_in_check;
-        game.black_king_in_check = black_king_in_check;
-
-        ++game.turn %= 2;
-        game.ply--;
+    Bool const low_mem = freeMemory() < game.options.low_mem_limit;
+    if (low_mem) {
+        digitalWrite(DEBUG1_PIN, HIGH);
+        delayMicroseconds(200);
+        digitalWrite(DEBUG1_PIN, LOW);
     }
+    else {
+        // flag indicating whether we are traversing into quiescent moves
+        Bool quiescent = ((-1 != captured) && (game.ply  < MAXMAX_PLY));
+
+        if (game.ply < game.options.maxply || quiescent) {
+            // optionally flash a 'quiescent' indicator
+            // if (game.options.live_update) {
+            //     static Bool last_quiescent = False;
+            //     if (quiescent != last_quiescent) {
+            //         last_quiescent = quiescent;
+            //         digitalWrite(DEBUG1_PIN, quiescent);
+            //     }
+            // }
+
+            // explore the future! (plies)
+            game.ply++;
+            ++game.turn %= 2;
+
+            if (game.ply > game.stats.move_stats.maxply) {
+                game.stats.move_stats.maxply = game.ply;
+            }
+
+            Bool const white_king_in_check = game.white_king_in_check;
+            Bool const black_king_in_check = game.black_king_in_check;
+
+            index_t const white_taken_count2 = game.white_taken_count;
+            index_t const black_taken_count2 = game.black_taken_count;
+
+            reset_move_flags();
+
+            if (vars.whites_turn) {
+                move_t best_black = { -1, -1, MAX_VALUE };
+                choose_best_move(Black, best_black, consider_move);
+                value += best_black.value;
+            }
+            else {
+                move_t best_white = { -1, -1, MIN_VALUE };
+                choose_best_move(White, best_white, consider_move);
+                value = best_white.value;
+            }
+
+            if (game.ply >= 1) {
+                if ((vars.whites_turn && game.white_king_in_check) || 
+                (!vars.whites_turn && game.black_king_in_check)) {
+                    value += worst_value;
+                }
+            }
+
+            game.white_taken_count = white_taken_count2;
+            game.black_taken_count = black_taken_count2;
+
+            game.white_king_in_check = white_king_in_check;
+            game.black_king_in_check = black_king_in_check;
+
+            ++game.turn %= 2;
+            game.ply--;
+        }
+    }
+
 
     if (game.options.live_update && (0 == game.ply)) {
         static move_t last_update = { -1, -1, 0 };
@@ -642,6 +664,14 @@ void reset_move_flags()
 // if the pointer is not nullptr.
 void choose_best_move(Color const who, move_t &best, generator_t callback)
 {
+    Bool const low_mem = freeMemory() < game.options.low_mem_limit;
+    if (low_mem) {
+        digitalWrite(DEBUG1_PIN, HIGH);
+        delayMicroseconds(200);
+        digitalWrite(DEBUG1_PIN, LOW);
+        return;
+    }
+
     static Bool constexpr   enable_pawns = True;
     static Bool constexpr enable_knights = True;
     static Bool constexpr enable_bishops = True;
@@ -727,13 +757,17 @@ void play_game()
     Bool black_king_in_check = game.black_king_in_check;
     Bool no_black_moves = (-1 == best_black.from);
 
+    // reset the ply depth watermark
+    game.stats.move_stats.maxply = 0;
+
     if (whites_turn) {
         // get the best move and flags for white
         choose_best_move(White, best_white, consider_move);
         white_king_in_check = game.white_king_in_check;
         no_white_moves = (-1 == best_white.from);
     }
-    else {
+    // else
+    {
         // get the best move and flags for black
         choose_best_move(Black, best_black, consider_move);
         black_king_in_check = game.black_king_in_check;
@@ -783,7 +817,7 @@ void play_game()
 
     printf(Debug1, "\n");
 
-    // check for 3-move repetition
+    // check for move repetition
     if (add_to_history(move)) {
         game.state = whites_turn ? WHITE_3_MOVE_REP : BLACK_3_MOVE_REP;
     }
@@ -832,18 +866,23 @@ void set_game_options()
     // game.options.profiling = True;
 
     // set the maximum ply level (the number of turns we look ahead) for the game
-    game.options.maxply = 3;
+    game.options.maxply = 1;
 
     // set the limit on the total number of moves allowed in the game
     // Officially the limit is 50 moves
-    game.options.move_limit = 200;
+    game.options.move_limit = 100;
 
     // set game.options.random to True (1) to use randomness in the game decisions
-    // game.options.random = False;
-    game.options.random = True;
+    game.options.random = False;
+    // game.options.random = True;
 
     // set whether we play continuously or not
-    game.options.continuous = game.options.random;
+    // game.options.continuous = game.options.random;
+    // game.options.continuous = True;
+    game.options.continuous = False;
+
+    // set the low-memory watermark we use to limit recursion
+    game.options.low_mem_limit = 64;
 
     // set the 'live update' flag
     game.options.live_update = True;
@@ -913,8 +952,8 @@ void setup()
 
     init_led_strip();
 
-    pinMode(5, OUTPUT);
-    digitalWrite(5, LOW);
+    pinMode(DEBUG1_PIN, OUTPUT);
+    digitalWrite(DEBUG1_PIN, LOW);
 
     uint32_t state_totals[6] = { 0, 0, 0, 0, 0, 0 };
     uint32_t white_wins = 0;
@@ -942,8 +981,8 @@ void setup()
             case STALEMATE:         printf(Debug1, "Stalemate\n\n");                                        break;
             case WHITE_CHECKMATE:   printf(Debug1, "Checkmate! White wins!\n\n");                           break;
             case BLACK_CHECKMATE:   printf(Debug1, "Checkmate! Black wins!\n\n");                           break;
-            case WHITE_3_MOVE_REP:  printf(Debug1, "3-move repetition! Black wins!\n\n");                   break;
-            case BLACK_3_MOVE_REP:  printf(Debug1, "3-move repetition! White wins!\n\n");                   break;
+            case WHITE_3_MOVE_REP:  printf(Debug1, "%d-move repetition! Black wins!\n\n", MAX_REPS);        break;
+            case BLACK_3_MOVE_REP:  printf(Debug1, "%d-move repetition! White wins!\n\n", MAX_REPS);        break;
             case FIFTY_MOVES:       printf(Debug1, "%d-move limit reached!\n\n", game.options.move_limit);  break;
             default: 
             case PLAYING:           break;
@@ -958,13 +997,23 @@ void setup()
         state_totals[game.state - 1]++;
         char str[16] = "";
 
-        printf(Debug1, "         Stalemate   White Checkmate   Black Checkmate  White 3-Move Rep  Black 3-Move Rep        Move Limit\n");
-        printf(Debug1, "%18s", ftostr(state_totals[       STALEMATE - 1], 0, str));
-        printf(Debug1, "%18s", ftostr(state_totals[ WHITE_CHECKMATE - 1], 0, str));
-        printf(Debug1, "%18s", ftostr(state_totals[ BLACK_CHECKMATE - 1], 0, str));
-        printf(Debug1, "%18s", ftostr(state_totals[WHITE_3_MOVE_REP - 1], 0, str));
-        printf(Debug1, "%18s", ftostr(state_totals[BLACK_3_MOVE_REP - 1], 0, str));
-        printf(Debug1, "%18s", ftostr(state_totals[     FIFTY_MOVES - 1], 0, str));
+        printf(Debug1, "         Stalemate   White Checkmate   Black Checkmate  White %d-Move Rep  Black %d-Move Rep        Move Limit\n", 
+            MAX_REPS, MAX_REPS);
+        
+        ftostr(state_totals[       STALEMATE - 1], 0, str);
+        printf(Debug1, "%18s", str);
+        ftostr(state_totals[ WHITE_CHECKMATE - 1], 0, str);
+        printf(Debug1, "%18s", str);
+        ftostr(state_totals[ BLACK_CHECKMATE - 1], 0, str);
+        printf(Debug1, "%18s", str);
+        ftostr(state_totals[WHITE_3_MOVE_REP - 1], 0, str);
+        printf(Debug1, "%18s", str);
+        ftostr(state_totals[BLACK_3_MOVE_REP - 1], 0, str);
+        printf(Debug1, "%18s", str);
+        ftostr(state_totals[     FIFTY_MOVES - 1], 0, str);
+        printf(Debug1, "%18s", str);
+
+        printf(Debug1, "\n");
 
         switch (game.state) {
             default:
@@ -1031,23 +1080,21 @@ void show()
             case offset + 1:
                 if (0 == game.last_move_time) break;
                 if (0 != game.last_moves_evaluated) {
-                    // subtract 1 from the number of moves to not include the actual
-                    // final move chosen in the count (it was already counted during consideration)
-                    uint32_t num_moves = game.last_moves_evaluated;
-                    double const moves_per_sec = num_moves / (game.last_move_time / 1000.0);
-
                     char str_moves[16] = "";
-                    ftostr(num_moves, 0, str_moves);
-
+                    ftostr(game.stats.move_stats.counter(), 0, str_moves);
                     char str_moves_per_sec[16] = "";
-                    ftostr(moves_per_sec, 2, str_moves_per_sec);
-
+                    ftostr(game.stats.move_stats.moveps(), 2, str_moves_per_sec);
                     char str_time[16] = "";
                     ftostr(game.last_move_time, 0, str_time);
-
                     printf(Debug1, "    %s moves in %s ms (%s moves/sec)", 
                         str_moves, str_time, str_moves_per_sec);
                 }
+                break;
+
+            // display the max ply depth we were able to reach
+            case offset + 2:
+                printf(Debug1, "    Max ply depth reached: %d", 
+                    game.stats.move_stats.maxply);
                 break;
 
             // display the pieces taken by White

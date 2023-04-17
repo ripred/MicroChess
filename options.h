@@ -22,11 +22,12 @@ public:
     uint32_t    seed;           // the starting seed hash for prn's
     print_t     print_level;    // the verbosity setting for the level of output
     Bool        continuous;     // True if we play games continuously one after another
+    int         low_mem_limit;  // amount of memory we need to exchang sides
 
     // adjustable multipiers to alter importance of mobility or center proximity
     // during board evaluation. season to taste
     static long constexpr mobilityBonus = 3L;
-    static long constexpr   centerBonus = 1L;
+    static long constexpr   centerBonus = 2L;
 public:
 
     options_t() : 
@@ -37,7 +38,8 @@ public:
         move_limit(MOVE_LIMIT),
         seed(PRN_SEED),
         print_level(Debug1),
-        continuous(False)
+        continuous(False),
+        low_mem_limit(100)
     {}
 
 };  // options_t

@@ -30,6 +30,8 @@ private:
 
 public:
 
+    index_t     maxply;
+
     // Constructor
     movetime_t();
 

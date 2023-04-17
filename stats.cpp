@@ -3,10 +3,9 @@
  * 
  * the MicroChess project: https://github.com/ripred/MicroChess
  * 
- * MicroChess statistics functions
+ * MicroChess statistics and timing functions
  * 
  */
-
 #include <Arduino.h>
 #include "MicroChess.h"
 #include "stats.h"
@@ -33,38 +32,41 @@ void movetime_t::init()
     count = 0;
     running = False;
     moves_per_sec = 0.0;
+    maxply = 0;
 }
-
 
 
 // Begin the timer
 void movetime_t::begin() 
 {
-    start = millis();
-    running = True;
-    stop = start;
-    dur = 0;
-    count = 0;
-    moves_per_sec = 0.0;
+    if (!running) {
+        start = millis();
+        stop = start;
+        dur = 0;
+        count = 0;
+        moves_per_sec = 0.0;
+        running = True;
+    }
 }
 
 
 // End the timer
 void movetime_t::end() 
 {
-    if (!running) {
+    if (running) {
         stop = millis();
         dur = stop - start;
-        if (dur != 0 && count != 0) {
+        running = False;
+
+        if (0 != dur && 0 != count) {
             moves_per_sec = double(count) / (double(dur) / 1000.0);
         }
-        running = False;
     }
 }
 
 
-// Get the time so far, or the total time, depending on
-// whether the timer is running or not.
+// Get the time so far in milliseconds, or the total time,
+// depending on whether the timer is running or not.
 uint32_t movetime_t::duration() const 
 {
     if (running) {
@@ -92,7 +94,8 @@ uint32_t movetime_t::counter() const
 // Get the moves per second
 double movetime_t::moveps() const 
 {
-    return moves_per_sec;
+    // return moves_per_sec;
+    return double(count) / (duration() / 1000.0);
 }
 
 

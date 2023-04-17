@@ -186,7 +186,7 @@ void show_stats() {
 
 
 ////////////////////////////////////////////////////////////////////////////////////////
-// see if a move would violate the 3-move repetition rule
+// see if a move would violate the move repetition rule
 // 
 // returns True if the move would violate the rule and end the game, otherwise False
 Bool would_repeat(move_t move) 
@@ -315,45 +315,45 @@ void show_move(move_t const &move)
 
 
 // functions to convert the board contents to and from a 64-byte ascii string
-void to_string(char * const out)
-{
-    char const icons[] = "pnbrqkPNBRQK";
+// void to_string(char * const out)
+// {
+//     char const icons[] = "pnbrqkPNBRQK";
 
-    for (index_t i = 0; i < index_t(BOARD_SIZE); i++) {
-        Piece const piece = board.get(i);
-        index_t const x = i % 8;
-        index_t const y = i / 8;
-        char const c = isEmpty(piece) ? 
-            ((y ^ x) & 1 ? '.' : '*') :
-            icons[((getSide(piece) * 6) + getType(piece) - 1)];
-        out[i] = c;
-    }
+//     for (index_t i = 0; i < index_t(BOARD_SIZE); i++) {
+//         Piece const piece = board.get(i);
+//         index_t const x = i % 8;
+//         index_t const y = i / 8;
+//         char const c = isEmpty(piece) ? 
+//             ((y ^ x) & 1 ? '.' : '*') :
+//             icons[((getSide(piece) * 6) + getType(piece) - 1)];
+//         out[i] = c;
+//     }
 
-} // to_string(char * const out)
+// } // to_string(char * const out)
 
 
-void from_string(char const * const in)
-{
-    char const icons[] = "pnbrqkPNBRQK";
-    game.piece_count = 0;
+// void from_string(char const * const in)
+// {
+//     char const icons[] = "pnbrqkPNBRQK";
+//     game.piece_count = 0;
 
-    for (index_t i = 0; i < index_t(BOARD_SIZE); i++) {
-        char const c = in[i];
-        char const * const ptr = strchr(icons, c);
-        if (nullptr != ptr) {
-            index_t const row = i / 8;
-            index_t const ndx = ptr - icons;
-            Color const side = ndx < 6 ? Black : White;
-            Piece const type = ndx % 6;
-            Bool const moved = (Pawn == type && 
-                ((White == side && 1 == row) || 
-                 (Black == side && 6 == row))) ? True : False;
-            board.set(i, makeSpot(type, side, moved, False));
-            game.pieces[game.piece_count++] = { index_t(i % 8), index_t(i / 8) };
-        }
-    }
+//     for (index_t i = 0; i < index_t(BOARD_SIZE); i++) {
+//         char const c = in[i];
+//         char const * const ptr = strchr(icons, c);
+//         if (nullptr != ptr) {
+//             index_t const row = i / 8;
+//             index_t const ndx = ptr - icons;
+//             Color const side = ndx < 6 ? Black : White;
+//             Piece const type = ndx % 6;
+//             Bool const moved = (Pawn == type && 
+//                 ((White == side && 1 == row) || 
+//                  (Black == side && 6 == row))) ? True : False;
+//             board.set(i, makeSpot(type, side, moved, False));
+//             game.pieces[game.piece_count++] = { index_t(i % 8), index_t(i / 8) };
+//         }
+//     }
 
-} // from_string(char const * const in)
+// } // from_string(char const * const in)
 
 
 ////////////////////////////////////////////////////////////////////////////////////////

@@ -43,11 +43,7 @@ enum
     NUM_BITS_PT        =  4,    // bits per field in point_t struct
     NUM_BITS_SPOT      =  7,    // bits per field in move_t struct
 
-    NUM_KNIGHT_OFFSETS =  8,    // number of entries in the transposition table for the knight
-    // NUM_BISHOP_OFFSETS = 28,    // number of entries in the transposition table for the bishop
-    // NUM_ROOK_OFFSETS   = 28,    // number of entries in the transposition table for the rook
-    // NUM_QUEEN_OFFSETS  = 56,    // number of entries in the transposition table for the queen
-    NUM_KING_OFFSETS   =  8,    // number of entries in the transposition table for the king
+    DEBUG1_PIN         =  5,    // output debug LED pin
 };
 
 typedef   int8_t   index_t;
@@ -221,6 +217,7 @@ extern void show_pieces();
 extern void show_stats();
 
 // show the current memory statistics
+int freeMemory();
 extern void printMemoryStats();
 
 // control an external LED strip to display the board state

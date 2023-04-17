@@ -24,8 +24,9 @@ void init_led_strip() {
 
 
 static uint8_t const blackColors[12*3] PROGMEM = {
-     0,  4,  0,  4,  0,  0,  4,  4,  0,  0,  0,  4,  0,  4,  4,  4,  0,  4,
-     0, 16,  0, 16,  0,  0, 16, 16,  0,  0,  0, 16,  0, 16, 16, 16,  0, 16
+    //  Pawn         Knight         Rook         Bishop        Queen          King
+     0,  4,  0,    4,  0,  0,    4,  4,  0,    0,  0,  4,    0,  4,  4,    4,  0,  4,     // Black
+     0, 16,  0,   16,  0,  0,   16, 16,  0,    0,  0, 16,    0, 16, 16,   16,  0, 16      // White
 };
 
 void set_led_strip() 
