@@ -438,7 +438,8 @@ long make_move(move_t const &move, Bool const restore)
         delayMicroseconds(200);
         digitalWrite(DEBUG1_PIN, LOW);
     }
-    else {
+    // no need to explore future plies if we've already made our mind up
+    else if (restore) {
         // flag indicating whether we are traversing into quiescent moves
         Bool quiescent = ((-1 != captured) && (game.ply  < MAXMAX_PLY));
 
