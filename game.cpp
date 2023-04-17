@@ -40,7 +40,7 @@ void game_t::init()
     last_value = 0;
     last_move = { -1, -1, 0 };
     last_was_en_passant = False;
-    last_was_en_castle = False;
+    last_was_castle = False;
     last_was_timeout = False;
     last_move_time = 0;
     last_moves_evaluated = 0;
@@ -55,6 +55,9 @@ void game_t::init()
     move_num = 0;
 
     ply = 0;
+
+    wking = 60;
+    bking =  4;
 
 } // init()
 

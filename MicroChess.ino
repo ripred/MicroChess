@@ -203,6 +203,11 @@ inline index_t find_piece(index_t const index)
 // returns the value of the board after the move was made
 long make_move(move_t const &move, Bool const restore) 
 {
+    // the value of the board.
+    // default to the worst value for our side.
+    // i.e. Don't make the move, whatever it is
+    long value = (White == game.turn) ? MIN_VALUE : MAX_VALUE;
+
     // Step 1: Identify the piece being moved
 
     // Get the attributes for the piece being moved
@@ -211,7 +216,7 @@ long make_move(move_t const &move, Bool const restore)
 
     // Check for a deleted piece and skip it if so
     if (-1 == col || -1 == row) {
-        if (White == game.turn) { return MIN_VALUE; } else { return MAX_VALUE; }
+        return value;
     }
 
     struct {
@@ -259,6 +264,10 @@ long make_move(move_t const &move, Bool const restore)
     move_t history[MAX_REPS * 2 - 1];
     index_t hist_count = game.hist_count;    
 
+    // save the current king locations
+    index_t const wking = game.wking;
+    index_t const bking = game.bking;
+
     if (restore) {
         memmove(history, game.history, sizeof(history));
 
@@ -275,15 +284,17 @@ long make_move(move_t const &move, Bool const restore)
         }
     }
 
-    // Don't allow the kings to be taken, but give the move the best score
+    // See if this places the opponent King in check
     if (King == vars.otype) {
         if (vars.whites_turn && Black == vars.oside) {
             game.black_king_in_check = True;
-            return best_value;
+            value = best_value;
+            // return best_value;
         }
         else if (!vars.whites_turn && White == vars.oside) {
             game.white_king_in_check = True;
-            return best_value;
+            value = best_value;
+            // return best_value;
         }
     }
 
@@ -407,11 +418,50 @@ long make_move(move_t const &move, Bool const restore)
     // move the piece in the piece list
     game.pieces[piece_index] = { index_t(vars.to_col), index_t(vars.to_row) };
 
+    // Castling and keeping track of the king's locations
+    bool const last_move_was_castle = game.last_was_castle;
+    index_t castly_rook = -1;
+    if (King == vars.type) {
+        if (White == vars.side) {
+            game.wking = vars.to;
+        }
+        else {
+            game.bking = vars.to;
+        }
+
+        // get the horizontal distance the king is moving
+        index_t dist = abs(vars.to_col - (vars.from % 8));
+
+        // see if it is a castling move
+        if (dist >= 2) {
+            // see which side we're castling on
+            if (2 == dist) {
+                // castle on the King's side
+                index_t board_rook = 7 + (vars.from / 8) * 8;
+                castly_rook = find_piece(board_rook);
+                game.pieces[castly_rook].x = 5;
+                game.last_was_castle = True;
+            }
+            else if (3 == dist) {
+                // castle on the Queen's side
+                index_t board_rook = 0 + (vars.from / 8) * 8;
+                castly_rook = find_piece(board_rook);
+                game.pieces[castly_rook].x = 3;
+                game.last_was_castle = True;
+            }
+            else {
+                // error
+                printf(Debug1, "Error: Invalid King move at line %d\n", __LINE__);
+                while ((true)) {}
+            }
+        }
+    }
+
 
     // Step 4: Evaluate the board score after making the move
 
 
-    long value = evaluate();
+    value = evaluate();
 
     if (!restore && value != MIN_VALUE && value != MAX_VALUE) {
         game.last_value = value;
@@ -423,11 +473,11 @@ long make_move(move_t const &move, Bool const restore)
     ////////////////////////////////////////////////////////////////////////////////////////
     // The move has been made and we have the value for the updated board.
     // Recursively look-ahead and accumulatively update the value here.
+    // 
     // TODO: Once this is working in brute-force mode,
     //       Implement minimax and alpha-beta pruning!
     ////////////////////////////////////////////////////////////////////////////////////////
 
-    // #define   MAXMAX_PLY   (game.options.maxply + 1)
     #define   MAXMAX_PLY   4
 
     Bool const low_mem = freeMemory() < game.options.low_mem_limit;
@@ -437,67 +487,75 @@ long make_move(move_t const &move, Bool const restore)
         digitalWrite(DEBUG1_PIN, LOW);
     }
     // no need to explore future plies if we've already made our mind up
-    else if (restore && !timeout()) {
+    else if (restore) {
         // flag indicating whether we are traversing into quiescent moves
-        Bool quiescent = ((-1 != captured) && (game.ply  < MAXMAX_PLY));
+        Bool quiescent = ((-1 != captured) && (game.ply < (game.options.maxply + 1)) && (game.ply < MAXMAX_PLY));
 
         if (game.ply < game.options.maxply || quiescent) {
-            // optionally flash a 'quiescent' indicator
-            if (game.options.live_update) {
-                // static Bool last_quiescent = False;
-                // if (quiescent != last_quiescent) {
-                //     last_quiescent = quiescent;
-                //     digitalWrite(DEBUG1_PIN, quiescent);
-                // }
+            // Check for timeouts here.
+            // Note that we also require letting the ply level go to AT LEAST LEVEL 1 so
+            // that we always set the 'kig-in-check' flags for any moves based on whether
+            // any of the opponent's 1-level responses place the king in check.
 
-                // digitalWrite(DEBUG1_PIN, HIGH);
-                // delayMicroseconds(10);
-                // digitalWrite(DEBUG1_PIN, LOW);
-            }
+            if (!timeout() || (game.ply < 1)) {
+                // optionally flash a 'quiescent' indicator
+                if (game.options.live_update) {
+                    // static Bool last_quiescent = False;
+                    // if (quiescent != last_quiescent) {
+                    //     last_quiescent = quiescent;
+                    //     digitalWrite(DEBUG1_PIN, quiescent);
+                    // }
 
-            // explore the future! (plies)
-            game.ply++;
-            ++game.turn %= 2;
-
-            if (game.ply > game.stats.move_stats.maxply) {
-                game.stats.move_stats.maxply = game.ply;
-            }
-
-            Bool const white_king_in_check = game.white_king_in_check;
-            Bool const black_king_in_check = game.black_king_in_check;
-
-            index_t const white_taken_count2 = game.white_taken_count;
-            index_t const black_taken_count2 = game.black_taken_count;
-
-            reset_move_flags();
-
-            if (vars.whites_turn) {
-                move_t best_black = { -1, -1, MAX_VALUE };
-                choose_best_move(Black, best_black, consider_move);
-                value += best_black.value;
-            }
-            else {
-                move_t best_white = { -1, -1, MIN_VALUE };
-                choose_best_move(White, best_white, consider_move);
-                value = best_white.value;
-            }
-
-            if (game.ply >= 1) {
-                if ((vars.whites_turn && game.white_king_in_check) || 
-                (!vars.whites_turn && game.black_king_in_check)) {
-                    value += worst_value;
+                    // digitalWrite(DEBUG1_PIN, HIGH);
+                    // delayMicroseconds(10);
+                    // digitalWrite(DEBUG1_PIN, LOW);
                 }
+
+                // explore the future! (plies)
+                game.ply++;
+                ++game.turn %= 2;
+
+                if (game.ply > game.stats.move_stats.maxply) {
+                    game.stats.move_stats.maxply = game.ply;
+                }
+
+                Bool const white_king_in_check = game.white_king_in_check;
+                Bool const black_king_in_check = game.black_king_in_check;
+
+                index_t const white_taken_count2 = game.white_taken_count;
+                index_t const black_taken_count2 = game.black_taken_count;
+
+                reset_move_flags();
+
+                if (vars.whites_turn) {
+                    move_t best_black = { -1, -1, MAX_VALUE };
+                    choose_best_move(Black, best_black, consider_move);
+                    value += best_black.value;
+                }
+                else {
+                    move_t best_white = { -1, -1, MIN_VALUE };
+                    choose_best_move(White, best_white, consider_move);
+                    value = best_white.value;
+                }
+
+                if (game.ply >= 1) {
+                    if ((vars.whites_turn && game.white_king_in_check) || 
+                    (!vars.whites_turn && game.black_king_in_check)) {
+                        value += worst_value;
+                    }
+                }
+
+                game.white_taken_count = white_taken_count2;
+                game.black_taken_count = black_taken_count2;
+
+                game.white_king_in_check = white_king_in_check;
+                game.black_king_in_check = black_king_in_check;
+
+                ++game.turn %= 2;
+                game.ply--;
             }
-
-            game.white_taken_count = white_taken_count2;
-            game.black_taken_count = black_taken_count2;
-
-            game.white_king_in_check = white_king_in_check;
-            game.black_king_in_check = black_king_in_check;
-
-            ++game.turn %= 2;
-            game.ply--;
         }
+
     }
 
 
@@ -548,6 +606,21 @@ long make_move(move_t const &move, Bool const restore)
 
         // restore the en passant 
         game.last_was_en_passant = last_was_en_passant;
+
+        // restore the king's locations
+        game.wking = wking;
+        game.bking = bking;
+
+        // restore any rook moved during a castle move
+        game.last_was_castle = last_move_was_castle;
+        if (-1 != castly_rook) {
+            if (game.pieces[castly_rook].x == 3) {
+                game.pieces[castly_rook].x = 0;
+            }
+            else {
+                game.pieces[castly_rook].x = 7;
+            }
+        }
     }
 
     return value;
@@ -571,36 +644,6 @@ long evaluate()
     long kingTotal = 0L;
     long score = 0L;
 
-    // find the opponent's king
-    point_t wking = { -1, -1 };
-    point_t bking = { -1, -1 };
-    for (index_t king_index = 0; king_index < game.piece_count; king_index++) {
-        index_t const col = game.pieces[king_index].x;
-        index_t const row = game.pieces[king_index].y;
-
-        if (-1 == col || -1 == row) continue;
-
-        Piece   const p = board.get(col + row * 8);
-        Piece   const ptype = getType(p);
-        Color   const pside = getSide(p);
-
-        if (King == ptype) {
-            if (White == pside) {
-                wking.x = col;
-                wking.y = row;
-            }
-            else {
-                bking.x = col;
-                bking.y = row;
-            }
-        }
-    }
-
-    if (-1 == wking.x || -1 == bking.x) {
-        printf(Debug1, "Error: could not find opponent Kings at line %d\n", __LINE__);
-        while ((true)) {}
-    }
-
     for (index_t piece_index = 0; piece_index < game.piece_count; piece_index++) {
         index_t const col = game.pieces[piece_index].x;
         index_t const row = game.pieces[piece_index].y;
@@ -623,15 +666,17 @@ long evaluate()
             continue;
         }
 
+        // center bonus
         centerTotal +=
             pgm_read_dword(&game.center_bonus[col][ptype][pside]) +
             pgm_read_dword(&game.center_bonus[row][ptype][pside]);
 
+        // proximity to opponent's King
         if (White == pside) {
-            kingTotal += abs(bking.x - (7 - col)) + abs(bking.y - (7 - row));
+            kingTotal += abs((game.bking % 8) - (7 - col)) + abs((game.bking / 8) - (7 - row));
         }
         else {
-            kingTotal -= abs(wking.x - (7 - col)) + abs(wking.y - (7 - row));
+            kingTotal += abs((game.wking % 8) - (7 - col)) + abs((game.wking / 8) - (7 - row));
         }
     }
 
@@ -678,7 +723,7 @@ void reset_move_flags()
     game.black_king_in_check = False;
 
     game.last_was_en_passant = False;
-    game.last_was_en_castle = False;
+    game.last_was_castle = False;
     game.last_was_timeout = False;
 
 }   // reset_move_flags()
@@ -714,12 +759,6 @@ void choose_best_move(Color const who, move_t &best, generator_t callback)
 
     // walk through the pieces list and generate all moves for each piece
     for (index_t ndx = 0; ndx < game.piece_count; ndx++) {
-        // check for move timeout
-        if (timeout()) {
-            game.last_was_timeout = True;
-            return;
-        }
-
         index_t const col = game.pieces[ndx].x;
         index_t const row = game.pieces[ndx].y;
         if (-1 == col || -1 == row) continue;
@@ -728,6 +767,22 @@ void choose_best_move(Color const who, move_t &best, generator_t callback)
         Piece   const piece = board.get(from);
         Piece   const type = getType(piece);
         Color   const side = getSide(piece);
+
+        // track the location of both kings
+        if (King == type) {
+            if (White == side) {
+                game.wking = from;
+            }
+            else {
+                game.bking = from;
+            }
+        }
+
+        // check for move timeout
+        if (timeout() && game.ply >= 2) {
+            game.last_was_timeout = True;
+            return;
+        }
 
         if (Empty == type || side != who) { continue; }
 
@@ -838,7 +893,7 @@ void play_game()
         printf(Debug1, " - timeout")
     }
 
-    if (game.last_was_en_castle) {
+    if (game.last_was_castle) {
         printf(Debug1, " castling")
     }
 
@@ -917,7 +972,7 @@ void set_game_options()
     game.options.move_limit = 200;
 
     // set the optional time limit on each move in milliseconds
-    game.options.time_limit = 10000;
+    game.options.time_limit = 30000;
 
     // set game.options.random to True (1) to use randomness in the game decisions
     // game.options.random = False;
