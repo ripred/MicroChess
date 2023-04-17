@@ -205,7 +205,6 @@ long make_move(move_t const &move, Bool const restore)
 {
     // Step 1: Identify the piece being moved
 
-
     // Get the attributes for the piece being moved
     index_t const col = move.from % 8;
     index_t const row = move.from / 8;
@@ -438,7 +437,7 @@ long make_move(move_t const &move, Bool const restore)
         digitalWrite(DEBUG1_PIN, LOW);
     }
     // no need to explore future plies if we've already made our mind up
-    else if (restore) {
+    else if (restore && !timeout()) {
         // flag indicating whether we are traversing into quiescent moves
         Bool quiescent = ((-1 != captured) && (game.ply  < MAXMAX_PLY));
 
@@ -644,6 +643,8 @@ long evaluate()
     //     mobilityTotal -= static_cast<long>(game.move_count2 * mobilityBonus * sideFactor);
     // }
 
+    kingTotal *= game.options.kingBonus;
+
     score = kingTotal + materialTotal + centerTotal + mobilityTotal;
 
     // printf(Debug4, 
@@ -677,6 +678,8 @@ void reset_move_flags()
     game.black_king_in_check = False;
 
     game.last_was_en_passant = False;
+    game.last_was_en_castle = False;
+    game.last_was_timeout = False;
 
 }   // reset_move_flags()
 
@@ -711,6 +714,12 @@ void choose_best_move(Color const who, move_t &best, generator_t callback)
 
     // walk through the pieces list and generate all moves for each piece
     for (index_t ndx = 0; ndx < game.piece_count; ndx++) {
+        // check for move timeout
+        if (timeout()) {
+            game.last_was_timeout = True;
+            return;
+        }
+
         index_t const col = game.pieces[ndx].x;
         index_t const row = game.pieces[ndx].y;
         if (-1 == col || -1 == row) continue;
@@ -825,6 +834,14 @@ void play_game()
         printf(Debug1, " en passant capture")
     }
 
+    if (game.last_was_timeout) {
+        printf(Debug1, " - timeout")
+    }
+
+    if (game.last_was_en_castle) {
+        printf(Debug1, " castling")
+    }
+
     printf(Debug1, "\n");
 
     // Announce if either king is in check
@@ -893,11 +910,14 @@ void set_game_options()
     // game.options.profiling = True;
 
     // set the maximum ply level (the number of turns we look ahead) for the game
-    game.options.maxply = 2;
+    game.options.maxply = 1;
 
     // set the limit on the total number of moves allowed in the game
     // Officially the limit is 50 moves
-    game.options.move_limit = 100;
+    game.options.move_limit = 200;
+
+    // set the optional time limit on each move in milliseconds
+    game.options.time_limit = 10000;
 
     // set game.options.random to True (1) to use randomness in the game decisions
     // game.options.random = False;

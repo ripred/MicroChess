@@ -224,6 +224,8 @@ extern void printMemoryStats();
 extern void init_led_strip();
 extern void set_led_strip();
 
+extern Bool timeout();
+
 extern long make_move(move_t const &move, Bool const restore);
 
 extern Bool would_repeat(move_t const move);

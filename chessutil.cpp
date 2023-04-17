@@ -155,6 +155,17 @@ const char* ftostr(double value, int dec /* = 2 */, char * const buff /* = nullp
 } // ftostr(double value, int dec = 2)
 
 
+// check for a move timeout
+Bool timeout() {
+    if (0 != game.options.time_limit) {
+        return game.stats.move_stats.duration() >= game.options.time_limit;
+    }
+
+    return False;
+
+} // timeout()
+
+
 void show_stats() {
     char str[16]= "";
 

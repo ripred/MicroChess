@@ -68,6 +68,8 @@ public:
     long        last_value;
     move_t      last_move;
     uint8_t     last_was_en_passant : 1;    // true when last move was an en-passaant capture
+    uint8_t     last_was_en_castle  : 1;    // true when last move was a castling of a king and a rook
+    uint8_t     last_was_timeout    : 1;    // true when last move timed out
     uint32_t    last_move_time;
     uint32_t    last_moves_evaluated;
 
