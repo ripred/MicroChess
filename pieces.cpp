@@ -88,7 +88,7 @@ void add_pawn_moves(piece_gen_t &gen) {
  *
  */
 void add_knight_moves(piece_gen_t &gen) {
-    static offset_t constexpr knight_offsets[] PROGMEM = {
+    static offset_t constexpr offsets[] PROGMEM = {
         { -2, +1 }, { -2, -1 }, { +2, +1 }, { +2, -1 }, 
         { +1, +2 }, { -1, +2 }, { +1, -2 }, { -1, -2 }  
     };
@@ -100,8 +100,8 @@ void add_knight_moves(piece_gen_t &gen) {
         return;
     }
 
-    for (index_t i = 0; i < index_t(ARRAYSZ(knight_offsets)); i++) {
-        offset_t const * const ptr = (offset_t *)pgm_get_far_address(knight_offsets);
+    offset_t const * const ptr = (offset_t const *) pgm_get_far_address(offsets);
+    for (index_t i = 0; i < index_t(ARRAYSZ(offsets)); i++) {
         index_t  const to_col = (gen.move.from % 8) + pgm_read_byte(&ptr[i].x);
         index_t  const to_row = (gen.move.from / 8) + pgm_read_byte(&ptr[i].y);
         if (isValidPos(to_col, to_row)) {
@@ -121,7 +121,7 @@ void add_knight_moves(piece_gen_t &gen) {
  */
 void add_rook_moves(piece_gen_t &gen) {
     static offset_t constexpr dirs[] PROGMEM = {
-        {0,1}, {0,-1}, {-1,0}, {1,0}
+        {  0,  1 }, {  0, -1 }, { -1,  0 }, {  1,  0 }
     };
 
     if (freeMemory() < game.options.low_mem_limit) {
@@ -131,10 +131,10 @@ void add_rook_moves(piece_gen_t &gen) {
         return;
     }
 
+    offset_t const * ptr = (offset_t const *) pgm_get_far_address(dirs);
     for (index_t i = 0; i < index_t(ARRAYSZ(dirs)); i++) {
-        offset_t const * ptr = (offset_t *)pgm_get_far_address(dirs);
-        index_t x = (gen.move.from % 8) + pgm_read_byte(&ptr[0].x);
-        index_t y = (gen.move.from / 8) + pgm_read_byte(&ptr[1].y);
+        index_t x = (gen.move.from % 8) + pgm_read_byte(&ptr[i].x);
+        index_t y = (gen.move.from / 8) + pgm_read_byte(&ptr[i].y);
 
         while (isValidPos(x, y)) {
             gen.move.to = x + y * 8;
@@ -151,9 +151,8 @@ void add_rook_moves(piece_gen_t &gen) {
                 break;
             }
 
-            ptr++;
-            x += pgm_read_byte(&ptr[0].x);
-            y += pgm_read_byte(&ptr[0].y);
+            x += pgm_read_byte(&ptr[i].x);
+            y += pgm_read_byte(&ptr[i].y);
         }
     }
 }
@@ -165,7 +164,9 @@ void add_rook_moves(piece_gen_t &gen) {
  */
 void add_bishop_moves(piece_gen_t &gen) {
     //                                     NW      SW      NE      SE
-    static index_t const dirs[4][2] PROGMEM = { {-1,-1}, {-1,1}, {1,-1}, {1,1} };
+    static index_t const dirs[4][2] PROGMEM = {
+        { -1, -1 }, { -1,  1 }, {  1, -1 }, {  1,  1 }
+    };
 
     if (freeMemory() < game.options.low_mem_limit) {
         digitalWrite(DEBUG1_PIN, HIGH);
@@ -174,10 +175,10 @@ void add_bishop_moves(piece_gen_t &gen) {
         return;
     }
 
+    offset_t const * ptr = (offset_t const *) pgm_get_far_address(dirs);
     for (index_t i = 0; i < index_t(ARRAYSZ(dirs)); i++) {
-        offset_t const * ptr = (offset_t *)pgm_get_far_address(dirs);
-        index_t x = (gen.move.from % 8) + pgm_read_byte(&ptr[0].x);
-        index_t y = (gen.move.from / 8) + pgm_read_byte(&ptr[1].y);
+        index_t x = (gen.move.from % 8) + pgm_read_byte(&ptr[i].x);
+        index_t y = (gen.move.from / 8) + pgm_read_byte(&ptr[i].y);
 
         while (isValidPos(x, y)) {
             gen.move.to = x + y * 8;
@@ -194,9 +195,8 @@ void add_bishop_moves(piece_gen_t &gen) {
                 break;
             }
 
-            ptr++;
-            x += pgm_read_byte(&ptr[0].x);
-            y += pgm_read_byte(&ptr[0].y);
+            x += pgm_read_byte(&ptr[i].x);
+            y += pgm_read_byte(&ptr[i].y);
         }
     }
 }
@@ -229,8 +229,8 @@ void add_king_moves(piece_gen_t &gen) {
         return;
     }
 
+    offset_t const * const ptr = (offset_t *)pgm_get_far_address(king_offsets);
     for (index_t i = 0; i < index_t(ARRAYSZ(king_offsets)); i++) {
-        offset_t const * const ptr = (offset_t *)pgm_get_far_address(king_offsets);
         index_t  const to_col = (gen.move.from % 8) + pgm_read_byte(&ptr[i].x);
         index_t  const to_row = (gen.move.from / 8) + pgm_read_byte(&ptr[i].y);
         if (isValidPos(to_col, to_row)) {

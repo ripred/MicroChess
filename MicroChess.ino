@@ -429,7 +429,7 @@ long make_move(move_t const &move, Bool const restore)
     ////////////////////////////////////////////////////////////////////////////////////////
 
     // #define   MAXMAX_PLY   (game.options.maxply + 1)
-    #define   MAXMAX_PLY   5
+    #define   MAXMAX_PLY   4
 
     Bool const low_mem = freeMemory() < game.options.low_mem_limit;
     if (low_mem) {
@@ -444,13 +444,17 @@ long make_move(move_t const &move, Bool const restore)
 
         if (game.ply < game.options.maxply || quiescent) {
             // optionally flash a 'quiescent' indicator
-            // if (game.options.live_update) {
-            //     static Bool last_quiescent = False;
-            //     if (quiescent != last_quiescent) {
-            //         last_quiescent = quiescent;
-            //         digitalWrite(DEBUG1_PIN, quiescent);
-            //     }
-            // }
+            if (game.options.live_update) {
+                // static Bool last_quiescent = False;
+                // if (quiescent != last_quiescent) {
+                //     last_quiescent = quiescent;
+                //     digitalWrite(DEBUG1_PIN, quiescent);
+                // }
+
+                // digitalWrite(DEBUG1_PIN, HIGH);
+                // delayMicroseconds(10);
+                // digitalWrite(DEBUG1_PIN, LOW);
+            }
 
             // explore the future! (plies)
             game.ply++;
@@ -561,51 +565,74 @@ long make_move(move_t const &move, Bool const restore)
 // returns the score/value of the current board
 long evaluate() 
 {
-    // flags choices for which attributes are included in the board score
-    uint8_t const material = 0x01u;
-    uint8_t const   center = 0x02u;
-    // static uint8_t const mobility = 0x04u;
-
-    // Adjust as desired
-    // Note: Do not include mobility unless you are prepared to evaluate all moves
-    // for both sides for future plies. On the first pass when neither side has any moves
-    // this gives favor to White when the Black response moves have not been generated yet
-    uint8_t const   filter = material | center;
-
     // calculate the value of the board
     long materialTotal = 0L;
     long mobilityTotal = 0L;
     long centerTotal = 0L;
+    long kingTotal = 0L;
     long score = 0L;
 
-    // iterate over the pieces on the board if necessary
-    if (filter & (material | center)) {
-        for (index_t piece_index = 0; piece_index < game.piece_count; piece_index++) {
-            index_t const col = game.pieces[piece_index].x;
-            index_t const row = game.pieces[piece_index].y;
-            if (-1 == col || -1 == row) continue;
+    // find the opponent's king
+    point_t wking = { -1, -1 };
+    point_t bking = { -1, -1 };
+    for (index_t king_index = 0; king_index < game.piece_count; king_index++) {
+        index_t const col = game.pieces[king_index].x;
+        index_t const row = game.pieces[king_index].y;
 
-            Piece   const p = board.get(col + row * 8);
-            Piece   const ptype = getType(p);
-            Color   const pside = getSide(p);
+        if (-1 == col || -1 == row) continue;
 
-            if (Empty == ptype) continue;
+        Piece   const p = board.get(col + row * 8);
+        Piece   const ptype = getType(p);
+        Color   const pside = getSide(p);
 
-            if (filter & material) {
-                materialTotal += pgm_read_dword(&game.material_bonus[ptype][pside]);
+        if (King == ptype) {
+            if (White == pside) {
+                wking.x = col;
+                wking.y = row;
             }
-
-            // Let's not encourage the King to wander to
-            // the center of the board mmkay?
-            if (King == ptype) {
-                continue;
+            else {
+                bking.x = col;
+                bking.y = row;
             }
+        }
+    }
 
-            if (filter & center) {
-                centerTotal +=
-                    pgm_read_dword(&game.center_bonus[col][ptype][pside]) +
-                    pgm_read_dword(&game.center_bonus[row][ptype][pside]);
-            }
+    if (-1 == wking.x || -1 == bking.x) {
+        printf(Debug1, "Error: could not find opponent Kings at line %d\n", __LINE__);
+        while ((true)) {}
+    }
+
+    for (index_t piece_index = 0; piece_index < game.piece_count; piece_index++) {
+        index_t const col = game.pieces[piece_index].x;
+        index_t const row = game.pieces[piece_index].y;
+        if (-1 == col || -1 == row) continue;
+
+        Piece   const p = board.get(col + row * 8);
+        Piece   const ptype = getType(p);
+        Color   const pside = getSide(p);
+
+        if (Empty == ptype) continue;
+
+        // material bonus
+        if ((true)) {
+            materialTotal += pgm_read_dword(&game.material_bonus[ptype][pside]);
+        }
+
+        // Let's not encourage the King to wander to
+        // the center of the board mmkay?
+        if (King == ptype) {
+            continue;
+        }
+
+        centerTotal +=
+            pgm_read_dword(&game.center_bonus[col][ptype][pside]) +
+            pgm_read_dword(&game.center_bonus[row][ptype][pside]);
+
+        if (White == pside) {
+            kingTotal += abs(bking.x - (7 - col)) + abs(bking.y - (7 - row));
+        }
+        else {
+            kingTotal -= abs(wking.x - (7 - col)) + abs(wking.y - (7 - row));
         }
     }
 
@@ -617,7 +644,7 @@ long evaluate()
     //     mobilityTotal -= static_cast<long>(game.move_count2 * mobilityBonus * sideFactor);
     // }
 
-    score = materialTotal + centerTotal + mobilityTotal;
+    score = kingTotal + materialTotal + centerTotal + mobilityTotal;
 
     // printf(Debug4, 
     //     "evaluation: %ld = centerTotal: %ld  materialTotal: %ld  mobilityTotal: %ld\n", 
@@ -866,20 +893,20 @@ void set_game_options()
     // game.options.profiling = True;
 
     // set the maximum ply level (the number of turns we look ahead) for the game
-    game.options.maxply = 3;
+    game.options.maxply = 2;
 
     // set the limit on the total number of moves allowed in the game
     // Officially the limit is 50 moves
     game.options.move_limit = 100;
 
     // set game.options.random to True (1) to use randomness in the game decisions
-    game.options.random = False;
-    // game.options.random = True;
+    // game.options.random = False;
+    game.options.random = True;
 
     // set whether we play continuously or not
     // game.options.continuous = game.options.random;
-    // game.options.continuous = True;
-    game.options.continuous = False;
+    game.options.continuous = True;
+    // game.options.continuous = False;
 
     // set the low-memory watermark we use to limit recursion
     game.options.low_mem_limit = 64;
