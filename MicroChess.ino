@@ -767,7 +767,7 @@ void play_game()
         white_king_in_check = game.white_king_in_check;
         no_white_moves = (-1 == best_white.from);
     }
-    // else
+    else
     {
         // get the best move and flags for black
         choose_best_move(Black, best_black, consider_move);
