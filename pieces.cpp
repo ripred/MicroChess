@@ -16,6 +16,13 @@
  *
  */
 void add_pawn_moves(piece_gen_t &gen) {
+    if (freeMemory() < game.options.low_mem_limit) {
+        digitalWrite(DEBUG1_PIN, HIGH);
+        delayMicroseconds(200);
+        digitalWrite(DEBUG1_PIN, LOW);
+        return;
+    }
+
     // see if we can move 1 spot in front of this pawn
     index_t to_col = (gen.move.from % 8);
     index_t to_row = (gen.move.from / 8) + ((White == getSide(board.get(gen.move.from))) ? -1 : 1);
@@ -86,6 +93,13 @@ void add_knight_moves(piece_gen_t &gen) {
         { +1, +2 }, { -1, +2 }, { +1, -2 }, { -1, -2 }  
     };
 
+    if (freeMemory() < game.options.low_mem_limit) {
+        digitalWrite(DEBUG1_PIN, HIGH);
+        delayMicroseconds(200);
+        digitalWrite(DEBUG1_PIN, LOW);
+        return;
+    }
+
     for (index_t i = 0; i < index_t(ARRAYSZ(knight_offsets)); i++) {
         offset_t const * const ptr = (offset_t *)pgm_get_far_address(knight_offsets);
         index_t  const to_col = (gen.move.from % 8) + pgm_read_byte(&ptr[i].x);
@@ -109,6 +123,13 @@ void add_rook_moves(piece_gen_t &gen) {
     static offset_t constexpr dirs[] PROGMEM = {
         {0,1}, {0,-1}, {-1,0}, {1,0}
     };
+
+    if (freeMemory() < game.options.low_mem_limit) {
+        digitalWrite(DEBUG1_PIN, HIGH);
+        delayMicroseconds(200);
+        digitalWrite(DEBUG1_PIN, LOW);
+        return;
+    }
 
     for (index_t i = 0; i < index_t(ARRAYSZ(dirs)); i++) {
         offset_t const * ptr = (offset_t *)pgm_get_far_address(dirs);
@@ -145,6 +166,13 @@ void add_rook_moves(piece_gen_t &gen) {
 void add_bishop_moves(piece_gen_t &gen) {
     //                                     NW      SW      NE      SE
     static index_t const dirs[4][2] PROGMEM = { {-1,-1}, {-1,1}, {1,-1}, {1,1} };
+
+    if (freeMemory() < game.options.low_mem_limit) {
+        digitalWrite(DEBUG1_PIN, HIGH);
+        delayMicroseconds(200);
+        digitalWrite(DEBUG1_PIN, LOW);
+        return;
+    }
 
     for (index_t i = 0; i < index_t(ARRAYSZ(dirs)); i++) {
         offset_t const * ptr = (offset_t *)pgm_get_far_address(dirs);
@@ -193,6 +221,13 @@ void add_king_moves(piece_gen_t &gen) {
         { -1,  0 }, {  0, -1 }, { -1, -1 }, { +1, -1 }, 
         { +1,  0 }, {  0, +1 }, { -1, +1 }, { +1, +1 }
     };
+
+    if (freeMemory() < game.options.low_mem_limit) {
+        digitalWrite(DEBUG1_PIN, HIGH);
+        delayMicroseconds(200);
+        digitalWrite(DEBUG1_PIN, LOW);
+        return;
+    }
 
     for (index_t i = 0; i < index_t(ARRAYSZ(king_offsets)); i++) {
         offset_t const * const ptr = (offset_t *)pgm_get_far_address(king_offsets);

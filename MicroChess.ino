@@ -133,8 +133,7 @@ Bool is_better_move(
 // returns True if the move is the new best move, False otherwise
 Bool consider_move(move_t &move, move_t &best) 
 {
-    Bool const low_mem = freeMemory() < game.options.low_mem_limit;
-    if (low_mem) {
+    if (freeMemory() < game.options.low_mem_limit) {
         digitalWrite(DEBUG1_PIN, HIGH);
         delayMicroseconds(200);
         digitalWrite(DEBUG1_PIN, LOW);
@@ -430,7 +429,7 @@ long make_move(move_t const &move, Bool const restore)
     ////////////////////////////////////////////////////////////////////////////////////////
 
     // #define   MAXMAX_PLY   (game.options.maxply + 1)
-    #define   MAXMAX_PLY   4
+    #define   MAXMAX_PLY   5
 
     Bool const low_mem = freeMemory() < game.options.low_mem_limit;
     if (low_mem) {
@@ -867,7 +866,7 @@ void set_game_options()
     // game.options.profiling = True;
 
     // set the maximum ply level (the number of turns we look ahead) for the game
-    game.options.maxply = 1;
+    game.options.maxply = 3;
 
     // set the limit on the total number of moves allowed in the game
     // Officially the limit is 50 moves
