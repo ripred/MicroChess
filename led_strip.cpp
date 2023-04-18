@@ -22,8 +22,7 @@ void init_led_strip() {
     FastLED.addLeds<WS2811,DATA_PIN,GRB>(leds, BOARD_SIZE).setCorrection(TypicalLEDStrip);
 }
 
-
-static uint8_t const blackColors[12*3] PROGMEM = {
+static uint8_t const piece_colors[12*3] PROGMEM = {
     //  Pawn         Knight         Rook         Bishop        Queen          King
      0,  4,  0,    4,  0,  0,    4,  4,  0,    0,  0,  4,    0,  4,  4,    4,  0,  4,     // Black
      0, 16,  0,   16,  0,  0,   16, 16,  0,    0,  0, 16,    0, 16, 16,   16,  0, 16      // White
@@ -41,14 +40,19 @@ void set_led_strip()
 
             index_t ex = (y & 1) ? 7 - x : x;
 
-            index_t foo = type * 3 + side * 18;
+            static index_t constexpr values_per_led  = index_t(3);
+            static index_t constexpr values_per_side = index_t(sizeof(piece_colors) / 2);
 
-            leds[led_index] = (Empty == type) ? (((ex^y)&1) ? 
-                CRGB(0,0,0) : 
-                CRGB(2,3,3)) : 
-                CRGB(pgm_read_byte(&blackColors[foo]), 
-                     pgm_read_byte(&blackColors[foo+1]), 
-                     pgm_read_byte(&blackColors[foo+2]));
+            index_t const clr = (type * values_per_led) + (side * values_per_side);
+
+            leds[led_index] = (Empty == type) ? 
+                // empty spots
+                (((ex ^ y) & 1) ? CRGB(0,0,0) : CRGB(2,3,3)) : 
+
+                // spot with piece
+                CRGB(pgm_read_byte(&piece_colors[clr    ]), 
+                     pgm_read_byte(&piece_colors[clr + 1]), 
+                     pgm_read_byte(&piece_colors[clr + 2]));
         }
     }
     FastLED.show();

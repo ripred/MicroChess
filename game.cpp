@@ -42,6 +42,7 @@ void game_t::init()
     last_was_en_passant = False;
     last_was_castle = False;
     last_was_timeout = False;
+    last_was_pawn_promotion = False;
     last_move_time = 0;
     last_moves_evaluated = 0;
 

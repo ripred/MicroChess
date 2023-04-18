@@ -166,7 +166,7 @@ Bool consider_move(move_t &move, move_t &best)
 // Find the piece index for a given board index.
 // 
 // returns the index into the game.pieces[] array for the specified piece
-inline index_t find_piece(index_t const index) 
+inline index_t find_piece(index_t const index)
 {
     for (index_t piece_index = 0; piece_index < game.piece_count; piece_index++) {
         point_t const &loc = game.pieces[piece_index];
@@ -203,12 +203,12 @@ inline index_t find_piece(index_t const index)
 // returns the value of the board after the move was made
 long make_move(move_t const &move, Bool const restore) 
 {
-    // the value of the board.
-    // default to the worst value for our side.
-    // i.e. Don't make the move, whatever it is
+    // The value of the board.
+    // Default to the worst value for our side.
+    // i.e: Don't make the move whatever it is
     long value = (White == game.turn) ? MIN_VALUE : MAX_VALUE;
 
-    // Step 1: Identify the piece being moved
+    /// Step 1: Identify the piece being moved
 
     // Get the attributes for the piece being moved
     index_t const col = move.from % 8;
@@ -302,11 +302,11 @@ long make_move(move_t const &move, Bool const restore)
     index_t const piece_index = find_piece(vars.from);
 
 
-    // Step 2: Identify any piece being captured and remove it if so.
+    /// Step 2: Identify any piece being captured and remove it if so.
+    // 
     // * NOTE BELOW *
     // Once any changes have been made to the board or game state we
-    // cannot return until passing through the "if (restore) { ... }" logic.
-
+    // MUST NOT return until passing through the "if (restore) { ... }" logic.
 
     // The game.pieces[] index being captured (if any, -1 if none)
     index_t taken_index = -1;
@@ -321,7 +321,6 @@ long make_move(move_t const &move, Bool const restore)
     // save the current last move and move flags
     Bool const last_was_en_passant = game.last_was_en_passant;
     Bool const last_was_castle = game.last_was_castle;
-    Bool const last_was_timeout = game.last_was_timeout;
     move_t const last_move = game.last_move;
 
     Piece captured_piece = Empty;
@@ -329,15 +328,8 @@ long make_move(move_t const &move, Bool const restore)
     if (Pawn == vars.type && isEmpty(vars.otype) && col != vars.to_col) {
         // en-passant capture
         game.last_was_en_passant = True;
-
         captured = vars.to_col + row * 8;
-
         captured_piece = board.get(captured);
-
-        // if (isEmpty(captured_piece)) {
-        //     printf(Debug1, "Error: Attempt to take empty piece at line %d\n", __LINE__);
-        //     while ((true)) {}
-        // }
     }
 
     if (-1 == captured) {
@@ -345,13 +337,7 @@ long make_move(move_t const &move, Bool const restore)
         // i.e. an opponent's piece.
         if (Empty != vars.otype && vars.side != vars.oside) {
             captured = vars.to;
-
             captured_piece = board.get(captured);
-
-            // if (isEmpty(captured_piece)) {
-            //     printf(Debug1, "Error: Attempt to take empty piece at line %d\n", __LINE__);
-            //     while ((true)) {}
-            // }
         }
     }
 
@@ -359,18 +345,6 @@ long make_move(move_t const &move, Bool const restore)
     if (-1 != captured) {
         // remember the piece index of the piece being taken
         taken_index = find_piece(captured);
-
-        // if (-1 == taken_index) {
-        //     printf(Debug1, "Error: could not find taken piece in pieces[] array at line %d\n", __LINE__);
-        //     printf(Debug1, "captured (board) index = %d\n", captured);
-        //     printf(Debug1, "restore: %d\n", restore);
-        //     show_move(move);
-        //     printf(Debug1, "\n");
-        //     show_pieces();
-        //     printf(Debug1, "\n");
-        //     show();
-        //     while ((true)) {}
-        // }
 
         // change the spot on the board for the taken piece to Empty
         board.set(captured, Empty);
@@ -380,37 +354,22 @@ long make_move(move_t const &move, Bool const restore)
 
         // add the piece to the list of taken pieces
         if (vars.whites_turn) {
-            game.taken_by_white[game.white_taken_count] = captured_piece;
-
-            game.white_taken_count++;
-
-            // BUGBUG: remove after testing
-            // if (game.white_taken_count > 16) {
-            //     printf(Debug1, "\nError: Attempt to take more than 16 pieces at line %d\n", __LINE__);
-            //     while ((true)) {}
-            // }
+            game.taken_by_white[game.white_taken_count++] = captured_piece;
         }
         else {
-            game.taken_by_black[game.black_taken_count] = captured_piece;
-
-            game.black_taken_count++;
-
-            // BUGBUG: remove after testing
-            // if (game.black_taken_count > 16) {
-            //     printf(Debug1, "\nError: Attempt to take more than 16 pieces at line %d\n", __LINE__);
-            //     while ((true)) {}
-            // }
+            game.taken_by_black[game.black_taken_count++] = captured_piece;
         }
     }
 
-    // Step 3: Place the piece being moved at the destination
 
+    /// Step 3: Place the piece being moved at the destination
 
     Piece place_piece = setMoved(vars.piece, True);
 
     // Promote a pawn to a queen if it reached the back row
     if (Pawn == vars.type && (vars.to_row == ((vars.whites_turn) ? index_t(0) : index_t(7)))) {
         place_piece = setType(place_piece, Queen);
+        game.last_was_pawn_promotion = True;
     }
 
     // Move the piece to the destination on the board
@@ -514,31 +473,28 @@ long make_move(move_t const &move, Bool const restore)
     // no need to explore future plies if we've already made our mind up
     else if (restore) {
         // flag indicating whether we are traversing into quiescent moves
-        Bool quiescent = ((-1 != captured) && (game.ply < (game.options.maxply + 1)) && (game.ply < MAXMAX_PLY));
+        Bool const quiescent = ((-1 != captured) && (game.ply < (game.options.maxply + 2)) && (game.ply < MAXMAX_PLY));
 
         if (game.ply < game.options.maxply || quiescent) {
-            // Check for timeouts here.
+            // We check for timeouts here AFTER at least evaluating the current move.
+            // That way, we don't stop without any knowledge of half of the pieces
+            // halfway accross the board IF any timeouts do occur.
+            // 
             // Note that we also require letting the ply level go to AT LEAST LEVEL 1 so
-            // that we always set the 'kig-in-check' flags for any moves based on whether
-            // any of the opponent's 1-level responses place the king in check.
+            // that we always allow the setting of the 'king-in-check' flags for any moves,
+            // based on whether any of the opponent's first-level responses place the king in check.
 
             game.last_was_timeout = timeout();
 
             if (!game.last_was_timeout || (game.ply < 1)) {
                 // optionally flash a 'quiescent' indicator
                 if (game.options.live_update) {
-                    // static Bool last_quiescent = False;
-                    // if (quiescent != last_quiescent) {
-                    //     last_quiescent = quiescent;
-                    //     digitalWrite(DEBUG1_PIN, quiescent);
-                    // }
-
-                    // digitalWrite(DEBUG1_PIN, HIGH);
+                    // digitalWrite(DEBUG2_PIN, HIGH);
                     // delayMicroseconds(10);
-                    // digitalWrite(DEBUG1_PIN, LOW);
+                    // digitalWrite(DEBUG2_PIN, LOW);
                 }
 
-                // explore the future! (plies)
+                // Explore the future! (plies)
                 game.ply++;
                 ++game.turn %= 2;
 
@@ -548,9 +504,6 @@ long make_move(move_t const &move, Bool const restore)
 
                 Bool const white_king_in_check = game.white_king_in_check;
                 Bool const black_king_in_check = game.black_king_in_check;
-
-                index_t const white_taken_count2 = game.white_taken_count;
-                index_t const black_taken_count2 = game.black_taken_count;
 
                 reset_move_flags();
 
@@ -573,9 +526,6 @@ long make_move(move_t const &move, Bool const restore)
                     }
                 }
 
-                game.white_taken_count = white_taken_count2;
-                game.black_taken_count = black_taken_count2;
-
                 game.white_king_in_check = white_king_in_check;
                 game.black_king_in_check = black_king_in_check;
 
@@ -587,7 +537,7 @@ long make_move(move_t const &move, Bool const restore)
     }
 
 
-    if (game.options.live_update && (game.ply < 1)) {
+    if (game.options.live_update && (game.ply < game.options.maxply)) {
         static move_t last_update = { -1, -1, 0 };
         if (last_update.from != move.from || last_update.to != move.to) {
             last_update = move;
@@ -632,9 +582,8 @@ long make_move(move_t const &move, Bool const restore)
         // restore the last move made
         game.last_move = last_move;
 
-        // restore the en passant 
+        // restore the en passant
         game.last_was_en_passant = last_was_en_passant;
-        game.last_was_timeout = last_was_timeout;
         game.last_was_castle = last_was_castle;
 
         // restore the king's locations
@@ -758,6 +707,7 @@ void reset_move_flags()
     game.last_was_en_passant = False;
     game.last_was_castle = False;
     game.last_was_timeout = False;
+    game.last_was_pawn_promotion = False;
 
 }   // reset_move_flags()
 
@@ -863,7 +813,7 @@ void choose_best_move(Color const who, move_t &best, generator_t callback)
 ////////////////////////////////////////////////////////////////////////////////////////
 // Make the next move in the game until we reach a stalemate or checkmate
 // 
-void play_game() 
+void play_game()
 {
     show();
 
@@ -918,6 +868,10 @@ void play_game()
         printf(Debug1, " en passant capture ")
     }
 
+    if (game.last_was_pawn_promotion) {
+        printf(Debug1, " pawn promoted ")
+    }
+
     if (game.last_was_timeout) {
         printf(Debug1, " - timeout ")
     }
@@ -946,7 +900,7 @@ void play_game()
     printf(Debug1, "\n");
 
     // check for move repetition
-    if (add_to_history(move)) {
+    if ((PLAYING == game.state) && add_to_history(move)) {
         game.state = whites_turn ? WHITE_3_MOVE_REP : BLACK_3_MOVE_REP;
     }
 
@@ -959,20 +913,17 @@ void play_game()
     }
 
     // see if the game has been won
-    if (whites_turn && no_black_moves && game.black_king_in_check) {
+    if ((PLAYING == game.state) && whites_turn && no_black_moves && game.black_king_in_check) {
         game.state = WHITE_CHECKMATE;
-        return;
     }
 
-    if (!whites_turn && no_white_moves && game.white_king_in_check) {
+    if ((PLAYING == game.state) && !whites_turn && no_white_moves && game.white_king_in_check) {
         game.state = BLACK_CHECKMATE;
-        return;
     }
 
     // see if we have a stalemate
-    if (no_white_moves && no_black_moves) {
+    if ((PLAYING == game.state) && no_white_moves && no_black_moves) {
         game.state = STALEMATE;
-        return;
     }
 
     // toggle whose turn it is
@@ -981,13 +932,22 @@ void play_game()
     // increase the game moves counter
     game.move_num++;
 
+    // Now go through the piece list and actually remove any pieces that
+    // were soft-deleted during evaluation when the physical layout of
+    // the list couldn't be modified.
+    for (index_t i = 0; i < game.piece_count; i++) {
+        if (-1 == game.pieces[i].x) {
+            game.pieces[i] = game.pieces[--game.piece_count];
+        }
+    }
+
 }   // play_game()
 
 
 ////////////////////////////////////////////////////////////////////////////////////////
 // Set all of the options for the game
 // 
-void set_game_options() 
+void set_game_options()
 {
     // set game.options.profiling to True (1) to disable output and profile the engine
     game.options.profiling = False;
@@ -1001,7 +961,7 @@ void set_game_options()
     game.options.move_limit = 200;
 
     // set the optional time limit on each move in milliseconds
-    game.options.time_limit = 30000;
+    game.options.time_limit = 60000;
 
     // set game.options.random to True (1) to use randomness in the game decisions
     // game.options.random = False;
@@ -1036,7 +996,7 @@ void set_game_options()
     if (game.options.random) {
         // Add salt to the psuedo random number generator seed
         // from the physical environment
-        uint8_t const pins[] = { 2, 3, 4, 7, 8, 9, 10, 11, 12 };
+        uint8_t const pins[] = { 2, 3, 7, 8, 9, 10, 11, 12 };
         uint8_t const total_passes = random(23, 87);
         uint32_t some_bits = 1234567890;
 
@@ -1045,7 +1005,7 @@ void set_game_options()
         for (uint8_t pass = 0; pass < total_passes; pass++) {
             for (uint8_t pin = 0; pin < ARRAYSZ(pins); pin++) {
                 pinMode(pins[pin], INPUT);
-                some_bits ^= digitalRead(pins[pin]) << (analogRead(A2) % 3);                
+                some_bits ^= digitalRead(pins[pin]) << (analogRead(A2) % 42u);                
             }
         }
         uint8_t bits = (game.options.seed >> 11) & 0xFF;
@@ -1064,8 +1024,12 @@ void set_game_options()
         lower = word(game.options.seed);
     }
 
-    printf(Always, "game hash: 0x%04X%04X\n", upper, lower);
-    printf(Always, "game ply limit: %d\n\n", game.options.maxply);
+    printf(Always, "prng seed hash: 0x%04X%04X\n", upper, lower);
+    printf(Always, "nominal ply limit: %d\n", game.options.maxply);
+
+    char str[16];
+    ftostr(game.options.time_limit, 0, str);
+    printf(Always, "time limit: %s ms\n\n", str);
 
     randomSeed(game.options.seed);
 
@@ -1077,7 +1041,7 @@ void set_game_options()
 // Display the statistics for the game and start another game.
 // 
 // int main(int /* argc */, char */* argv*/[] ) 
-void setup() 
+void setup()
 {
     Serial.begin(115200); while (!Serial); Serial.write('\n');
 
@@ -1085,6 +1049,9 @@ void setup()
 
     pinMode(DEBUG1_PIN, OUTPUT);
     digitalWrite(DEBUG1_PIN, LOW);
+
+    pinMode(DEBUG2_PIN, OUTPUT);
+    digitalWrite(DEBUG2_PIN, LOW);
 
     uint32_t state_totals[6] = { 0, 0, 0, 0, 0, 0 };
     uint32_t white_wins = 0;
@@ -1170,7 +1137,9 @@ void setup()
 
 }   // setup()
 
+
 void loop() {}
+
 
 ////////////////////////////////////////////////////////////////////////////////////////
 // display the game board
@@ -1224,8 +1193,10 @@ void show()
 
             // display the max ply depth we were able to reach
             case offset + 2:
-                printf(Debug1, "    Max ply depth reached: %d", 
-                    game.stats.move_stats.maxply);
+                if (game.stats.move_stats.maxply > 0) {
+                    printf(Debug1, "    Max ply depth reached: %d", 
+                        game.stats.move_stats.maxply);
+                }
                 break;
 
             // display the pieces taken by White

@@ -67,9 +67,11 @@ public:
     // the last move made
     long        last_value;
     move_t      last_move;
-    uint8_t     last_was_en_passant : 1;    // true when last move was an en-passaant capture
-    uint8_t     last_was_castle     : 1;    // true when last move was a castling of a king and a rook
-    uint8_t     last_was_timeout    : 1;    // true when last move timed out
+    uint8_t     last_was_en_passant     : 1,    // true when last move was an en-passaant capture
+                last_was_castle         : 1,    // true when last move was a castling of a king and a rook
+                last_was_timeout        : 1,    // true when last move timed out
+                last_was_pawn_promotion : 1;    // true when last move promoted a Pawn to a Queen
+
     uint32_t    last_move_time;
     uint32_t    last_moves_evaluated;
 

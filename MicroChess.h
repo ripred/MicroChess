@@ -44,6 +44,7 @@ enum
     NUM_BITS_SPOT      =  7,    // bits per field in move_t struct
 
     DEBUG1_PIN         =  5,    // output debug LED pin
+    DEBUG2_PIN         =  4,    // output debug LED pin
 };
 
 typedef   int8_t   index_t;

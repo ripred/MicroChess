@@ -29,10 +29,19 @@ void add_pawn_moves(piece_gen_t &gen) {
     gen.move.to = to_col + to_row * 8;
     Piece op = Empty;
 
+    // remember the original best value
+    long const obest_value = gen.best.value;
+
     if (isValidPos(to_col, to_row)) {
         // get piece at location 1 spot in front of pawn
         Piece op = board.get(gen.move.to);
         if (isEmpty(op)) {
+            // favor pawn moves forward so they progress
+            // towards the end of the game
+            if (-1 != gen.best.from) {
+                gen.best.value = obest_value + 10000L;
+            }
+
             gen.callme(gen.move, gen.best);
 
             // see if we can move 2 spots in front of this pawn
@@ -252,7 +261,7 @@ void add_king_moves(piece_gen_t &gen) {
         if (!isEmpty(rook) && !hasMoved(rook)) {
             if (empty_knight && empty_bishop) {
                 // We can castle on the King's side
-                gen.move.to = 1 + (gen.move.from / 8) * 8;
+                gen.move.to = 2 + (gen.move.from / 8) * 8;
                 gen.callme(gen.move, gen.move);
             }
         }
