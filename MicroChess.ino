@@ -485,13 +485,14 @@ long make_move(move_t const &move, Bool const restore)
             // based on whether any of the opponent's first-level responses place the king in check.
 
             game.last_was_timeout = timeout();
+            digitalWrite(DEBUG3_PIN, game.last_was_timeout);
 
             if (!game.last_was_timeout || (game.ply < 1)) {
                 // optionally flash a 'quiescent' indicator
                 if (game.options.live_update) {
-                    // digitalWrite(DEBUG2_PIN, HIGH);
-                    // delayMicroseconds(10);
-                    // digitalWrite(DEBUG2_PIN, LOW);
+                    digitalWrite(DEBUG2_PIN, HIGH);
+                    delayMicroseconds(1);
+                    digitalWrite(DEBUG2_PIN, LOW);
                 }
 
                 // Explore the future! (plies)
@@ -519,12 +520,12 @@ long make_move(move_t const &move, Bool const restore)
                 }
 
                 // punish moves that place our King in check
-                if (game.ply >= 1) {
-                    if ((vars.whites_turn && game.white_king_in_check) || 
-                    (!vars.whites_turn && game.black_king_in_check)) {
-                        value += worst_value;
-                    }
-                }
+                // if (game.ply >= 1) {
+                //     if ((vars.whites_turn && game.white_king_in_check) || 
+                //     (!vars.whites_turn && game.black_king_in_check)) {
+                //         value += worst_value;
+                //     }
+                // }
 
                 game.white_king_in_check = white_king_in_check;
                 game.black_king_in_check = black_king_in_check;
@@ -533,10 +534,9 @@ long make_move(move_t const &move, Bool const restore)
                 game.ply--;
             }
         }
-
     }
 
-
+    // periodically update the LED strip display if enabled
     if (game.options.live_update && (game.ply < game.options.maxply)) {
         static move_t last_update = { -1, -1, 0 };
         if (last_update.from != move.from || last_update.to != move.to) {
@@ -547,7 +547,6 @@ long make_move(move_t const &move, Bool const restore)
 
 
     // Step 5: If we are just considering the move then put everything back
-
 
     if (restore) {
         if (-1 == captured) {
@@ -961,7 +960,7 @@ void set_game_options()
     game.options.move_limit = 200;
 
     // set the optional time limit on each move in milliseconds
-    game.options.time_limit = 60000;
+    game.options.time_limit = 240000;
 
     // set game.options.random to True (1) to use randomness in the game decisions
     // game.options.random = False;
@@ -996,7 +995,7 @@ void set_game_options()
     if (game.options.random) {
         // Add salt to the psuedo random number generator seed
         // from the physical environment
-        uint8_t const pins[] = { 2, 3, 7, 8, 9, 10, 11, 12 };
+        uint8_t const pins[] = { 2, 7, 8, 9, 10, 11, 12 };
         uint8_t const total_passes = random(23, 87);
         uint32_t some_bits = 1234567890;
 
@@ -1047,11 +1046,11 @@ void setup()
 
     init_led_strip();
 
-    pinMode(DEBUG1_PIN, OUTPUT);
-    digitalWrite(DEBUG1_PIN, LOW);
-
-    pinMode(DEBUG2_PIN, OUTPUT);
-    digitalWrite(DEBUG2_PIN, LOW);
+    static uint8_t const pins[3] = { DEBUG1_PIN, DEBUG2_PIN, DEBUG3_PIN };
+    for (uint8_t pin : pins) {
+        pinMode(pin, OUTPUT);
+        digitalWrite(pin, LOW);
+    }
 
     uint32_t state_totals[6] = { 0, 0, 0, 0, 0, 0 };
     uint32_t white_wins = 0;
