@@ -25,13 +25,15 @@ public:
 
     uint32_t    seed;               // the starting seed hash for prn's
     print_t     print_level;        // the verbosity setting for the level of output
+    Bool        alpha_beta_pruning; // use alpha-beta pruning when True
+    uint8_t     max_max_ply;        // the ultimate maximum ply level
+    uint8_t     max_quiescent_ply;  // the maximum ply level to continue if a piece was taken on a move
+    uint8_t     maxply;             // the nominal max ply level
+
 
 // this stuff stays the same at runtime during the game, and can't be modified
-    static uint8_t const  maxply = 3;                                   // the nominal max ply level
-    static uint8_t const  max_quiescent_ply = options_t::maxply + 2;    // the maximum ply level to continue if a piece was taken on a move
-    static uint8_t const  max_max_ply = 4;                              // the ultimate maximum ply level
     static uint32_t const move_limit = 200;                             // the maximum number of moves allowed in a full game
-    static int const      low_mem_limit = 64;                           // amount of memory we need to exchang sides
+    static int      const low_mem_limit = 1024;                           // amount of memory we need to exchang sides
     static uint32_t const time_limit = 30000;                           // optional time limit in ms if != 0
 
     // adjustable multipiers to alter importance of mobility or center proximity
@@ -48,7 +50,11 @@ public:
         profiling(False), 
         continuous(False),
         seed(PRN_SEED),
-        print_level(Debug1)
+        print_level(Debug1),
+        alpha_beta_pruning(False),
+        max_max_ply(4),
+        max_quiescent_ply(4),
+        maxply(2)
     {}
 
 };  // options_t

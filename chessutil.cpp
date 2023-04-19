@@ -166,6 +166,28 @@ Bool timeout() {
 } // timeout()
 
 
+void show_low_memory() {
+    digitalWrite(DEBUG1_PIN, HIGH);
+    delayMicroseconds(SHOW_DURATION);
+    digitalWrite(DEBUG1_PIN, LOW);
+
+} // show_low_memory()
+
+void show_quiescent_search() {
+    digitalWrite(DEBUG2_PIN, HIGH);
+    delayMicroseconds(SHOW_DURATION);
+    digitalWrite(DEBUG2_PIN, LOW);
+
+} // show_quiescent_search()
+
+void show_timeout() {
+    digitalWrite(DEBUG3_PIN, HIGH);
+    delayMicroseconds(SHOW_DURATION);
+    digitalWrite(DEBUG3_PIN, LOW);
+
+} // show_timeout()
+
+
 void show_stats() {
     char str[16]= "";
 

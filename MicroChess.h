@@ -43,6 +43,8 @@ enum
     NUM_BITS_PT        =  4,    // bits per field in point_t struct
     NUM_BITS_SPOT      =  7,    // bits per field in move_t struct
 
+    SHOW_DURATION      = 50,    // Duration that LED indicator are shown
+
     DEBUG1_PIN         =  5,    // output debug LED pins
     DEBUG2_PIN         =  4,
     DEBUG3_PIN         =  3,
@@ -77,9 +79,9 @@ enum print_t {
 #define  ARRAYSZ(A) (sizeof(A) / sizeof(*(A)))
 
 // macros to manipulate a continguous segment of memory as a series of bits
-// #define _setbit(_A, _B)     ((char*)(_A))[(_B) / 8] |=  (0x80 >> ((_B) % 8))
-// #define _clrbit(_A, _B)     ((char*)(_A))[(_B) / 8] &= ~(0x80 >> ((_B) % 8))
-// #define _getbit(_A, _B)     ((char*)(_A))[(_B) / 8] &   (0x80 >> ((_B) % 8))
+#define     _setbit(_A, _B)     ((char*)(_A))[(_B) / 8] |=  (0x80 >> ((_B) % 8))
+#define     _clrbit(_A, _B)     ((char*)(_A))[(_B) / 8] &= ~(0x80 >> ((_B) % 8))
+#define     _getbit(_A, _B)     ((char*)(_A))[(_B) / 8] &   (0x80 >> ((_B) % 8))
 
 // The max and min range for piece values
 #define  MAX_VALUE ((long const)(LONG_MAX / 8))
@@ -150,6 +152,10 @@ Piece makeSpot(Piece type, Piece side, Bool moved, Bool inCheck);
 char *getName(Piece b);
 
 char *getColor(Piece b);
+
+extern void show_low_memory();
+extern void show_quiescent_search();
+extern void show_timeout();
 
 const char* ftostr(double value, int dec = 2, char * const buff = nullptr);
 

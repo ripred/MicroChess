@@ -17,9 +17,7 @@
  */
 void add_pawn_moves(piece_gen_t &gen) {
     if (freeMemory() < game.options.low_mem_limit) {
-        digitalWrite(DEBUG1_PIN, HIGH);
-        delayMicroseconds(200);
-        digitalWrite(DEBUG1_PIN, LOW);
+        show_low_memory();
         return;
     }
 
@@ -103,9 +101,7 @@ void add_knight_moves(piece_gen_t &gen) {
     };
 
     if (freeMemory() < game.options.low_mem_limit) {
-        digitalWrite(DEBUG1_PIN, HIGH);
-        delayMicroseconds(200);
-        digitalWrite(DEBUG1_PIN, LOW);
+        show_low_memory();
         return;
     }
 
@@ -134,9 +130,7 @@ void add_rook_moves(piece_gen_t &gen) {
     };
 
     if (freeMemory() < game.options.low_mem_limit) {
-        digitalWrite(DEBUG1_PIN, HIGH);
-        delayMicroseconds(200);
-        digitalWrite(DEBUG1_PIN, LOW);
+        show_low_memory();
         return;
     }
 
@@ -178,9 +172,7 @@ void add_bishop_moves(piece_gen_t &gen) {
     };
 
     if (freeMemory() < game.options.low_mem_limit) {
-        digitalWrite(DEBUG1_PIN, HIGH);
-        delayMicroseconds(200);
-        digitalWrite(DEBUG1_PIN, LOW);
+        show_low_memory();
         return;
     }
 
@@ -232,9 +224,7 @@ void add_king_moves(piece_gen_t &gen) {
     };
 
     if (freeMemory() < game.options.low_mem_limit) {
-        digitalWrite(DEBUG1_PIN, HIGH);
-        delayMicroseconds(200);
-        digitalWrite(DEBUG1_PIN, LOW);
+        show_low_memory();
         return;
     }
 

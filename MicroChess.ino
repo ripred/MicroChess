@@ -134,9 +134,7 @@ Bool is_better_move(
 Bool consider_move(move_t &move, move_t &best) 
 {
     if (freeMemory() < game.options.low_mem_limit) {
-        digitalWrite(DEBUG1_PIN, HIGH);
-        delayMicroseconds(200);
-        digitalWrite(DEBUG1_PIN, LOW);
+        show_low_memory();
         return False;
     }
 
@@ -201,7 +199,7 @@ inline index_t find_piece(index_t const index)
 //  5) If we are just considering the move then put everything back
 // 
 // returns the value of the board after the move was made
-long make_move(move_t const &move, Bool const restore) 
+long make_move(move_t const &move, Bool const evaluating) 
 {
     // The value of the board.
     // Default to the worst value for our side.
@@ -249,17 +247,6 @@ long make_move(move_t const &move, Bool const restore)
         getSide(vars.op)
     };
 
-    long const worst_value = vars.whites_turn ? MIN_VALUE : MAX_VALUE;
-    long const best_value = vars.whites_turn ? MAX_VALUE : MIN_VALUE;
-
-    // Ensure that we aren't trying to take our own piece
-    // BUGBUG: Remove after testing
-    if (Empty != vars.otype && vars.side == vars.oside) {
-        // printf(Debug1, "\nattempt to take our own piece at line %d\n", __LINE__);
-        // while ((true)) {}
-        return worst_value;
-    }
-
     // Save the current last 5 moves in the game history
     move_t history[MAX_REPS * 2 - 1];
     index_t hist_count = game.hist_count;    
@@ -268,7 +255,7 @@ long make_move(move_t const &move, Bool const restore)
     index_t const wking = game.wking;
     index_t const bking = game.bking;
 
-    if (restore) {
+    if (evaluating) {
         memmove(history, game.history, sizeof(history));
 
         // Track the number of moves considered so far
@@ -288,13 +275,13 @@ long make_move(move_t const &move, Bool const restore)
     if (King == vars.otype) {
         if (vars.whites_turn && Black == vars.oside) {
             game.black_king_in_check = True;
-            value = best_value;
-            // return best_value;
+            value = MAX_VALUE;
+            return value;
         }
         else if (!vars.whites_turn && White == vars.oside) {
             game.white_king_in_check = True;
-            value = best_value;
-            // return best_value;
+            value = MIN_VALUE;
+            return value;
         }
     }
 
@@ -306,13 +293,14 @@ long make_move(move_t const &move, Bool const restore)
     // 
     // * NOTE BELOW *
     // Once any changes have been made to the board or game state we
-    // MUST NOT return until passing through the "if (restore) { ... }" logic.
+    // MUST NOT return until passing through the "if (evaluating) { ... }" logic.
 
     // The game.pieces[] index being captured (if any, -1 if none)
     index_t taken_index = -1;
 
     // The board index being captured (if any, -1 if none)
     index_t captured = -1;
+    Piece captured_piece = Empty;
 
     // save the current number of taken pieces
     index_t const white_taken_count = game.white_taken_count;
@@ -322,8 +310,6 @@ long make_move(move_t const &move, Bool const restore)
     Bool const last_was_en_passant = game.last_was_en_passant;
     Bool const last_was_castle = game.last_was_castle;
     move_t const last_move = game.last_move;
-
-    Piece captured_piece = Empty;
 
     if (Pawn == vars.type && isEmpty(vars.otype) && col != vars.to_col) {
         // en-passant capture
@@ -424,19 +410,19 @@ long make_move(move_t const &move, Bool const restore)
     // Step 4: Evaluate the board score after making the move
 
 
-    value = evaluate();
-
-    if (!restore && value != MIN_VALUE && value != MAX_VALUE) {
+    // get the value of the current board
+    if (!evaluating && value != MIN_VALUE && value != MAX_VALUE) {
+        value = evaluate();
         game.last_value = value;
     }
 
     // set our move as the last move
     game.last_move = move;
 
-    ////////////////////////////////////////////////////////////////////////////////////////
+    // ------------------------------------------------------------------------------------------
     // The move has been made and we have the value for the updated board.
     // Recursively look-ahead and accumulatively update the value here.
-    // This is known as the Minimax (Maximin) heuristic.
+    // This is known as the Minimax (Maximin) algorithm.
     // 
     // Minimax Algorithm Pseudo-code:
     // 
@@ -457,39 +443,63 @@ long make_move(move_t const &move, Bool const restore)
     // (* Initial call *)
     // minimax(origin, depth, TRUE)
     // 
-    // TODO: Implement alpha-beta pruning!!
+    // ------------------------------------------------------------------------------------------
+    // During move generation, keep track of our best move and our opponents best move and
+    // don't follow move paths that have less value than what we know our opponents's best
+    // move already is.
+    // This is known as the alpha-bea heuristic.
     // 
-    ////////////////////////////////////////////////////////////////////////////////////////
-
-    Bool const low_mem = freeMemory() < game.options.low_mem_limit;
-    if (low_mem) {
-        digitalWrite(DEBUG1_PIN, HIGH);
-        delayMicroseconds(200);
-        digitalWrite(DEBUG1_PIN, LOW);
-    }
+    // Minimax Algorithm with Alpha-Beta Heuristic Pseudo-code:
+    // 
+    // function alphabeta(node, depth, α, β, maximizingPlayer) is
+    //     if depth = 0 or node is a terminal node then
+    //         return the heuristic value of node
+    //     if maximizingPlayer then
+    //         value := −∞
+    //         for each child of node do
+    //             value := max(value, alphabeta(child, depth − 1, α, β, FALSE))
+    //             if value > β then
+    //                 break (* β cutoff *)
+    //             α := max(α, value)
+    //         return value
+    //     else
+    //         value := +∞
+    //         for each child of node do
+    //             value := min(value, alphabeta(child, depth − 1, α, β, TRUE))
+    //             if value < α then
+    //                 break (* α cutoff *)
+    //             β := min(β, value)
+    //         return value
+    // 
+    // (* Initial call *)
+    // alphabeta(origin, depth, −∞, +∞, TRUE)
+    // ------------------------------------------------------------------------------------------
 
     // The awesome, amazing, culling magic called alpha-beta pruning!!!!
     Bool pruned = False;
-    if (vars.whites_turn) {
-        if (value > game.beta) {
-            pruned = True;
-        }
-        else {
+    if (game.options.alpha_beta_pruning) {
+        if (vars.whites_turn) {
+            if (value > game.beta) {
+                pruned = True;  // beta cutoff
+            }
             game.alpha = max(game.alpha, value);
         }
-    }
-    else {
-        if (value < game.alpha) {
-            pruned = True;
-        }
         else {
+            if (value < game.alpha) {
+                pruned = True;  // alpha cutoff
+            }
             game.beta = min(game.beta, value);
         }
     }
 
-    // Before we continue we check the restore flag to see if it is False, meaning that we are making this move for real.
-    // There's no need to explore future plies if we've already made our mind up! We only recurse when we are evaluating (restore == True)
-    if (!pruned && !low_mem && restore) {
+    Bool const low_mem = freeMemory() < game.options.low_mem_limit;
+    if (low_mem) {
+        show_low_memory();
+    }
+
+    // Before we continue we check the evaluating flag to see if it is False, meaning that we are making this move for real.
+    // There's no need to explore future plies if we've already made our mind up! We only recurse when we are evaluating (evaluating == True)
+    if (!pruned && !low_mem && evaluating) {
         // flag indicating whether we are traversing into quiescent moves
         Bool const quiescent = ((-1 != captured) && (game.ply < (game.options.max_quiescent_ply)) && (game.ply < game.options.max_max_ply));
 
@@ -503,14 +513,14 @@ long make_move(move_t const &move, Bool const restore)
             // based on whether any of the opponent's first-level responses place the king in check.
 
             game.last_was_timeout = timeout();
-            digitalWrite(DEBUG3_PIN, game.last_was_timeout);
+            if (game.last_was_timeout) {
+                show_timeout();
+            }
 
             if (!game.last_was_timeout || (game.ply < 1)) {
                 // optionally flash a 'quiescent' indicator
                 if (game.options.live_update) {
-                    digitalWrite(DEBUG2_PIN, HIGH);
-                    delayMicroseconds(1);
-                    digitalWrite(DEBUG2_PIN, LOW);
+                    show_quiescent_search();
                 }
 
                 // Explore the future! (plies)
@@ -537,16 +547,13 @@ long make_move(move_t const &move, Bool const restore)
                     value = best_white.value;
                 }
 
-                // punish moves that place our King in check
-                // if (game.ply >= 1) {
-                //     if ((vars.whites_turn && game.white_king_in_check) || 
-                //     (!vars.whites_turn && game.black_king_in_check)) {
-                //         value += worst_value;
-                //     }
-                // }
+                if (!white_king_in_check) {
+                    game.white_king_in_check = white_king_in_check;
+                }
 
-                game.white_king_in_check = white_king_in_check;
-                game.black_king_in_check = black_king_in_check;
+                if (!black_king_in_check) {
+                    game.black_king_in_check = black_king_in_check;
+                }
 
                 ++game.turn %= 2;
                 game.ply--;
@@ -566,7 +573,7 @@ long make_move(move_t const &move, Bool const restore)
 
     // Step 5: If we are just considering the move then put everything back
 
-    if (restore) {
+    if (evaluating) {
         if (-1 == captured) {
             board.set(vars.to, vars.op);
         } else {
@@ -622,9 +629,10 @@ long make_move(move_t const &move, Bool const restore)
         }
     }
 
+
     return value;
 
-}   // make_move(move_t const &move, Bool const restore)
+}   // make_move(move_t const &move, Bool const evaluating)
 
 
 ////////////////////////////////////////////////////////////////////////////////////////
@@ -752,9 +760,7 @@ void choose_best_move(Color const who, move_t &best, generator_t callback)
 {
     Bool const low_mem = freeMemory() < game.options.low_mem_limit;
     if (low_mem) {
-        digitalWrite(DEBUG1_PIN, HIGH);
-        delayMicroseconds(200);
-        digitalWrite(DEBUG1_PIN, LOW);
+        show_low_memory();
         return;
     }
 
@@ -762,8 +768,20 @@ void choose_best_move(Color const who, move_t &best, generator_t callback)
     // which randomizes the move evaluations, which make the better moves be discovered
     // earlier in the search. This helps make the ordering of the move evaluations
     // closer (on average, sight-unseen, so predicting) to best-move-first sort order
-    // which ,ake the algorithm more effective and efficient.
+    // which makes the heurstic more effective and efficient.
 
+    // Enabling this also randomizes which piece index level we get to, and check
+    // when any move time limits are enabled and hit.
+
+    if (game.options.random) {
+        for (int i = 0; i < 10; i++) {
+            index_t r1 = random(game.piece_count);
+            index_t r2 = random(game.piece_count);
+            point_t tmp = game.pieces[r1];
+            game.pieces[r1] = game.pieces[r2];
+            game.pieces[r2] = tmp;
+        }
+    }
 
     static Bool constexpr   enable_pawns = True;
     static Bool constexpr enable_knights = True;
@@ -988,15 +1006,17 @@ void set_game_options()
     // game.options.profiling = False;
     game.options.profiling = True;
 
-    // set the maximum ply level (the number of turns we look ahead) for the game
-    // game.options.maxply = 2;
+    // set the ultimate maximum ply level
+    game.options.max_max_ply = 4;
 
-    // set the limit on the total number of moves allowed in the game
-    // Officially the limit is 50 moves
-    // game.options.move_limit = 200;
+    // set the max ply level (the number of turns we look ahead) for normal moves
+    game.options.maxply = 2;
 
-    // set the optional time limit on each move in milliseconds
-    // game.options.time_limit = 240000;
+    // set the maximum ply level to continue if a move takes a piece
+    game.options.max_quiescent_ply =
+        (game.options.maxply + 2) <= game.options.max_max_ply ?
+            game.options.maxply + 2 :
+            game.options.max_max_ply;
 
     // set game.options.random to True (1) to use randomness in the game decisions
     // game.options.random = False;
@@ -1004,11 +1024,12 @@ void set_game_options()
 
     // set whether we play continuously or not
     // game.options.continuous = game.options.random;
-    game.options.continuous = True;
     // game.options.continuous = False;
+    game.options.continuous = True;
 
-    // set the low-memory watermark we use to limit recursion
-    // game.options.low_mem_limit = 64;
+    // enable or disable alpha-beta pruning
+    // game.options.alpha_beta_pruning = False;
+    game.options.alpha_beta_pruning = True;
 
     // set the 'live update' flag
     game.options.live_update = True;
@@ -1228,10 +1249,10 @@ void show()
 
             // display the max ply depth we were able to reach
             case offset + 2:
-                if (game.stats.move_stats.maxply > 0) {
+                // if (game.stats.move_stats.maxply > 0) {
                     printf(Debug1, "    Max ply depth reached: %d", 
                         game.stats.move_stats.maxply);
-                }
+                // }
                 break;
 
             // display the pieces taken by White

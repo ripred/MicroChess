@@ -60,8 +60,8 @@ void game_t::init()
     wking = 60;
     bking =  4;
 
-    long        alpha;
-    long        beta;
+    alpha = MIN_VALUE;
+    beta  = MAX_VALUE;
 
 } // init()
 
