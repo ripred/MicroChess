@@ -436,10 +436,7 @@ long make_move(move_t const &move, Bool const restore)
     ////////////////////////////////////////////////////////////////////////////////////////
     // The move has been made and we have the value for the updated board.
     // Recursively look-ahead and accumulatively update the value here.
-    // 
-    // This is working in brute-force mode!!
-    // 
-    // TODO: Implement minimax and alpha-beta pruning!!
+    // This is known as the Minimax (Maximin) heuristic.
     // 
     // Minimax Algorithm Pseudo-code:
     // 
@@ -460,9 +457,9 @@ long make_move(move_t const &move, Bool const restore)
     // (* Initial call *)
     // minimax(origin, depth, TRUE)
     // 
+    // TODO: Implement alpha-beta pruning!!
+    // 
     ////////////////////////////////////////////////////////////////////////////////////////
-
-    #define   MAXMAX_PLY   4
 
     Bool const low_mem = freeMemory() < game.options.low_mem_limit;
     if (low_mem) {
@@ -470,10 +467,31 @@ long make_move(move_t const &move, Bool const restore)
         delayMicroseconds(200);
         digitalWrite(DEBUG1_PIN, LOW);
     }
-    // no need to explore future plies if we've already made our mind up
-    else if (restore) {
+
+    // The awesome, amazing, culling magic called alpha-beta pruning!!!!
+    Bool pruned = False;
+    if (vars.whites_turn) {
+        if (value > game.beta) {
+            pruned = True;
+        }
+        else {
+            game.alpha = max(game.alpha, value);
+        }
+    }
+    else {
+        if (value < game.alpha) {
+            pruned = True;
+        }
+        else {
+            game.beta = min(game.beta, value);
+        }
+    }
+
+    // Before we continue we check the restore flag to see if it is False, meaning that we are making this move for real.
+    // There's no need to explore future plies if we've already made our mind up! We only recurse when we are evaluating (restore == True)
+    if (!pruned && !low_mem && restore) {
         // flag indicating whether we are traversing into quiescent moves
-        Bool const quiescent = ((-1 != captured) && (game.ply < (game.options.maxply + 2)) && (game.ply < MAXMAX_PLY));
+        Bool const quiescent = ((-1 != captured) && (game.ply < (game.options.max_quiescent_ply)) && (game.ply < game.options.max_max_ply));
 
         if (game.ply < game.options.maxply || quiescent) {
             // We check for timeouts here AFTER at least evaluating the current move.
@@ -506,7 +524,7 @@ long make_move(move_t const &move, Bool const restore)
                 Bool const white_king_in_check = game.white_king_in_check;
                 Bool const black_king_in_check = game.black_king_in_check;
 
-                reset_move_flags();
+                reset_turn_flags();
 
                 if (vars.whites_turn) {
                     move_t best_black = { -1, -1, MAX_VALUE };
@@ -684,7 +702,7 @@ long evaluate()
 
 ////////////////////////////////////////////////////////////////////////////////////////
 // reset the various move tracking flags
-void reset_move_flags() 
+void reset_turn_flags() 
 {
     for (index_t ndx = 0; ndx < game.piece_count; ndx++) {
         index_t const col = game.pieces[ndx].x;
@@ -708,6 +726,17 @@ void reset_move_flags()
     game.last_was_timeout = False;
     game.last_was_pawn_promotion = False;
 
+    // set the alpha and beta edges to the worst case (brute force)
+    // O(N) based on whose turn it is. So freakin cool..
+    if (White == game.turn) {
+        game.alpha = MIN_VALUE;
+        game.beta = MAX_VALUE;
+    }
+    else {
+        game.alpha = MAX_VALUE;
+        game.beta = MIN_VALUE;
+    }
+
 }   // reset_move_flags()
 
 
@@ -728,6 +757,13 @@ void choose_best_move(Color const who, move_t &best, generator_t callback)
         digitalWrite(DEBUG1_PIN, LOW);
         return;
     }
+
+    // As an aid to the alpha-beta pruning heuristic, we randomize the piece order,
+    // which randomizes the move evaluations, which make the better moves be discovered
+    // earlier in the search. This helps make the ordering of the move evaluations
+    // closer (on average, sight-unseen, so predicting) to best-move-first sort order
+    // which ,ake the algorithm more effective and efficient.
+
 
     static Bool constexpr   enable_pawns = True;
     static Bool constexpr enable_knights = True;
@@ -820,7 +856,7 @@ void play_game()
 
     game.stats.start_move_stats();
 
-    reset_move_flags();
+    reset_turn_flags();
 
     move_t best_white = { -1, -1, MIN_VALUE };
     Bool no_white_moves = (-1 == best_white.from);
@@ -949,18 +985,18 @@ void play_game()
 void set_game_options()
 {
     // set game.options.profiling to True (1) to disable output and profile the engine
-    game.options.profiling = False;
-    // game.options.profiling = True;
+    // game.options.profiling = False;
+    game.options.profiling = True;
 
     // set the maximum ply level (the number of turns we look ahead) for the game
-    game.options.maxply = 2;
+    // game.options.maxply = 2;
 
     // set the limit on the total number of moves allowed in the game
     // Officially the limit is 50 moves
-    game.options.move_limit = 200;
+    // game.options.move_limit = 200;
 
     // set the optional time limit on each move in milliseconds
-    game.options.time_limit = 240000;
+    // game.options.time_limit = 240000;
 
     // set game.options.random to True (1) to use randomness in the game decisions
     // game.options.random = False;
@@ -972,7 +1008,7 @@ void set_game_options()
     // game.options.continuous = False;
 
     // set the low-memory watermark we use to limit recursion
-    game.options.low_mem_limit = 64;
+    // game.options.low_mem_limit = 64;
 
     // set the 'live update' flag
     game.options.live_update = True;

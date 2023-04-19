@@ -91,6 +91,9 @@ public:
     index_t     wking;
     index_t     bking;
 
+    // the alpha and beta edges of our search envelope
+    long        alpha;
+    long        beta;
 public:
     // constructor
     game_t();

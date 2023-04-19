@@ -60,6 +60,9 @@ void game_t::init()
     wking = 60;
     bking =  4;
 
+    long        alpha;
+    long        beta;
+
 } // init()
 
 
