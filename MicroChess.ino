@@ -775,14 +775,19 @@ void choose_best_move(Color const who, move_t &best, generator_t callback)
     // 
     // Enabling this also randomizes which piece index level we get to, and check
     // when any move time limits are enabled and hit.
+    index_t piece_order[32] {};
+    for (index_t i = 0; i < game.piece_count; i++) {
+        piece_order[i] = i;
+    }
+
     if (game.options.random && game.options.shuffle_pieces) {
-        for (int i = 0; i < 32; i++) {
+        for (int i = 0; i < 100; i++) {
             index_t const r1 = random(game.piece_count);
             index_t const r2 = random(game.piece_count);
             if (r1 != r2) {
-                point_t const tmp = game.pieces[r1];
-                game.pieces[r1] = game.pieces[r2];
-                game.pieces[r2] = tmp;
+                index_t const tmp = piece_order[r1];
+                piece_order[r1] = piece_order[r2];
+                piece_order[r2] = tmp;
             }
         }
     }
@@ -798,7 +803,8 @@ void choose_best_move(Color const who, move_t &best, generator_t callback)
     long const worst_value = whites_turn ? MIN_VALUE : MAX_VALUE;
 
     // Walk through the pieces list and generate all moves for each piece
-    for (index_t ndx = 0; ndx < game.piece_count; ndx++) {
+    for (index_t order = 0; order < game.piece_count; order++) {
+        index_t ndx = piece_order[order];
         if (-1 == game.pieces[ndx].x) continue;
 
         // index_t const from = (game.pieces[ndx].x + game.pieces[ndx].y * 8);
@@ -1098,8 +1104,8 @@ void set_game_options()
     // game.options.alpha_beta_pruning = True;
 
     // set whether or not we process the pieces in random order
-    game.options.shuffle_pieces = False;
-    // game.options.shuffle_pieces = True;
+    // game.options.shuffle_pieces = False;
+    game.options.shuffle_pieces = True;
 
     // set the 'live update' flag
     // game.options.live_update = False;

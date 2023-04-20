@@ -72,6 +72,7 @@ public:
                 last_was_timeout        : 1,    // true when last move timed out
                 last_was_pawn_promotion : 1;    // true when last move promoted a Pawn to a Queen
 
+    // last move statistics
     uint32_t    last_move_time;
     uint32_t    last_moves_evaluated;
 
