@@ -296,13 +296,17 @@ long make_move(move_t const &move, Bool const evaluating)
     if (King == vars.otype) {
         if (vars.whites_turn && Black == vars.oside) {
             game.black_king_in_check = True;
-            // return game.ply == 0 ? MIN_VALUE : MAX_VALUE;
-            return MAX_VALUE;
+            if (0 == game.ply) {
+                return MIN_VALUE;
+            }
+            value = MAX_VALUE;
         }
         else if (!vars.whites_turn && White == vars.oside) {
             game.white_king_in_check = True;
-            // return game.ply == 0 ? MAX_VALUE : MIN_VALUE;
-            return MIN_VALUE;
+            if (0 == game.ply) {
+                return MAX_VALUE;
+            }
+            value = MIN_VALUE;
         }
     }
 
@@ -1123,7 +1127,7 @@ void set_game_options()
     game.options.continuous = True;
 
     // set the time limit per turn in milliseconds
-    game.options.time_limit = 60000;
+    game.options.time_limit = 15000;
 
     // enable or disable alpha-beta pruning
     // game.options.alpha_beta_pruning = False;
@@ -1230,18 +1234,6 @@ void setup()
         do {
             play_game();
             show();
-
-            // Attempt to make the time limits more accurate if enabled
-            if (game.last_was_timeout) {
-                uint32_t const last_time = game.stats.move_stats.duration();
-                int32_t const diff = last_time - game.options.time_limit;
-                if (diff > 0) {
-                    game.options.time_limit -= diff;
-                }
-                else {
-                    game.options.time_limit += diff;
-                }
-            }
 
         } while (PLAYING == game.state);
 
@@ -1366,24 +1358,24 @@ void show()
                 }
                 break;
 
-            // display the max ply depth we were able to reach
-            case offset + 2:
-                if (game.move_num > 0) {
-                    printf(Debug1, "    Max ply depth reached: %d", 
-                        game.stats.move_stats.maxply);
-                }
-                break;
-
             // display the total game time so far
-            case offset + 3:
+            case offset + 2:
                 if (game.move_num > 0) {
                     printf(Debug1, "    Game time elapsed : ");
                     show_time(game.stats.game_stats.duration());
                 }
                 break;
 
+            // display the max ply depth we were able to reach
+            case offset + 3:
+                if (game.move_num > 0) {
+                    printf(Debug1, "    Max ply depth reached: %d", 
+                        game.stats.move_stats.maxply);
+                }
+                break;
+
             // display the pieces taken by White
-            case offset + 4:
+            case offset + 5:
                 printf(Debug1, "    Taken 1: ");
                 for (int i = 0; i < game.white_taken_count; i++) {
                     Piece const piece = game.taken_by_white[i];
@@ -1394,7 +1386,7 @@ void show()
                 break;
 
             // display the pieces taken by Black
-            case offset + 5:
+            case offset + 6:
                 printf(Debug1, "    Taken 2: ");
                 for (int i = 0; i < game.black_taken_count; i++) {
                     Piece const piece = game.taken_by_black[i];
@@ -1405,21 +1397,24 @@ void show()
                 break;
 
             // display the current score
-            case offset + 7:
-            {
-                value = game.last_value;
-
-                char str_score[16] = "";
-                ftostr(value, 0, str_score);
-                printf(Debug1, "    Board value: %8s %s", str_score, (value == 0) ? "" : 
-                    (value  < 0) ? "Black's favor" : "White's favor");
-            }
-                break;
+            // case offset + 7:
+            //     break;
         }
         printf(Debug1, "%c", '\n');
     }
     printf(Debug1, "%s", 
-        dev ? "   0  1  2  3  4  5  6  7\n\n" : "   A  B  C  D  E  F  G  H\n");
+        dev ? "   0  1  2  3  4  5  6  7 " : "   A  B  C  D  E  F  G  H ");
+
+    {
+        value = game.last_value;
+
+        char str_score[16] = "";
+        ftostr(value, 0, str_score);
+        printf(Debug1, "    Board value: %8s %s", str_score, (value == 0) ? "" : 
+            (value  < 0) ? "Black's favor" : "White's favor");
+    }
+
+    printf(Debug1, "\n\n");
 
     set_led_strip();
 

@@ -60,7 +60,8 @@ public:
         alpha_beta_pruning(False),
         max_max_ply(4),
         max_quiescent_ply(4),
-        maxply(2)
+        maxply(2),
+        time_limit(DEF_TIME_LIMIT)
     {}
 
 };  // options_t

@@ -36,6 +36,8 @@ enum
 
     MOVE_LIMIT         = 50,    // the maximum number of moves allowed in a game
 
+    DEF_TIME_LIMIT     = 30000, // default time limit per move
+
     MAX_REPS           =  3,    // the max number of times a pair of moves can be repeated
 
     MAX_PIECES         = 32,    // max number of pieces in game.pieces[]
