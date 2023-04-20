@@ -1100,8 +1100,8 @@ void set_game_options()
     game.options.time_limit = 60000;
 
     // enable or disable alpha-beta pruning
-    game.options.alpha_beta_pruning = False;
-    // game.options.alpha_beta_pruning = True;
+    // game.options.alpha_beta_pruning = False;
+    game.options.alpha_beta_pruning = True;
 
     // set whether or not we process the pieces in random order
     // game.options.shuffle_pieces = False;
