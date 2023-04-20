@@ -27,19 +27,10 @@ void add_pawn_moves(piece_gen_t &gen) {
     gen.move.to = to_col + to_row * 8;
     Piece op = Empty;
 
-    // remember the original best value
-    long const obest_value = gen.best.value;
-
     if (isValidPos(to_col, to_row)) {
         // get piece at location 1 spot in front of pawn
         Piece op = board.get(gen.move.to);
         if (isEmpty(op)) {
-            // favor pawn moves forward so they progress
-            // towards the end of the game
-            if (-1 != gen.best.from) {
-                gen.best.value = obest_value + 10000L;
-            }
-
             gen.callme(gen.move, gen.best);
 
             // see if we can move 2 spots in front of this pawn
@@ -72,19 +63,21 @@ void add_pawn_moves(piece_gen_t &gen) {
             // BUGBUG: TODO: Fix this and the companion part in make_move() to recognize and implement it
             // 
             // check for en-passant
-            // index_t const last_move_from_row = game.last_move.from / 8;
-            // index_t const last_move_to_col = game.last_move.to % 8;
-            // index_t const last_move_to_row = game.last_move.to / 8;
+            if ((false)) {
+                index_t const last_move_from_row = game.last_move.from / 8;
+                index_t const last_move_to_col = game.last_move.to % 8;
+                index_t const last_move_to_row = game.last_move.to / 8;
 
-            // if (last_move_to_col == to_col && last_move_to_row == row) {
-            //     if (abs(int(last_move_from_row) - int(last_move_to_row)) > 1) {
-            //         op = board.get(last_move_to_col + row * 8);
-            //         if (getType(op) == Pawn && getSide(op) != getSide(board.get(gen.move.from))) {
-            //             move.to = to_col + (row + ((White == getSide(board.get(gen.move.from))) ? -1 : 1)) * 8;
-            //             gen.callme(move, gen.best);
-            //         }
-            //     }
-            // }
+                if (last_move_to_col == to_col && last_move_to_row == (gen.move.from / 8)) {
+                    if (abs(int(last_move_from_row) - int(last_move_to_row)) > 1) {
+                        op = board.get(last_move_to_col + (gen.move.from / 8) * 8);
+                        if (getType(op) == Pawn && getSide(op) != getSide(board.get(gen.move.from))) {
+                            gen.move.to = to_col + ((gen.move.from / 8) + ((White == getSide(board.get(gen.move.from))) ? -1 : 1)) * 8;
+                            gen.callme(gen.move, gen.best);
+                        }
+                    }
+                }
+            }
         }
     }
 }

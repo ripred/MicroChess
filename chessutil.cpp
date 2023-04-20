@@ -6,7 +6,6 @@
  * MicroChess utility functions
  * 
  */
-
 #include <Arduino.h>
 #include <avr/pgmspace.h>
 #include "MicroChess.h"
@@ -14,78 +13,90 @@
 #include <ctype.h>
 
 // get the Type of a Piece
-Piece getType(Piece b) 
+Piece getType(Piece b)
 {
     return Type & b;
-}
+
+} // getType(Piece b)
 
 
 // see if a Piece is Empty
-Bool isEmpty(Piece b) 
+Bool isEmpty(Piece b)
 {
     return getType(b) == Empty;
-}
+
+} // isEmpty(Piece b)
 
 
 // get the value of a piece
-int getValue(Piece b) 
+int getValue(Piece b)
 {
     return pieceValues[getType(b)]; 
-}
+
+} // getValue(Piece b)
 
 
 // get the side for a Piece
-Piece getSide(Piece b) 
+Piece getSide(Piece b)
 { 
     return (Side & b) >> 3u; 
-}
+
+} // getSide(Piece b)
 
 
 // see if a Piece has moved
-Bool hasMoved(Piece b) 
+Bool hasMoved(Piece b)
 { 
     return (Moved & b) == Moved; 
-}
+
+} // hasMoved(Piece b)
 
 
 // see if a Piece is in check
-Bool inCheck(Piece b) 
+Bool inCheck(Piece b)
 { 
     return (Check & b) == Check; 
-}
+
+} // inCheck(Piece b)
 
 
 // set the Type of a Piece
-Piece setType(Piece b, Piece type) 
+Piece setType(Piece b, Piece type)
 { 
     return (b & ~Type) | (type & Type); 
-}
+
+} // setType(Piece b, Piece type)
 
 
 // set the Color of a Piece
-Piece setSide(Piece b, Piece side) {
+Piece setSide(Piece b, Piece side)
+{
     return (b & ~Side) | ((side << 3u) & Side); 
-}
+
+} // setSide(Piece b, Piece side)
 
 
 // set or reset the flag indicating a Piece as moved
-Piece setMoved(Piece b, Bool hasMoved) 
+Piece setMoved(Piece b, Bool hasMoved)
 { 
     return (b & ~Moved) | (hasMoved ? Moved : 0); 
-}
+
+} // setMoved(Piece b, Bool hasMoved)
 
 
 // set or reset the flag indicating a Piece is in check
-Piece setCheck(Piece b, Bool inCheck) 
+Piece setCheck(Piece b, Bool inCheck)
 { 
     return (b & ~Check) | (inCheck ? Check : 0); 
-}
+
+} // setCheck(Piece b, Bool inCheck)
 
 
 // construct a Piece value
 Piece makeSpot(Piece type, Piece side, unsigned char moved, unsigned char inCheck) {
     return setType(0, type) | setSide(0, side) | setMoved(0, moved) | setCheck(0, inCheck);
-}
+
+} // makeSpot(Piece type, Piece side, unsigned char moved, unsigned char inCheck)
 
 
 char *getName(Piece b) {
@@ -100,13 +111,15 @@ char *getName(Piece b) {
     }
 
     return (char*) names[type + type_offset];
-}
+
+} // getName(Piece b)
 
 
 char *getColor(Piece b) 
 { 
     return getSide(b) == White ? (char*) "White" : (char*) "Black"; 
-}
+
+} // getColor(Piece b)
 
 
 const char* addCommas(long int value) {
@@ -120,7 +133,8 @@ const char* addCommas(long int value) {
         buff[i] = ',';
     }
     return buff;
-}
+
+} // addCommas(long int value)
 
 
 int debug(char const * const progmem, ...) {
@@ -134,7 +148,9 @@ int debug(char const * const progmem, ...) {
     va_end(argList);
 
     return Serial.write(buff, strlen(buff));
-}
+
+} // debug(char const * const progmem, ...)
+
 
 const char* ftostr(double value, int dec /* = 2 */, char * const buff /* = nullptr */)
 {
@@ -166,6 +182,17 @@ Bool timeout() {
 } // timeout()
 
 
+// check for a low memory condition
+Bool check_mem() {
+    Bool const low_mem =freeMemory() < game.options.low_mem_limit;
+    if (low_mem) {
+        show_low_memory();
+    }
+    return low_mem;
+
+} // check_mem()
+
+
 void show_low_memory() {
     digitalWrite(DEBUG1_PIN, HIGH);
     delayMicroseconds(SHOW_DURATION);
@@ -173,12 +200,14 @@ void show_low_memory() {
 
 } // show_low_memory()
 
+
 void show_quiescent_search() {
     digitalWrite(DEBUG2_PIN, HIGH);
     delayMicroseconds(SHOW_DURATION);
     digitalWrite(DEBUG2_PIN, LOW);
 
 } // show_quiescent_search()
+
 
 void show_timeout() {
     digitalWrite(DEBUG3_PIN, HIGH);
@@ -194,19 +223,19 @@ void show_stats() {
     // print out the game move counts and time statistics
     printf(Debug1, "======================================================================\n");
 
-    double ftime = game.stats.game_stats.duration() / 1000.0;
+    double const ftime = game.stats.game_stats.duration() / 1000.0;
     ftostr(ftime, 4, str);
     printf(Debug1, "           total game time: %s seconds\n", str);
 
-    uint32_t move_count = game.stats.move_stats.counter();
+    uint32_t const move_count = game.move_num + 1;
     ftostr(move_count, 0, str);
     printf(Debug1, "           number of moves: %s\n", str);
 
-    uint32_t game_count = game.stats.game_stats.counter();
+    uint32_t const game_count = game.stats.game_stats.counter();
     ftostr(game_count, 0, str);
     printf(Debug1, "total game moves evaluated: %s\n", str);
 
-    uint32_t moves_per_sec = game.stats.game_stats.moveps();
+    uint32_t const moves_per_sec = game.stats.game_stats.moveps();
     ftostr(moves_per_sec, 0, str);
     printf(Debug1, "  average moves per second: %s %s\n", str, 
         game.options.profiling ? "" : "(this includes waiting on the serial output)");
