@@ -31,6 +31,12 @@ void add_pawn_moves(piece_gen_t &gen) {
         // get piece at location 1 spot in front of pawn
         Piece op = board.get(gen.move.to);
         if (isEmpty(op)) {
+            // Make forward moves more valuable when we get towards
+            // the end game and there aren't many pieces
+            if (game.piece_count < 10) {
+                gen.best.value += (White == getSide(board.get(gen.move.from))) ? +100000 : -100000;
+            }
+
             gen.callme(gen.move, gen.best);
 
             // see if we can move 2 spots in front of this pawn

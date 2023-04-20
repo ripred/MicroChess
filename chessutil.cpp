@@ -11,6 +11,7 @@
 #include "MicroChess.h"
 #include <stdarg.h>
 #include <ctype.h>
+#include <stdint.h>
 
 // get the Type of a Piece
 Piece getType(Piece b)
@@ -222,10 +223,9 @@ void show_stats() {
 
     // print out the game move counts and time statistics
     printf(Debug1, "======================================================================\n");
-
-    double const ftime = game.stats.game_stats.duration() / 1000.0;
-    ftostr(ftime, 4, str);
-    printf(Debug1, "           total game time: %s seconds\n", str);
+    printf(Debug1, "           total game time: ");
+    show_time(game.stats.game_stats.duration());
+    printf(Debug1, "\n");
 
     uint32_t const move_count = game.move_num + 1;
     ftostr(move_count, 0, str);
@@ -374,6 +374,34 @@ void show_move(move_t const &move)
     printf(Debug1, " value: %s%s", (move.value < 0) ? "" : " ", str_value);
 
 } // show_move(move_t const &move)
+
+
+void show_time(uint32_t ms)
+{
+    uint32_t minutes = 0;
+    uint32_t seconds = 0;
+    while (ms >= 1000) {
+        ms -= 1000;
+        if (++seconds >= 60) {
+            seconds = 0;
+            minutes++;
+        }
+    }
+    if (0 != minutes) {
+        char str[16] {};
+        ftostr(minutes, 0, str);
+        printf(Debug1, "%s minute%s%s", str, 1 == minutes ? "" : "s", (0 == seconds && 0 == ms) ? "" : ", ");
+    }
+    if (0 != seconds) {
+        printf(Debug1, "%d second%s%s", seconds, (1 == seconds) ? "" : "s", (0 == ms) ? "" : ", ");
+    }
+    if (0 != ms) {
+        if (0 != seconds) {
+            printf(Debug1, ", ");
+        }
+        printf(Debug1, "%ld ms", ms);
+    }
+}
 
 
 // functions to convert the board contents to and from a 64-byte ascii string

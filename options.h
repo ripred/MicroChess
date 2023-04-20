@@ -22,7 +22,9 @@ public:
            live_update : 1,         // periodically update the LED strip and other external indicators as we choose a move
              profiling : 1,         // are we profiling the engine?
             continuous : 1,         // True if we play games continuously one after another
-        shuffle_pieces : 1;         // True if we want to process the pieces in a random order
+        shuffle_pieces : 1,         // True if we want to process the pieces in a random order
+           white_human : 1,         // Flags indicating if players are human or not
+           black_human : 1;
 
     uint32_t    seed;               // the starting seed hash for prn's
     print_t     print_level;        // the verbosity setting for the level of output
@@ -34,14 +36,14 @@ public:
 
 
 // this stuff stays the same at runtime during the game, and can't be modified
-    static uint32_t const move_limit = 200;                             // the maximum number of moves allowed in a full game
-    static int      const low_mem_limit = 64;                           // amount of memory we need to exchang sides
+    static uint32_t const move_limit    = 50;   // the maximum number of moves allowed in a full game
+    static int      const low_mem_limit = 64;   // amount of memory we need to exchang sides
 
     // adjustable multipiers to alter importance of mobility or center proximity
     // during board evaluation. season to taste
     static long  const    mobilityBonus = 3L;
     static long  const    centerBonus = 2L;
-    static long  const    kingBonus = 10L;
+    static long  const    kingBonus = 2L;
 
 public:
 
@@ -51,6 +53,8 @@ public:
         profiling(False), 
         continuous(False),
         shuffle_pieces(True),
+        white_human(False),
+        black_human(False),
         seed(PRN_SEED),
         print_level(Debug1),
         alpha_beta_pruning(False),

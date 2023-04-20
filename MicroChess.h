@@ -220,6 +220,7 @@ struct piece_gen_t {
 extern void show_piece(Piece const p);
 extern void show_move(move_t const &move);
 extern void show_pieces();
+extern void show_time(uint32_t ms);
 
 // show the game time and move statistics
 extern void show_stats();
