@@ -30,12 +30,12 @@ public:
     uint8_t     max_max_ply;        // the ultimate maximum ply level
     uint8_t     max_quiescent_ply;  // the maximum ply level to continue if a piece was taken on a move
     uint8_t     maxply;             // the nominal max ply level
+    uint32_t    time_limit;         // optional time limit in ms if != 0
 
 
 // this stuff stays the same at runtime during the game, and can't be modified
     static uint32_t const move_limit = 200;                             // the maximum number of moves allowed in a full game
     static int      const low_mem_limit = 64;                           // amount of memory we need to exchang sides
-    static uint32_t const time_limit = 30000;                           // optional time limit in ms if != 0
 
     // adjustable multipiers to alter importance of mobility or center proximity
     // during board evaluation. season to taste

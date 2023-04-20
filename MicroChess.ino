@@ -775,21 +775,14 @@ void choose_best_move(Color const who, move_t &best, generator_t callback)
     // 
     // Enabling this also randomizes which piece index level we get to, and check
     // when any move time limits are enabled and hit.
-
-    // default to their existing order in the list
-    index_t piece_order[32];
-    for (int i = 0; i < game.piece_count; i++) {
-        piece_order[i] = i;
-    }
-
     if (game.options.random && game.options.shuffle_pieces) {
         for (int i = 0; i < 32; i++) {
             index_t const r1 = random(game.piece_count);
             index_t const r2 = random(game.piece_count);
             if (r1 != r2) {
-                index_t const tmp = piece_order[r1];
-                piece_order[r1] = piece_order[r2];
-                piece_order[r2] = tmp;
+                point_t const tmp = game.pieces[r1];
+                game.pieces[r1] = game.pieces[r2];
+                game.pieces[r2] = tmp;
             }
         }
     }
@@ -914,8 +907,6 @@ void choose_best_move(Color const who, move_t &best, generator_t callback)
 // 
 void play_game()
 {
-    show();
-
     Bool const whites_turn = (White == game.turn) ? True : False;
 
     game.stats.start_move_stats();
@@ -964,89 +955,109 @@ void play_game()
 
     move_t const &move = whites_turn ? best_white : best_black;
 
-    // Display the move that we chose * Before Modifying the Board *
-    printf(Debug1, "\nMove #%d: ", game.move_num + 1);
-    show_move(move);
+    static int bad_move_count = 0;
+    Bool const valid = isValidPos(move.from % 8, move.from / 8) && isValidPos(move.to % 8, move.to / 8);
 
-    // Make the move:
-    make_move(move, False);
-
-    if (game.last_was_en_passant) {
-        printf(Debug1, " en passant capture ")
-    }
-
-    if (game.last_was_pawn_promotion) {
-        printf(Debug1, " pawn promoted ")
-    }
-
-    if (game.last_was_timeout) {
-        printf(Debug1, " - timeout ")
-    }
-
-    if (game.last_was_castle) {
-        printf(Debug1, " castling ")
-    }
-
-    printf(Debug1, "\n");
-
-    // Announce if either king is in check
-    if (game.white_king_in_check) {
-        printf(Debug1, "White King is in check!\n");
-        if (whites_turn) {
-            printf(Debug1, "illegal move\n");
+    if (!valid) {
+        if (!game.white_king_in_check )
+        bad_move_count++;
+        if (bad_move_count >= 5) {
+            printf(Debug1, "Error: stuck in an endless loop finding a move at line %d\n", __LINE__);
+            show();
+            while ((true)) {}
         }
     }
 
-    if (game.black_king_in_check) {
-        printf(Debug1, "Black King is in check!\n");
-        if (!whites_turn) {
-            printf(Debug1, "illegal move\n");
+    if (valid) {
+        bad_move_count = 0;
+
+        show();
+
+        // Display the move that we chose * Before Modifying the Board *
+        printf(Debug1, "\nMove #%d: ", game.move_num + 1);
+        show_move(move);
+
+        // Make the move:
+        make_move(move, False);
+
+        if (game.last_was_en_passant) {
+            printf(Debug1, " en passant capture ")
+        }
+
+        if (game.last_was_pawn_promotion) {
+            printf(Debug1, " pawn promoted ")
+        }
+
+        if (game.last_was_timeout) {
+            printf(Debug1, " - timeout ")
+        }
+
+        if (game.last_was_castle) {
+            printf(Debug1, " castling ")
+        }
+
+        printf(Debug1, "\n");
+
+        // Announce if either king is in check
+        if (game.white_king_in_check) {
+            printf(Debug1, "White King is in check!\n");
+            if (whites_turn) {
+                printf(Debug1, "illegal move\n");
+            }
+        }
+
+        if (game.black_king_in_check) {
+            printf(Debug1, "Black King is in check!\n");
+            if (!whites_turn) {
+                printf(Debug1, "illegal move\n");
+            }
+        }
+
+        printf(Debug1, "\n");
+
+        // check for move repetition
+        if ((PLAYING == game.state) && add_to_history(move)) {
+            game.state = whites_turn ? WHITE_3_MOVE_REP : BLACK_3_MOVE_REP;
+        }
+
+        // if (whites_turn && game.white_king_in_check) {
+        //     no_white_moves = True;
+        // }
+
+        // if (!whites_turn && game.black_king_in_check) {
+        //     no_black_moves = True;
+        // }
+
+        // see if the game has been won
+        if ((PLAYING == game.state) && whites_turn && no_black_moves && game.black_king_in_check) {
+            game.state = WHITE_CHECKMATE;
+        }
+
+        if ((PLAYING == game.state) && !whites_turn && no_white_moves && game.white_king_in_check) {
+            game.state = BLACK_CHECKMATE;
+        }
+
+        // see if we have a stalemate
+        if ((PLAYING == game.state) && no_white_moves && no_black_moves) {
+            game.state = STALEMATE;
+        }
+
+        // toggle whose turn it is
+        ++game.turn %= 2;
+
+        // increase the game moves counter
+        game.move_num++;
+
+        // Now go through the piece list and actually remove any pieces that
+        // were soft-deleted during evaluation when the physical layout of
+        // the list couldn't be modified.
+        for (index_t i = 0; i < game.piece_count; i++) {
+            if (-1 == game.pieces[i].x) {
+                game.pieces[i] = game.pieces[--game.piece_count];
+            }
         }
     }
 
-    printf(Debug1, "\n");
-
-    // check for move repetition
-    if ((PLAYING == game.state) && add_to_history(move)) {
-        game.state = whites_turn ? WHITE_3_MOVE_REP : BLACK_3_MOVE_REP;
-    }
-
-    // if (whites_turn && game.white_king_in_check) {
-    //     no_white_moves = True;
-    // }
-
-    // if (!whites_turn && game.black_king_in_check) {
-    //     no_black_moves = True;
-    // }
-
-    // see if the game has been won
-    if ((PLAYING == game.state) && whites_turn && no_black_moves && game.black_king_in_check) {
-        game.state = WHITE_CHECKMATE;
-    }
-
-    if ((PLAYING == game.state) && !whites_turn && no_white_moves && game.white_king_in_check) {
-        game.state = BLACK_CHECKMATE;
-    }
-
-    // see if we have a stalemate
-    if ((PLAYING == game.state) && no_white_moves && no_black_moves) {
-        game.state = STALEMATE;
-    }
-
-    // toggle whose turn it is
-    ++game.turn %= 2;
-
-    // increase the game moves counter
-    game.move_num++;
-
-    // Now go through the piece list and actually remove any pieces that
-    // were soft-deleted during evaluation when the physical layout of
-    // the list couldn't be modified.
-    for (index_t i = 0; i < game.piece_count; i++) {
-        if (-1 == game.pieces[i].x) {
-            game.pieces[i] = game.pieces[--game.piece_count];
-        }
-    }
 
 }   // play_game()
 
@@ -1081,13 +1092,16 @@ void set_game_options()
     // game.options.continuous = False;
     game.options.continuous = True;
 
+    // set the time limit per turn in milliseconds
+    game.options.time_limit = 60000;
+
     // enable or disable alpha-beta pruning
-    // game.options.alpha_beta_pruning = False;
-    game.options.alpha_beta_pruning = True;
+    game.options.alpha_beta_pruning = False;
+    // game.options.alpha_beta_pruning = True;
 
     // set whether or not we process the pieces in random order
-    // game.options.shuffle_pieces = False;
-    game.options.shuffle_pieces = True;
+    game.options.shuffle_pieces = False;
+    // game.options.shuffle_pieces = True;
 
     // set the 'live update' flag
     // game.options.live_update = False;
