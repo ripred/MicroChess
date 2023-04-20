@@ -577,7 +577,7 @@ long make_move(move_t const &move, Bool const evaluating)
     }
 
     // Periodically update the LED strip display if enabled
-    if (game.options.live_update && (game.ply > 0)) {
+    if (game.options.live_update && (game.ply > 0) && (game.ply < game.options.max_max_ply)) {
         static move_t last_led_update = { -1, -1, 0 };
         if (memcmp(&last_led_update, &move, sizeof(move)) != 0) {
             last_led_update = move;
@@ -971,8 +971,6 @@ void play_game()
     if (valid) {
         bad_move_count = 0;
 
-        show();
-
         // Display the move that we chose * Before Modifying the Board *
         printf(Debug1, "\nMove #%d: ", game.move_num + 1);
         show_move(move);
@@ -1193,10 +1191,13 @@ void setup()
         board.init();
         game.init();
 
+        show();
+
         game.stats.start_game_stats();
 
         do {
             play_game();
+            show();
 
         } while (PLAYING == game.state);
 
