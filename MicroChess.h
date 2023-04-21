@@ -206,18 +206,50 @@ extern game_t game;
 
 
 // define a data type for a callback move generation handler
-typedef Bool (generator_t(move_t &, move_t &));
+typedef Bool (generator_t(struct piece_gen_t &gen));
 
 
 // The piece_gen_t type is a parameter passing structure used
-// to speed up the move generation calls for the piece types
+// to speed up the move generation calls for the piece types.
+// This is the structure that is passed to each generator function
+// for each piece type.
 struct piece_gen_t {
+    // The move_t structure to use. Initially for each piece generator, 
+    // only the 'from' field of the move is valid. The generator function 
+    // fills in the 'to' field as it generates moves.
     move_t      & move;
-    move_t      & best;
-    generator_t  *callme;
 
-    piece_gen_t(move_t &m, move_t &b, generator_t *cb) :
-        move(m), best(b), callme(cb) {}
+    // The best move found for this piece type so far
+    move_t      & best;
+
+    // The function to call for each move to be evaluated
+    generator_t * callme;
+
+    uint8_t evaluating : 1, // True if we are just evaluating the move
+                  side : 1, // The side the piece is for: White or Black
+           whites_turn : 1, // True when this move is for White's side
+                   col : 3,
+                   row : 3;
+
+    // The index into the pieces list of the piece being evaluated
+    index_t     piece_index;
+
+    // The Piece beig moved
+    Piece       piece;
+
+    // The Type of the Piece: [Empty | Pawn | Knight | Rook | Bishop | Queen | King]
+    Piece       type;
+
+    piece_gen_t(move_t &m, move_t &b, generator_t *cb, Bool const eval) :
+        move(m), best(b), callme(cb), evaluating(eval)
+    {
+        piece = board.get(move.from);
+        type = getType(piece);
+        side = getSide(piece);
+        whites_turn = White == side;
+        col = move.from % 8;
+        row = move.from / 8;
+    }
 
 }; // piece_gen_t
 
@@ -241,7 +273,7 @@ extern void set_led_strip();
 
 extern Bool timeout();
 
-extern long make_move(move_t const &move, Bool const restore);
+extern long make_move(piece_gen_t & gen);
 
 extern Bool would_repeat(move_t const move);
 
@@ -249,7 +281,7 @@ extern Bool add_to_history(move_t const &move);
 
 extern void choose_best_move(Color const who, move_t &best, generator_t callback);
 
-extern Bool consider_move(move_t &move, move_t &best);
+extern Bool consider_move(piece_gen_t &gen);
 
 extern void add_pawn_moves(piece_gen_t &gen);
 extern void add_knight_moves(piece_gen_t &gen);

@@ -26,8 +26,8 @@ void add_pawn_moves(piece_gen_t &gen) {
     }
 
     // see if we can move 1 spot in front of this pawn
-    index_t to_col = (gen.move.from % 8);
-    index_t to_row = (gen.move.from / 8) + ((White == getSide(board.get(gen.move.from))) ? -1 : 1);
+    index_t to_col = gen.col;
+    index_t to_row = gen.row + (gen.whites_turn ? -1 : 1);
     gen.move.to = to_col + to_row * 8;
     Piece op = Empty;
 
@@ -38,20 +38,20 @@ void add_pawn_moves(piece_gen_t &gen) {
             // Make forward moves more valuable when we get towards
             // the end game and there aren't many pieces
             if (game.piece_count < 18) {
-                gen.best.value += (White == getSide(board.get(gen.move.from))) ? +100000 : -100000;
+                gen.best.value += gen.whites_turn ? +100000 : -100000;
             }
 
-            gen.callme(gen.move, gen.best);
+            gen.callme(gen);
 
             // see if we can move 2 spots in front of this pawn
             if (!hasMoved(board.get(gen.move.from))) {
-                to_row += ((White == getSide(board.get(gen.move.from))) ? -1 : 1);
+                to_row += (gen.whites_turn ? -1 : 1);
                 if (isValidPos(to_col, to_row)) {
                     // get piece at location 2 spots in front of pawn
                     gen.move.to = to_col + to_row * 8;
                     op = board.get(gen.move.to);
                     if (isEmpty(op)) {
-                        gen.callme(gen.move, gen.best);
+                        gen.callme(gen);
                     }
                 }
             }
@@ -60,37 +60,36 @@ void add_pawn_moves(piece_gen_t &gen) {
 
     // see if we can capture a piece diagonally
     for (index_t i = -1; i <= 1; i += 2) {
-        to_col = (gen.move.from % 8) + i;
-        to_row = (gen.move.from / 8) + ((White == getSide(board.get(gen.move.from))) ? -1 : 1);
+        to_col = gen.col + i;
+        to_row = (gen.move.from / 8) + (gen.whites_turn ? -1 : 1);
         gen.move.to = to_col + to_row * 8;
         if (isValidPos(to_col, to_row)) {
             // get piece diagonally
             op = board.get(gen.move.to);
-            if (!isEmpty(op) && getSide(op) != getSide(board.get(gen.move.from))) {
-                gen.callme(gen.move, gen.best);
+            if (!isEmpty(op) && getSide(op) != gen.side) {
+                gen.callme(gen);
             }
 
-            // BUGBUG: TODO: Fix this and the companion part in make_move() to recognize and implement it
-            // 
             // check for en-passant
             if ((false)) {
                 index_t const last_move_from_row = game.last_move.from / 8;
                 index_t const last_move_to_col = game.last_move.to % 8;
                 index_t const last_move_to_row = game.last_move.to / 8;
 
-                if (last_move_to_col == to_col && last_move_to_row == (gen.move.from / 8)) {
+                if (last_move_to_col == to_col && last_move_to_row == gen.row) {
                     if (abs(int(last_move_from_row) - int(last_move_to_row)) > 1) {
-                        op = board.get(last_move_to_col + (gen.move.from / 8) * 8);
-                        if (getType(op) == Pawn && getSide(op) != getSide(board.get(gen.move.from))) {
-                            gen.move.to = to_col + ((gen.move.from / 8) + ((White == getSide(board.get(gen.move.from))) ? -1 : 1)) * 8;
-                            gen.callme(gen.move, gen.best);
+                        op = board.get(last_move_to_col + gen.row * 8);
+                        if (getType(op) == Pawn && getSide(op) != gen.side) {
+                            gen.move.to = to_col + (gen.row + (gen.whites_turn ? -1 : 1)) * 8;
+                            gen.callme(gen);
                         }
                     }
                 }
             }
         }
     }
-}
+
+} // add_pawn_moves(piece_gen_t &gen)
 
 
 /*
@@ -114,17 +113,18 @@ void add_knight_moves(piece_gen_t &gen) {
 
     offset_t const * const ptr = (offset_t const *) pgm_get_far_address(offsets);
     for (index_t i = 0; i < index_t(ARRAYSZ(offsets)); i++) {
-        index_t  const to_col = (gen.move.from % 8) + pgm_read_byte(&ptr[i].x);
-        index_t  const to_row = (gen.move.from / 8) + pgm_read_byte(&ptr[i].y);
+        index_t const to_col = gen.col + pgm_read_byte(&ptr[i].x);
+        index_t const to_row = gen.row + pgm_read_byte(&ptr[i].y);
         if (isValidPos(to_col, to_row)) {
             gen.move.to = to_col + to_row * 8;
-            Piece   const op = board.get(gen.move.to);
-            if (isEmpty(op) || getSide(op) != getSide(board.get(gen.move.from))) {
-                gen.callme(gen.move, gen.best);
+            Piece const op = board.get(gen.move.to);
+            if (isEmpty(op) || getSide(op) != gen.side) {
+                gen.callme(gen);
             }
         }
     }
-}
+
+} // add_knight_moves(piece_gen_t &gen)
 
 
 /*
@@ -147,18 +147,18 @@ void add_rook_moves(piece_gen_t &gen) {
 
     offset_t const * ptr = (offset_t const *) pgm_get_far_address(dirs);
     for (index_t i = 0; i < index_t(ARRAYSZ(dirs)); i++) {
-        index_t x = (gen.move.from % 8) + pgm_read_byte(&ptr[i].x);
-        index_t y = (gen.move.from / 8) + pgm_read_byte(&ptr[i].y);
+        index_t x = gen.col + pgm_read_byte(&ptr[i].x);
+        index_t y = gen.row + pgm_read_byte(&ptr[i].y);
 
         while (isValidPos(x, y)) {
             gen.move.to = x + y * 8;
             Piece const op = board.get(gen.move.to);
 
             if (isEmpty(op)) {
-                gen.callme(gen.move, gen.best);
+                gen.callme(gen);
             }
-            else if (getSide(board.get(gen.move.from)) != getSide(op)) {
-                gen.callme(gen.move, gen.best);
+            else if (getSide(op) != gen.side) {
+                gen.callme(gen);
                 break;
             }
             else {
@@ -169,7 +169,8 @@ void add_rook_moves(piece_gen_t &gen) {
             y += pgm_read_byte(&ptr[i].y);
         }
     }
-}
+
+} // add_rook_moves(piece_gen_t &gen)
 
 
 /*
@@ -193,18 +194,18 @@ void add_bishop_moves(piece_gen_t &gen) {
 
     offset_t const * ptr = (offset_t const *) pgm_get_far_address(dirs);
     for (index_t i = 0; i < index_t(ARRAYSZ(dirs)); i++) {
-        index_t x = (gen.move.from % 8) + pgm_read_byte(&ptr[i].x);
-        index_t y = (gen.move.from / 8) + pgm_read_byte(&ptr[i].y);
+        index_t x = gen.col + pgm_read_byte(&ptr[i].x);
+        index_t y = gen.row + pgm_read_byte(&ptr[i].y);
 
         while (isValidPos(x, y)) {
             gen.move.to = x + y * 8;
             Piece const op = board.get(gen.move.to);
 
             if (isEmpty(op)) {
-                gen.callme(gen.move, gen.best);
+                gen.callme(gen);
             }
-            else if (getSide(board.get(gen.move.from)) != getSide(op)) {
-                gen.callme(gen.move, gen.best);
+            else if (getSide(op) != gen.side) {
+                gen.callme(gen);
                 break;
             }
             else {
@@ -215,7 +216,8 @@ void add_bishop_moves(piece_gen_t &gen) {
             y += pgm_read_byte(&ptr[i].y);
         }
     }
-}
+
+} // add_bishop_moves(piece_gen_t &gen)
 
 
 /*
@@ -229,7 +231,8 @@ void add_queen_moves(piece_gen_t &gen) {
 
     add_rook_moves(gen);
     add_bishop_moves(gen);
-}
+
+} // add_queen_moves(piece_gen_t &gen)
 
 
 /*
@@ -253,19 +256,19 @@ void add_king_moves(piece_gen_t &gen) {
 
     offset_t const * const ptr = (offset_t *)pgm_get_far_address(king_offsets);
     for (index_t i = 0; i < index_t(ARRAYSZ(king_offsets)); i++) {
-        index_t  const to_col = (gen.move.from % 8) + pgm_read_byte(&ptr[i].x);
-        index_t  const to_row = (gen.move.from / 8) + pgm_read_byte(&ptr[i].y);
+        index_t  const to_col = gen.col + pgm_read_byte(&ptr[i].x);
+        index_t  const to_row = gen.row + pgm_read_byte(&ptr[i].y);
         if (isValidPos(to_col, to_row)) {
             gen.move.to = to_col + to_row * 8;
             Piece const op = board.get(gen.move.to);
-            if (isEmpty(op) || getSide(op) != getSide(board.get(gen.move.from))) {
-                gen.callme(gen.move, gen.best);
+            if (isEmpty(op) || getSide(op) != gen.side) {
+                gen.callme(gen);
             }
         }
     }
 
     // check for castling
-    if (!hasMoved(board.get(gen.move.from))) {
+    if (!hasMoved(gen.piece)) {
         // check King's side (right-hand side from white's view)
         index_t rook_loc = 0 + (gen.move.from / 8) * 8;
         Piece rook = board.get(rook_loc);
@@ -275,7 +278,7 @@ void add_king_moves(piece_gen_t &gen) {
             if (empty_knight && empty_bishop) {
                 // We can castle on the King's side
                 gen.move.to = 2 + (gen.move.from / 8) * 8;
-                gen.callme(gen.move, gen.move);
+                gen.callme(gen);
             }
         }
 
@@ -289,7 +292,7 @@ void add_king_moves(piece_gen_t &gen) {
             if (empty_knight && empty_bishop && empty_queen) {
                 // We can castle on the Queens's side
                 gen.move.to = 6 + (gen.move.from / 8) * 8;
-                gen.callme(gen.move, gen.move);
+                gen.callme(gen);
             }
         }
     }

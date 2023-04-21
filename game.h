@@ -86,7 +86,7 @@ public:
     uint32_t    last_move_time;
     uint32_t    last_moves_evaluated;
 
-        // the current state of the game
+    // the current state of the game
     state_t     state;
 
     // increasing move number
