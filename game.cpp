@@ -30,6 +30,11 @@ void game_t::init()
         }
     }
 
+#ifdef ENA_MEM_STATS
+    lowest_mem = 0xFFFF;
+    lowest_mem_ply = -1;
+#endif
+
     hist_count = 0;
 
     stats.init();
@@ -69,7 +74,7 @@ void game_t::init()
 ////////////////////////////////////////////////////////////////////////////////////////
 // use pre-computed bonus tables for speed!
 //                                [col/row][type][side] 
-long constexpr game_t::center_bonus[   8   ][  7 ][  2 ] PROGMEM = {
+long const game_t::center_bonus[   8   ][  7 ][  2 ] PROGMEM = {
     //                      Black                   ,                      White 
     {
         { 0 *  Empty * options.centerBonus * -1,    0 *  Empty * options.centerBonus * +1 },       // col/row offset 0; 3 from center
@@ -138,7 +143,7 @@ long constexpr game_t::center_bonus[   8   ][  7 ][  2 ] PROGMEM = {
     }
 };
 
-long constexpr game_t::material_bonus[7][2] PROGMEM = {
+long const game_t::material_bonus[7][2] PROGMEM = {
     //          Black        ,           White  
     { pieceValues[ Empty] * -1,     pieceValues[ Empty] * +1 },   //  Empty
     { pieceValues[  Pawn] * -1,     pieceValues[  Pawn] * +1 },   //   Pawn

@@ -16,6 +16,10 @@
  *
  */
 void add_pawn_moves(piece_gen_t &gen) {
+#ifdef ENA_MEM_STATS
+    game.freemem[1][game.ply].mem = freeMemory();
+#endif
+
     if (freeMemory() < game.options.low_mem_limit) {
         show_low_memory();
         return;
@@ -33,7 +37,7 @@ void add_pawn_moves(piece_gen_t &gen) {
         if (isEmpty(op)) {
             // Make forward moves more valuable when we get towards
             // the end game and there aren't many pieces
-            if (game.piece_count < 10) {
+            if (game.piece_count < 18) {
                 gen.best.value += (White == getSide(board.get(gen.move.from))) ? +100000 : -100000;
             }
 
@@ -94,10 +98,14 @@ void add_pawn_moves(piece_gen_t &gen) {
  *
  */
 void add_knight_moves(piece_gen_t &gen) {
-    static offset_t constexpr offsets[] PROGMEM = {
+    static offset_t constexpr offsets[8] PROGMEM = {
         { -2, +1 }, { -2, -1 }, { +2, +1 }, { +2, -1 }, 
         { +1, +2 }, { -1, +2 }, { +1, -2 }, { -1, -2 }  
     };
+
+#ifdef ENA_MEM_STATS
+    game.freemem[1][game.ply].mem = freeMemory();
+#endif
 
     if (freeMemory() < game.options.low_mem_limit) {
         show_low_memory();
@@ -124,9 +132,13 @@ void add_knight_moves(piece_gen_t &gen) {
  *
  */
 void add_rook_moves(piece_gen_t &gen) {
-    static offset_t constexpr dirs[] PROGMEM = {
+    static offset_t constexpr dirs[4] PROGMEM = {
         {  0,  1 }, {  0, -1 }, { -1,  0 }, {  1,  0 }
     };
+
+#ifdef ENA_MEM_STATS
+    game.freemem[1][game.ply].mem = freeMemory();
+#endif
 
     if (freeMemory() < game.options.low_mem_limit) {
         show_low_memory();
@@ -170,6 +182,10 @@ void add_bishop_moves(piece_gen_t &gen) {
         { -1, -1 }, { -1,  1 }, {  1, -1 }, {  1,  1 }
     };
 
+#ifdef ENA_MEM_STATS
+    game.freemem[1][game.ply].mem = freeMemory();
+#endif
+
     if (freeMemory() < game.options.low_mem_limit) {
         show_low_memory();
         return;
@@ -207,6 +223,10 @@ void add_bishop_moves(piece_gen_t &gen) {
  *
  */
 void add_queen_moves(piece_gen_t &gen) {
+#ifdef ENA_MEM_STATS
+    game.freemem[1][game.ply].mem = freeMemory();
+#endif
+
     add_rook_moves(gen);
     add_bishop_moves(gen);
 }
@@ -217,10 +237,14 @@ void add_queen_moves(piece_gen_t &gen) {
  *
  */
 void add_king_moves(piece_gen_t &gen) {
-    static offset_t constexpr king_offsets[] PROGMEM = {
+    static offset_t constexpr king_offsets[8] PROGMEM = {
         { -1,  0 }, {  0, -1 }, { -1, -1 }, { +1, -1 }, 
         { +1,  0 }, {  0, +1 }, { -1, +1 }, { +1, +1 }
     };
+
+#ifdef ENA_MEM_STATS
+    game.freemem[1][game.ply].mem = freeMemory();
+#endif
 
     if (freeMemory() < game.options.low_mem_limit) {
         show_low_memory();

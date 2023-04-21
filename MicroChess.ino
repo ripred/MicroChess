@@ -76,11 +76,12 @@
  *      worth MAX_VALUE.
  * 
  *  [+] Add flags to the game to indicate whether each side is human or not
+ *  [+] Add the display of the full game time so far to each show() update
+ *  [ ] Change to use true printf, stdin, stdout and stderr so we don't copy the fmt buffer
  *  [ ] Add 64-entry board-to-pieces index translation table to be able to remove
  *      the find_piece(...) function? This may remove too mouch from main RAM,
  *      but unlike the saved 64 bytes trimmed from the choose_best_move(...)
  *      call chain this table is a singleton so it may be okay.
- *  [ ] Add the display of the full game tie so far to each show() update
  *  [ ] Add tests that prove that the same moves are chosen when alpha-beta
  *      pruning is enabled that are chosen when it is disabled and running in brute force?
  *  [ ] Add 'pieces evaluated' counters for ech ply level in order to not 
@@ -88,7 +89,6 @@
  *      resulting in a breadth-first search instead of a depth first search
  *  [ ] Add optional use of I2C serial RAM to create transposition tables for
  *      moves that have already been searced during this turn.
- *  [ ] Change to use true printf, stdin, stdout and stderr so we don't copy the fmt buffer
  *  [ ] Enhance to pause the game when a newline is received
  *  [ ] Enhance the game to allow moves to be entered by a human via the serial port
  *  [ ] Change to have two sets of option_t in the game, one for each player in order to test
@@ -111,41 +111,6 @@ board_t board;
 // the currently running game
 game_t game;
 
-////////////////////////////////////////////////////////////////////////////////////////
-// Function to check if a move is better than the current best move
-// 
-// returns True if move is better, False otherwise
-Bool is_better_move(
-    move_t const &move, 
-    move_t const &best, 
-    Bool const use_random, 
-    Color const side) {
-
-    // if (-1 == move.from) {
-    //     return True;
-    // }
-
-    if (side == White) {
-        if (move.value > best.value) {
-            return True;
-        }
-        else if (move.value == best.value) {
-            return use_random && random(2);
-        }
-    }
-    else {
-        if (move.value < best.value) {
-            return True;
-        }
-        else if (move.value == best.value) {
-            return use_random && random(2);
-        }
-    }
-
-    return False;
-
-}   // is_better_move(...)
-
 
 ////////////////////////////////////////////////////////////////////////////////////////
 // Consider a move against the best white move or the best black move
@@ -155,6 +120,10 @@ Bool is_better_move(
 // returns True if the move is the new best move, False otherwise
 Bool consider_move(move_t &move, move_t &best) 
 {
+    #ifdef ENA_MEM_STATS
+    game.freemem[2][game.ply].mem = freeMemory();
+    #endif
+
     if (check_mem()) {
         return False;
     }
@@ -171,9 +140,19 @@ Bool consider_move(move_t &move, move_t &best)
     }
 
     // check if the move is better than the current best move
-    if (is_better_move(move, best, game.options.random, side)) {
-        best = move;
-        return True;
+    if (White == side) {
+        if ((move.value > best.value) || 
+            (move.value == best.value && game.options.random && random(2))) {
+            best = move;
+            return True;
+        }
+    }
+    else {
+        if ((move.value < best.value) || 
+            (move.value == best.value && game.options.random && random(2))) {
+            best = move;
+            return True;
+        }
     }
 
     return False;
@@ -222,6 +201,10 @@ inline index_t find_piece(index_t const index)
 // returns the value of the board after the move was made
 long make_move(move_t const &move, Bool const evaluating) 
 {
+    #ifdef ENA_MEM_STATS
+    game.freemem[3][game.ply].mem = freeMemory();
+    #endif
+
     // The value of the board.
     // Default to the worst value for our side.
     // i.e: Don't make the move whatever it is
@@ -528,7 +511,7 @@ long make_move(move_t const &move, Bool const evaluating)
 
                 // Explore The Future! (plies)
                 game.ply++;
-                ++game.turn %= 2;
+                ++game.turn;
 
                 // Keep track of the deepest ply level we go to
                 if (game.ply > game.stats.move_stats.maxply) {
@@ -599,7 +582,7 @@ long make_move(move_t const &move, Bool const evaluating)
                 }
 
                 game.ply--;
-                ++game.turn %= 2;
+                ++game.turn;
             }
         }
     }
@@ -769,15 +752,28 @@ void reset_turn_flags()
     game.last_was_timeout = False;
     game.last_was_pawn_promotion = False;
 
-    // set the alpha and beta edges to the worst case (brute force)
-    // O(N) based on whose turn it is. So freakin cool..
+    // Set the alpha and beta edges to the worst case (brute force)
+    // O(N) based on whose turn it is. Math is so freakin cool..
+    // Also make any changes to the options that we want the two sides to have.
     if (White == game.turn) {
         game.alpha = MIN_VALUE;
-        game.beta = MAX_VALUE;
+        game.beta  = MAX_VALUE;
+
+        // Set the game options we want for White
+        // game.options.alpha_beta_pruning = True;
+        // game.options.shuffle_pieces = True;
+        // game.options.max_max_ply = 4;
+        // game.options.maxply = 3;
     }
     else {
         game.alpha = MAX_VALUE;
-        game.beta = MIN_VALUE;
+        game.beta  = MIN_VALUE;
+
+        // Set the game options we want for Black
+        // game.options.alpha_beta_pruning = True;
+        // game.options.shuffle_pieces = False;
+        // game.options.max_max_ply = 2;
+        // game.options.maxply = 2;
     }
 
 }   // reset_move_flags()
@@ -793,6 +789,10 @@ void reset_turn_flags()
 // if the pointer is not nullptr.
 void choose_best_move(Color const who, move_t &best, generator_t callback)
 {
+    #ifdef ENA_MEM_STATS
+    game.freemem[0][game.ply].mem = freeMemory();
+    #endif
+
     if (check_mem()) { return; }
 
     // As an aid to the alpha-beta pruning heuristic, we randomize the piece order,
@@ -941,6 +941,12 @@ void choose_best_move(Color const who, move_t &best, generator_t callback)
 // 
 void play_game()
 {
+    // see if we've hit the move limit
+    if (game.move_num >= game.options.move_limit) {
+        game.state = FIFTY_MOVES;
+        return;
+    }
+
     Bool const whites_turn = (White == game.turn) ? True : False;
 
     game.stats.start_move_stats();
@@ -972,12 +978,6 @@ void play_game()
     game.stats.stop_move_stats();
     game.last_move_time = game.stats.move_stats.duration();
     game.last_moves_evaluated = game.stats.move_stats.counter();
-
-    // see if we've hit the move limit
-    if (game.move_num >= game.options.move_limit) {
-        game.state = FIFTY_MOVES;
-        return;
-    }
 
     move_t const &move = whites_turn ? best_white : best_black;
 
@@ -1077,7 +1077,7 @@ void play_game()
     }
 
     // toggle whose turn it is
-    ++game.turn %= 2;
+    ++game.turn;
 
     // increase the game moves counter
     game.move_num++;
@@ -1109,10 +1109,12 @@ void set_game_options()
     game.options.max_max_ply = 4;
 
     // set the max ply level (the number of turns we look ahead) for normal moves
-    game.options.maxply = 4;
+    game.options.maxply = 2;
 
     // set the maximum ply level to continue if a move takes a piece
     game.options.max_quiescent_ply = game.options.maxply + 2;
+
+    // The quiescent search depth is based off of the max ply level
     if (game.options.max_quiescent_ply > game.options.max_max_ply) {
         game.options.max_quiescent_ply = game.options.max_max_ply;
     }
@@ -1127,7 +1129,7 @@ void set_game_options()
     game.options.continuous = True;
 
     // set the time limit per turn in milliseconds
-    game.options.time_limit = 15000;
+    game.options.time_limit = 10000;
 
     // enable or disable alpha-beta pruning
     // game.options.alpha_beta_pruning = False;
@@ -1145,15 +1147,6 @@ void set_game_options()
     game.options.seed = 0x232F89A3;
     uint16_t upper = game.options.seed >> 16;
     uint16_t lower = word(game.options.seed);
-
-    // Enable random seed when program is debugged.
-    // Disable random seed to reproduce issues or to profile.
-    if (game.options.profiling) {
-        printf(Debug1, "profiling. ");
-
-        // game.options.random = False;
-        game.options.print_level = None;
-    } 
 
     // Salt the psuedo-random number generator seed if enabled:
     if (game.options.random) {
@@ -1187,12 +1180,46 @@ void set_game_options()
         lower = word(game.options.seed);
     }
 
-    printf(Always, "prng seed hash: 0x%04X%04X\n", upper, lower);
-    printf(Always, "nominal ply limit: %d\n", game.options.maxply);
+    printf(Always, "PRNG seed hash: 0x%04X%04X\n", upper, lower);
+    printf(Always, "Ply limits: normal: %d, quiescent: %d, max: %d\n", 
+        game.options.maxply,
+        game.options.max_quiescent_ply,
+        game.options.max_max_ply);
+    printf(Always, "Max number of moves: %d\n", game.options.move_limit);
 
-    printf(Always, "time limit: ");
-    show_time(game.options.time_limit);
-    printf(Always, "\n\n");
+    printf(Always, "Alpha-Beta pruning: ");
+    if (game.options.alpha_beta_pruning) {
+        printf(Always, "enabled\n");
+    }
+    else {
+        printf(Always, "disabled\n");
+    }
+    printf(Always, "Move Shuffling: ");
+    if (game.options.shuffle_pieces) {
+        printf(Always, "enabled\n");
+    }
+    else {
+        printf(Always, "disabled\n");
+    }
+
+    printf(Always, "Time limit: ");
+    if (0 == game.options.time_limit) {
+        printf(Debug1, " unlimited\n");
+    }
+    else {
+        show_time(game.options.time_limit);
+        printf(Debug1, "\n");
+    }
+
+    // Enable random seed when program is debugged.
+    // Disable random seed to reproduce issues or to profile.
+    if (game.options.profiling) {
+        printf(Debug1, "Profiling:\n");
+
+        // Turn off output if we are profiling
+        game.options.print_level = None;
+    } 
+    printf(Debug1, "\n");
 
     randomSeed(game.options.seed);
 
@@ -1206,7 +1233,7 @@ void set_game_options()
 // int main(int /* argc */, char */* argv*/[] ) 
 void setup()
 {
-    Serial.begin(115200); while (!Serial); Serial.write('\n');
+    Serial.begin(1000000); while (!Serial); Serial.write('\n');
 
     init_led_strip();
 
@@ -1334,7 +1361,7 @@ void show()
             // display the last move made if available
             case offset + 0:
                 if (game.last_move.from != -1 && game.last_move.to != -1) {
-                    printf(Debug1, "    Last Move: %c%c to %c%c", 
+                    printf(Debug1, "      Last Move: %c%c to %c%c", 
                         (game.last_move.from % 8) + 'A', 
                         '8' - (game.last_move.from / 8), 
                         (game.last_move.to   % 8) + 'A', 
@@ -1352,7 +1379,7 @@ void show()
                     ftostr(game.stats.move_stats.moveps(), 2, str_moves_per_sec);
                     char str_time[16] = "";
                     ftostr(game.last_move_time, 0, str_time);
-                    printf(Debug1, "    %s moves in ", str_moves);
+                    printf(Debug1, "      %s moves in ", str_moves);
                     show_time(game.last_move_time);
                     printf(Debug1, " (%s moves/sec)", str_moves_per_sec);
                 }
@@ -1361,7 +1388,7 @@ void show()
             // display the total game time so far
             case offset + 2:
                 if (game.move_num > 0) {
-                    printf(Debug1, "    Game time elapsed : ");
+                    printf(Debug1, "      Game time elapsed : ");
                     show_time(game.stats.game_stats.duration());
                 }
                 break;
@@ -1369,14 +1396,14 @@ void show()
             // display the max ply depth we were able to reach
             case offset + 3:
                 if (game.move_num > 0) {
-                    printf(Debug1, "    Max ply depth reached: %d", 
+                    printf(Debug1, "      Max ply depth reached: %d", 
                         game.stats.move_stats.maxply);
                 }
                 break;
 
             // display the pieces taken by White
             case offset + 5:
-                printf(Debug1, "    Taken 1: ");
+                printf(Debug1, "      Taken 1: ");
                 for (int i = 0; i < game.white_taken_count; i++) {
                     Piece const piece = game.taken_by_white[i];
                     Piece const ptype = getType(piece);
@@ -1387,7 +1414,7 @@ void show()
 
             // display the pieces taken by Black
             case offset + 6:
-                printf(Debug1, "    Taken 2: ");
+                printf(Debug1, "      Taken 2: ");
                 for (int i = 0; i < game.black_taken_count; i++) {
                     Piece const piece = game.taken_by_black[i];
                     Piece const ptype = getType(piece);
@@ -1410,7 +1437,7 @@ void show()
 
         char str_score[16] = "";
         ftostr(value, 0, str_score);
-        printf(Debug1, "    Board value: %8s %s", str_score, (value == 0) ? "" : 
+        printf(Debug1, "      Board value: %8s %s", str_score, (value == 0) ? "" : 
             (value  < 0) ? "Black's favor" : "White's favor");
     }
 

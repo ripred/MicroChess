@@ -23,22 +23,25 @@ void init_led_strip() {
 }
 
 static uint8_t const piece_colors[12*3] PROGMEM = {
-    //  Pawn         Knight         Rook         Bishop        Queen          King
-     0,  4,  0,    4,  0,  0,    4,  4,  0,    0,  0,  4,    0,  4,  4,    4,  0,  4,     // Black
-     0, 16,  0,   16,  0,  0,   16, 16,  0,    0,  0, 16,    0, 16, 16,   16,  0, 16      // White
+//      King         Pawn          Knight        Bishop        Rook          Queen
+//   R,  G,  B,    R,  G,  B,    R,  G,  B,    R,  G,  B,    R,  G,  B,    R,  G,  B
+     0,  8,  0,    8,  0,  0,    8,  8,  0,    0,  0,  8,    8,  0,  8,    0,  8,  8,     // Black
+     0, 16,  0,   16,  0,  0,   16, 16,  0,    0,  0, 16,   16,  0, 16,    0, 16, 16      // White
+    //  0,  0,  0,    0,  0,  0,    0,  0,  0,    0,  0,  0,    0,  0,  0,    0, 99,  0,     // Black
+    //  0,  0,  0,    0,  0,  0,    0,  0,  0,    0,  0,  0,    0,  0,  0,    0, 99,  0      // White
 };
 
 void set_led_strip() 
 {
     for (index_t y = 0; y < 8; y++) {
         for (index_t x = 0; x < 8; x++) {
-            index_t const board_index = ((y & 1) ? (7-x) : x) + y * 8;
+            index_t const board_index = x + y * 8;
             Piece   const piece = board.get(board_index);
             Piece   const type = getType(piece);
             Color   const side = getSide(piece);
-            index_t const led_index = BOARD_SIZE - (x + y * 8) - 1;
+            index_t const led_index = BOARD_SIZE - (((y & 1) ? x : (7 - x)) + y * 8) - 1;
 
-            index_t ex = (y & 1) ? 7 - x : x;
+            index_t ex = (y & 1) ? x : 7 - x;
 
             static index_t constexpr values_per_led  = index_t(3);
             static index_t constexpr values_per_side = index_t(sizeof(piece_colors) / 2);

@@ -16,22 +16,23 @@
 #include <stddef.h>
 #include <limits.h>
 #include <string.h>
+#include <stdint.h>
 #include <stdlib.h>
 #include <stdio.h>
+#include <ctype.h>
 
 typedef unsigned char Color;
 typedef unsigned char Piece;
 typedef unsigned char Bool;
 
 ////////////////////////////////////////////////////////////////////////////////////////
-// limits
-enum : uint32_t 
-{
+// Magic Numbers
+// 
+enum : uint32_t {
     PRN_SEED    = 0x232F89A3,   // default hash seed for psuedo random number generator
 };
 
-enum 
-{
+enum {
     MAX_PLY            =  3,    // max ply depth
 
     MOVE_LIMIT         = 50,    // the maximum number of moves allowed in a game
@@ -62,6 +63,13 @@ struct offset_t {
 ////////////////////////////////////////////////////////////////////////////////////////
 // macro to validate a location
 #define  isValidPos(col, row) ((col >= 0 && col < 8 && row >= 0 && row < 8))
+
+////////////////////////////////////////////////////////////////////////////////////////
+// macro to enable the gathering of memory statistics at different ply levels
+// un-comment to enable
+// 
+// 
+// #define   ENA_MEM_STATS
 
 // print_t is used to set and control the output printing level
 enum print_t {
@@ -151,15 +159,11 @@ Piece setCheck(Piece b, Bool inCheck);
 // construct a Piece value
 Piece makeSpot(Piece type, Piece side, Bool moved, Bool inCheck);
 
-char *getName(Piece b);
-
-char *getColor(Piece b);
-
 extern void show_low_memory();
 extern void show_quiescent_search();
 extern void show_timeout();
 
-const char* ftostr(double value, int dec = 2, char * const buff = nullptr);
+const char* ftostr(double const value, int const dec, char * const buff);
 
 const char* addCommas(long int value);
 
@@ -230,7 +234,6 @@ extern void show_stats();
 // show the current memory statistics
 Bool check_mem();
 int freeMemory();
-extern void printMemoryStats();
 
 // control an external LED strip to display the board state
 extern void init_led_strip();

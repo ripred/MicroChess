@@ -11,9 +11,12 @@
 #include "board.h"
 
 board_t::board_t() {
-    for (index_t i = 0; i < index_t(BOARD_SIZE); i++) {
-        board[i] = Empty;
-    }
+    clear();
+}
+
+
+void board_t::clear() {
+    for (Piece &entry : board) { entry = Empty; }
 }
 
 
@@ -67,8 +70,3 @@ void board_t::set(index_t const index, Piece const piece)
     board[index] = piece;
 }
 
-
-Piece board_t::getType(index_t const index) const 
-{
-    return getType(get(index));
-}

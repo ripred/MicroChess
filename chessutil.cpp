@@ -100,32 +100,9 @@ Piece makeSpot(Piece type, Piece side, unsigned char moved, unsigned char inChec
 } // makeSpot(Piece type, Piece side, unsigned char moved, unsigned char inCheck)
 
 
-char *getName(Piece b) {
-    static char const * names[] = {"Empty", "Pawn", "Knight", "Bishop", "Rook", "Queen", "King"};
-    static const int num_names = ARRAYSZ(names);
-    static const int type_offset = 0;
-
-    int const type = getType(b);
-
-    if (type < type_offset || type >= type_offset + num_names) {
-        return nullptr;
-    }
-
-    return (char*) names[type + type_offset];
-
-} // getName(Piece b)
-
-
-char *getColor(Piece b) 
-{ 
-    return getSide(b) == White ? (char*) "White" : (char*) "Black"; 
-
-} // getColor(Piece b)
-
-
 const char* addCommas(long int value) {
-    static char buff[32];
-    snprintf(buff, 32, "%ld", value);
+    static char buff[16];
+    snprintf(buff, sizeof(buff), "%ld", value);
 
     int start_idx = (buff[0] == '-') ? 1 : 0;
 
@@ -153,7 +130,7 @@ int debug(char const * const progmem, ...) {
 } // debug(char const * const progmem, ...)
 
 
-const char* ftostr(double value, int dec /* = 2 */, char * const buff /* = nullptr */)
+const char* ftostr(double const value, int const dec, char * const buff)
 {
     static char str[16];
     dtostrf(value, sizeof(str), dec, str);
@@ -185,7 +162,14 @@ Bool timeout() {
 
 // check for a low memory condition
 Bool check_mem() {
-    Bool const low_mem =freeMemory() < game.options.low_mem_limit;
+#ifdef ENA_MEM_STATS
+    if ((unsigned int)freeMemory() < game.lowest_mem) {
+        game.lowest_mem = freeMemory();
+        game.lowest_mem_ply = game.ply;
+    }
+#endif
+
+    Bool const low_mem = freeMemory() < game.options.low_mem_limit;
     if (low_mem) {
         show_low_memory();
     }
@@ -218,6 +202,57 @@ void show_timeout() {
 } // show_timeout()
 
 
+#ifdef ENA_MEM_STATS
+
+void show_memory_stats1() {
+    // the amount of memory used as reported by the compiler
+    int const prg_ram = 938;
+
+    printf(Debug1, "== Memory Usage By Function and Ply Levels ==\n");
+
+    for (index_t i = 0; i <= game.options.max_max_ply; i++) {
+        printf(Debug1, "freemem[choose_best_move][ply %d] = %4d\n", i, game.freemem[0][i].mem - prg_ram);
+        printf(Debug1, "freemem[ piece move gen ][ply %d] = %4d\n", i, game.freemem[1][i].mem - prg_ram);
+        printf(Debug1, "freemem[ consider_move  ][ply %d] = %4d\n", i, game.freemem[2][i].mem - prg_ram);
+        printf(Debug1, "freemem[    make_move   ][ply %d] = %4d. Diff = %d\n", i, game.freemem[3][i].mem - prg_ram, game.freemem[0][i].mem - game.freemem[3][i].mem);
+    
+        printf(Debug1, "\n");
+    }
+
+    printf(Debug1, "\n");
+
+} // show_memory_stats1()
+
+void show_memory_stats2() {
+    // the amount of memory used as reported by the compiler
+    int const prg_ram = 938;
+
+    printf(Debug1, "== Memory Usage By Function and Ply Levels ==\n");
+
+    int const choose_best_move_mem = game.freemem[0][0].mem - game.freemem[1][0].mem;
+    int const piece_move_mem       = game.freemem[1][0].mem - game.freemem[2][0].mem;
+    int const consider_move_mem    = game.freemem[2][0].mem - game.freemem[3][0].mem;
+    int const make_move_mem        = game.freemem[3][0].mem - game.freemem[0][1].mem;
+
+    printf(Debug1, "choose_best_move(...) memory:   %3d\n", choose_best_move_mem);
+    printf(Debug1, "      pieces_gen(...) memory: + %3d\n", piece_move_mem);
+    printf(Debug1, "   consider_move(...) memory: + %3d\n", consider_move_mem);
+    printf(Debug1, "       make_move(...) memory: + %3d\n", make_move_mem);
+
+    int const recurs_mem = 
+        choose_best_move_mem +
+        piece_move_mem +
+        consider_move_mem +
+        make_move_mem;
+
+    printf(Debug1, "===================================\n", recurs_mem);
+    printf(Debug1, "       Total Recusive Memory: %d\n", recurs_mem);
+    printf(Debug1, "    Lowest Memory Registered: %4d at ply level %d\n", game.lowest_mem - prg_ram, game.lowest_mem_ply);
+    printf(Debug1, "\n");
+
+} // show_memory_stats2()
+
+#endif
 void show_stats() {
     char str[16]= "";
 
@@ -227,7 +262,7 @@ void show_stats() {
     show_time(game.stats.game_stats.duration());
     printf(Debug1, "\n");
 
-    uint32_t const move_count = game.move_num + 1;
+    uint32_t const move_count = game.move_num;
     ftostr(move_count, 0, str);
     printf(Debug1, "           number of moves: %s\n", str);
 
@@ -243,6 +278,8 @@ void show_stats() {
     ftostr(game.stats.max_moves, 0, str);
     printf(Debug1, "   max move count per turn: %s\n", str);
     printf(Debug1, "\n");
+
+    // show_memory_stats2();
 
 } // show_stats()
 
@@ -467,15 +504,4 @@ int freeMemory() {
 #else  // __arm__
     return __brkval ? &top - __brkval : &top - __malloc_heap_start;
 #endif  // __arm__
-}
-
-
-void printMemoryStats() {
-    // ============================================================
-    // startup memory
-    int constexpr totalRam = 2048;
-    int const freeRam = freeMemory();
-    int const usedRam = totalRam - freeRam;
-
-    printf(Debug1, "Used SRAM = %d, Free SRAM = %d\n", usedRam, freeRam);
 }
