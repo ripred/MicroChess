@@ -51,10 +51,13 @@ void add_pawn_moves(piece_gen_t &gen) {
     };
 
     // Check for forward moves
-    check_fwd(gen, to_col,to_row);
+
+    check_fwd(gen, to_col,to_row);              // check 1 row ahead
     if (!hasMoved(board.get(gen.move.from))) {
-        to_row += (gen.whites_turn ? -1 : +1);
-        check_fwd(gen, to_col,to_row);
+        if (isEmpty(board.get(gen.move.from + gen.whites_turn ? -8 : +8))) {
+            to_row += (gen.whites_turn ? -1 : +1);
+            check_fwd(gen, to_col,to_row);          // check 2 rows ahead
+        }
     }
 
     // See if we can capture a piece diagonally
