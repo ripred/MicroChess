@@ -19,9 +19,10 @@ game_t::game_t()
     init();
 }
 
+
 void game_t::init()
 {
-    // initialize list of pieces in the game based of of the board contents:
+    // Initialize the game.pieces[] list based off of the current board contents:
     piece_count = 0;
     for (uint8_t ndx=0; ndx < BOARD_SIZE; ++ndx) {
         if (Empty == getType(board.get(ndx))) continue;
@@ -74,71 +75,82 @@ void game_t::init()
 ////////////////////////////////////////////////////////////////////////////////////////
 // use pre-computed bonus tables for speed!
 //                                [col/row][type][side] 
+// Alias' for experimenting with center bonus strategies:
+static int constexpr PAWN   = Pawn;
+static int constexpr KNIGHT = Knight;
+static int constexpr ROOK   = Rook;
+static int constexpr BISHOP = Bishop;
+static int constexpr QUEEN  = Queen;
+// static int constexpr PAWN   = 1;
+// static int constexpr ROOK   = 1;
+// static int constexpr BISHOP = 1;
+// static int constexpr QUEEN  = 1;
+
 long const game_t::center_bonus[   8   ][  7 ][  2 ] PROGMEM = {
     //                      Black                   ,                      White 
     {
         { 0 *  Empty * options.centerBonus * -1,    0 *  Empty * options.centerBonus * +1 },       // col/row offset 0; 3 from center
-        { 0 *   Pawn * options.centerBonus * -1,    0 *   Pawn * options.centerBonus * +1 },
-        { 0 * Knight * options.centerBonus * -1,    0 * Knight * options.centerBonus * +1 },
-        { 0 * Bishop * options.centerBonus * -1,    0 * Bishop * options.centerBonus * +1 },
-        { 0 *   Rook * options.centerBonus * -1,    0 *   Rook * options.centerBonus * +1 },
-        { 0 *  Queen * options.centerBonus * -1,    0 *  Queen * options.centerBonus * +1 },
+        { 0 *   PAWN * options.centerBonus * -1,    0 *   PAWN * options.centerBonus * +1 },
+        { 0 * KNIGHT * options.centerBonus * -1,    0 * KNIGHT * options.centerBonus * +1 },
+        { 0 * BISHOP * options.centerBonus * -1,    0 * BISHOP * options.centerBonus * +1 },
+        { 0 *   ROOK * options.centerBonus * -1,    0 *   ROOK * options.centerBonus * +1 },
+        { 0 *  QUEEN * options.centerBonus * -1,    0 *  QUEEN * options.centerBonus * +1 },
         {                             MAX_VALUE,                                MIN_VALUE },
     }, {
         { 1 *  Empty * options.centerBonus * -1,    1 *  Empty * options.centerBonus * +1 },       // col/row offset 0; 3 from center
-        { 1 *   Pawn * options.centerBonus * -1,    1 *   Pawn * options.centerBonus * +1 },
-        { 1 * Knight * options.centerBonus * -1,    1 * Knight * options.centerBonus * +1 },
-        { 1 * Bishop * options.centerBonus * -1,    1 * Bishop * options.centerBonus * +1 },
-        { 1 *   Rook * options.centerBonus * -1,    1 *   Rook * options.centerBonus * +1 },
-        { 1 *  Queen * options.centerBonus * -1,    1 *  Queen * options.centerBonus * +1 },
+        { 1 *   PAWN * options.centerBonus * -1,    1 *   PAWN * options.centerBonus * +1 },
+        { 1 * KNIGHT * options.centerBonus * -1,    1 * KNIGHT * options.centerBonus * +1 },
+        { 1 * BISHOP * options.centerBonus * -1,    1 * BISHOP * options.centerBonus * +1 },
+        { 1 *   ROOK * options.centerBonus * -1,    1 *   ROOK * options.centerBonus * +1 },
+        { 1 *  QUEEN * options.centerBonus * -1,    1 *  QUEEN * options.centerBonus * +1 },
         {                             MAX_VALUE,                                MIN_VALUE },
     }, {
         { 2 *  Empty * options.centerBonus * -1,    2 *  Empty * options.centerBonus * +1 },       // col/row offset 0; 3 from center
-        { 2 *   Pawn * options.centerBonus * -1,    2 *   Pawn * options.centerBonus * +1 },
-        { 2 * Knight * options.centerBonus * -1,    2 * Knight * options.centerBonus * +1 },
-        { 2 * Bishop * options.centerBonus * -1,    2 * Bishop * options.centerBonus * +1 },
-        { 2 *   Rook * options.centerBonus * -1,    2 *   Rook * options.centerBonus * +1 },
-        { 2 *  Queen * options.centerBonus * -1,    2 *  Queen * options.centerBonus * +1 },
+        { 2 *   PAWN * options.centerBonus * -1,    2 *   PAWN * options.centerBonus * +1 },
+        { 2 * KNIGHT * options.centerBonus * -1,    2 * KNIGHT * options.centerBonus * +1 },
+        { 2 * BISHOP * options.centerBonus * -1,    2 * BISHOP * options.centerBonus * +1 },
+        { 2 *   ROOK * options.centerBonus * -1,    2 *   ROOK * options.centerBonus * +1 },
+        { 2 *  QUEEN * options.centerBonus * -1,    2 *  QUEEN * options.centerBonus * +1 },
         {                             MAX_VALUE,                                MIN_VALUE },
     }, {
         { 3 *  Empty * options.centerBonus * -1,    3 *  Empty * options.centerBonus * +1 },       // col/row offset 0; 3 from center
-        { 3 *   Pawn * options.centerBonus * -1,    3 *   Pawn * options.centerBonus * +1 },
-        { 3 * Knight * options.centerBonus * -1,    3 * Knight * options.centerBonus * +1 },
-        { 3 * Bishop * options.centerBonus * -1,    3 * Bishop * options.centerBonus * +1 },
-        { 3 *   Rook * options.centerBonus * -1,    3 *   Rook * options.centerBonus * +1 },
-        { 3 *  Queen * options.centerBonus * -1,    3 *  Queen * options.centerBonus * +1 },
+        { 3 *   PAWN * options.centerBonus * -1,    3 *   PAWN * options.centerBonus * +1 },
+        { 3 * KNIGHT * options.centerBonus * -1,    3 * KNIGHT * options.centerBonus * +1 },
+        { 3 * BISHOP * options.centerBonus * -1,    3 * BISHOP * options.centerBonus * +1 },
+        { 3 *   ROOK * options.centerBonus * -1,    3 *   ROOK * options.centerBonus * +1 },
+        { 3 *  QUEEN * options.centerBonus * -1,    3 *  QUEEN * options.centerBonus * +1 },
         {                             MAX_VALUE,                                MIN_VALUE },
     }, {
         { 3 *  Empty * options.centerBonus * -1,    3 *  Empty * options.centerBonus * +1 },       // col/row offset 0; 3 from center
-        { 3 *   Pawn * options.centerBonus * -1,    3 *   Pawn * options.centerBonus * +1 },
-        { 3 * Knight * options.centerBonus * -1,    3 * Knight * options.centerBonus * +1 },
-        { 3 * Bishop * options.centerBonus * -1,    3 * Bishop * options.centerBonus * +1 },
-        { 3 *   Rook * options.centerBonus * -1,    3 *   Rook * options.centerBonus * +1 },
-        { 3 *  Queen * options.centerBonus * -1,    3 *  Queen * options.centerBonus * +1 },
+        { 3 *   PAWN * options.centerBonus * -1,    3 *   PAWN * options.centerBonus * +1 },
+        { 3 * KNIGHT * options.centerBonus * -1,    3 * KNIGHT * options.centerBonus * +1 },
+        { 3 * BISHOP * options.centerBonus * -1,    3 * BISHOP * options.centerBonus * +1 },
+        { 3 *   ROOK * options.centerBonus * -1,    3 *   ROOK * options.centerBonus * +1 },
+        { 3 *  QUEEN * options.centerBonus * -1,    3 *  QUEEN * options.centerBonus * +1 },
         {                             MAX_VALUE,                                MIN_VALUE },
     }, {
         { 2 *  Empty * options.centerBonus * -1,    2 *  Empty * options.centerBonus * +1 },       // col/row offset 0; 3 from center
-        { 2 *   Pawn * options.centerBonus * -1,    2 *   Pawn * options.centerBonus * +1 },
-        { 2 * Knight * options.centerBonus * -1,    2 * Knight * options.centerBonus * +1 },
-        { 2 * Bishop * options.centerBonus * -1,    2 * Bishop * options.centerBonus * +1 },
-        { 2 *   Rook * options.centerBonus * -1,    2 *   Rook * options.centerBonus * +1 },
-        { 2 *  Queen * options.centerBonus * -1,    2 *  Queen * options.centerBonus * +1 },
+        { 2 *   PAWN * options.centerBonus * -1,    2 *   PAWN * options.centerBonus * +1 },
+        { 2 * KNIGHT * options.centerBonus * -1,    2 * KNIGHT * options.centerBonus * +1 },
+        { 2 * BISHOP * options.centerBonus * -1,    2 * BISHOP * options.centerBonus * +1 },
+        { 2 *   ROOK * options.centerBonus * -1,    2 *   ROOK * options.centerBonus * +1 },
+        { 2 *  QUEEN * options.centerBonus * -1,    2 *  QUEEN * options.centerBonus * +1 },
         {                             MAX_VALUE,                                MIN_VALUE },
     }, {
         { 1 *  Empty * options.centerBonus * -1,    1 *  Empty * options.centerBonus * +1 },       // col/row offset 0; 3 from center
-        { 1 *   Pawn * options.centerBonus * -1,    1 *   Pawn * options.centerBonus * +1 },
-        { 1 * Knight * options.centerBonus * -1,    1 * Knight * options.centerBonus * +1 },
-        { 1 * Bishop * options.centerBonus * -1,    1 * Bishop * options.centerBonus * +1 },
-        { 1 *   Rook * options.centerBonus * -1,    1 *   Rook * options.centerBonus * +1 },
-        { 1 *  Queen * options.centerBonus * -1,    1 *  Queen * options.centerBonus * +1 },
+        { 1 *   PAWN * options.centerBonus * -1,    1 *   PAWN * options.centerBonus * +1 },
+        { 1 * KNIGHT * options.centerBonus * -1,    1 * KNIGHT * options.centerBonus * +1 },
+        { 1 * BISHOP * options.centerBonus * -1,    1 * BISHOP * options.centerBonus * +1 },
+        { 1 *   ROOK * options.centerBonus * -1,    1 *   ROOK * options.centerBonus * +1 },
+        { 1 *  QUEEN * options.centerBonus * -1,    1 *  QUEEN * options.centerBonus * +1 },
         {                             MAX_VALUE,                                MIN_VALUE },
     }, {
         { 0 *  Empty * options.centerBonus * -1,    0 *  Empty * options.centerBonus * +1 },       // col/row offset 0; 3 from center
-        { 0 *   Pawn * options.centerBonus * -1,    0 *   Pawn * options.centerBonus * +1 },
-        { 0 * Knight * options.centerBonus * -1,    0 * Knight * options.centerBonus * +1 },
-        { 0 * Bishop * options.centerBonus * -1,    0 * Bishop * options.centerBonus * +1 },
-        { 0 *   Rook * options.centerBonus * -1,    0 *   Rook * options.centerBonus * +1 },
-        { 0 *  Queen * options.centerBonus * -1,    0 *  Queen * options.centerBonus * +1 },
+        { 0 *   PAWN * options.centerBonus * -1,    0 *   PAWN * options.centerBonus * +1 },
+        { 0 * KNIGHT * options.centerBonus * -1,    0 * KNIGHT * options.centerBonus * +1 },
+        { 0 * BISHOP * options.centerBonus * -1,    0 * BISHOP * options.centerBonus * +1 },
+        { 0 *   ROOK * options.centerBonus * -1,    0 *   ROOK * options.centerBonus * +1 },
+        { 0 *  QUEEN * options.centerBonus * -1,    0 *  QUEEN * options.centerBonus * +1 },
         {                             MAX_VALUE,                                MIN_VALUE },
     }
 };

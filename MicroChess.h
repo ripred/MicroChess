@@ -68,7 +68,6 @@ struct offset_t {
 // macro to enable the gathering of memory statistics at different ply levels
 // un-comment to enable
 // 
-// 
 // #define   ENA_MEM_STATS
 
 // print_t is used to set and control the output printing level
@@ -85,10 +84,10 @@ enum print_t {
     Everything = 99,    // for use in setting print_level
 };
 
-// macro to return the number of elements in an array of any data type
+// Macro to return the number of elements in an array of any data type
 #define  ARRAYSZ(A) (sizeof(A) / sizeof(*(A)))
 
-// macros to manipulate a continguous segment of memory as a series of bits
+// Macros to manipulate a continguous segment of memory as a series of bits
 #define     _setbit(_A, _B)     ((char*)(_A))[(_B) / 8] |=  (0x80 >> ((_B) % 8))
 #define     _clrbit(_A, _B)     ((char*)(_A))[(_B) / 8] &= ~(0x80 >> ((_B) % 8))
 #define     _getbit(_A, _B)     ((char*)(_A))[(_B) / 8] &   (0x80 >> ((_B) % 8))
@@ -97,7 +96,7 @@ enum print_t {
 #define  MAX_VALUE ((long const)(LONG_MAX / 8))
 #define  MIN_VALUE ((long const)(0 - MAX_VALUE))
 
-// the number of locations on the game board
+// The number of locations on the game board
 static unsigned const BOARD_SIZE = 64u;
 
 // The two sides
@@ -208,7 +207,6 @@ extern game_t game;
 // define a data type for a callback move generation handler
 typedef Bool (generator_t(struct piece_gen_t &gen));
 
-
 // The piece_gen_t type is a parameter passing structure used
 // to speed up the move generation calls for the piece types.
 // This is the structure that is passed to each generator function
@@ -225,11 +223,12 @@ struct piece_gen_t {
     // The function to call for each move to be evaluated
     generator_t * callme;
 
-    uint8_t evaluating : 1, // True if we are just evaluating the move
-                  side : 1, // The side the piece is for: White or Black
-           whites_turn : 1, // True when this move is for White's side
-                   col : 3,
-                   row : 3;
+    uint8_t evaluating : 1,     // True if we are just evaluating the move
+                  side : 1,     // The side the piece is for: White or Black
+           whites_turn : 1,     // True when this move is for White's side
+                cutoff : 1,     // True if we have reached the alpha or beta cutoff
+                   col : 4,
+                   row : 4;
 
     // The index into the pieces list of the piece being evaluated
     index_t     piece_index;
@@ -241,12 +240,11 @@ struct piece_gen_t {
     Piece       type;
 
     piece_gen_t(move_t &m, move_t &b, generator_t *cb, Bool const eval) :
-        move(m), best(b), callme(cb), evaluating(eval)
+        move(m), best(b), callme(cb), evaluating(eval), cutoff(False)
     {
         piece = board.get(move.from);
         type = getType(piece);
         side = getSide(piece);
-        whites_turn = White == side;
         col = move.from % 8;
         row = move.from / 8;
     }

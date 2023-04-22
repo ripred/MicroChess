@@ -252,6 +252,7 @@ void show_memory_stats2() {
 
 } // show_memory_stats2()
 
+
 #endif
 void show_stats() {
     char str[16]= "";
@@ -279,7 +280,9 @@ void show_stats() {
     printf(Debug1, "   max move count per turn: %s\n", str);
     printf(Debug1, "\n");
 
-    // show_memory_stats2();
+    #ifdef ENA_MEM_STATS
+    show_memory_stats2();
+    #endif
 
 } // show_stats()
 
