@@ -9,35 +9,48 @@
 #ifndef MICROCHESS_INCL
 #define MICROCHESS_INCL
 
-#include <Arduino.h>
-
 #pragma pack(0)
 
-#include <stdio.h>
-#include <limits.h>
-#include <stddef.h>
-#include <string.h>
+#include <Arduino.h>
 #include <inttypes.h>
+#include <stddef.h>
+#include <limits.h>
+#include <string.h>
+#include <stdint.h>
+#include <stdlib.h>
+#include <stdio.h>
+#include <ctype.h>
 
 typedef unsigned char Color;
 typedef unsigned char Piece;
 typedef unsigned char Bool;
 
 ////////////////////////////////////////////////////////////////////////////////////////
-// limits
-enum 
-{
-    MAX_PIECES    = 32,
-    MAX_MOVES     = 106,         // R:11 N:8 B:11 Q:22 K:8 B:11 N:8 R:11 P:16 == 106
+// Magic Numbers
+// 
+enum : uint32_t {
+    PRN_SEED    = 0x232F89A3,   // default hash seed for psuedo random number generator
+};
 
-    NUM_BITS_PT   =   4,        // bits per field in point_t struct
-    NUM_BITS_SPOT =   7,        // bits per field in move_t struct
+enum {
+    MAX_PLY            =  3,    // max ply depth
 
-    NUM_KNIGHT_OFFSETS =  8,    // number of offsets to check for knight moves
-    NUM_BISHOP_OFFSETS = 28,    // number of offsets to check for bishop moves
-    NUM_ROOK_OFFSETS   = 28,    // number of offsets to check for rook moves
-    NUM_QUEEN_OFFSETS  = 56,    // number of offsets to check for queen moves
-    NUM_KING_OFFSETS   =  8,    // number of offsets to check for king moves
+    MOVE_LIMIT         = 50,    // the maximum number of moves allowed in a game
+
+    DEF_TIME_LIMIT     = 30000, // default time limit per move
+
+    MAX_REPS           =  3,    // the max number of times a pair of moves can be repeated
+
+    MAX_PIECES         = 32,    // max number of pieces in game.pieces[]
+
+    NUM_BITS_PT        =  4,    // bits per field in point_t struct
+    NUM_BITS_SPOT      =  7,    // bits per field in move_t struct
+
+    SHOW_DURATION      = 20,    // Duration that LED indicator are shown
+
+    DEBUG1_PIN         =  5,    // output debug LED pins
+    DEBUG2_PIN         =  4,
+    DEBUG3_PIN         =  3,
 };
 
 typedef   int8_t   index_t;
@@ -50,6 +63,12 @@ struct offset_t {
 ////////////////////////////////////////////////////////////////////////////////////////
 // macro to validate a location
 #define  isValidPos(col, row) ((col >= 0 && col < 8 && row >= 0 && row < 8))
+
+////////////////////////////////////////////////////////////////////////////////////////
+// macro to enable the gathering of memory statistics at different ply levels
+// un-comment to enable
+// 
+// #define   ENA_MEM_STATS
 
 // print_t is used to set and control the output printing level
 enum print_t {
@@ -65,17 +84,19 @@ enum print_t {
     Everything = 99,    // for use in setting print_level
 };
 
-// the global setting that affects the level of output detail
-extern print_t print_level;
-
-// macro to return the number of elements in an array of any data type
+// Macro to return the number of elements in an array of any data type
 #define  ARRAYSZ(A) (sizeof(A) / sizeof(*(A)))
 
+// Macros to manipulate a continguous segment of memory as a series of bits
+#define     _setbit(_A, _B)     ((char*)(_A))[(_B) / 8] |=  (0x80 >> ((_B) % 8))
+#define     _clrbit(_A, _B)     ((char*)(_A))[(_B) / 8] &= ~(0x80 >> ((_B) % 8))
+#define     _getbit(_A, _B)     ((char*)(_A))[(_B) / 8] &   (0x80 >> ((_B) % 8))
+
 // The max and min range for piece values
-#define  MAX_VALUE ((long const)( 0b0100000000000000))    // half the value of number of bits the 'value' field in move_t has
+#define  MAX_VALUE ((long const)(LONG_MAX / 8))
 #define  MIN_VALUE ((long const)(0 - MAX_VALUE))
 
-// the number of locations on the game board
+// The number of locations on the game board
 static unsigned const BOARD_SIZE = 64u;
 
 // The two sides
@@ -102,128 +123,169 @@ static Piece const Moved    = 0b00010000u;
 static Piece const Check    = 0b00100000u;
 
 // show the game board
-void show();
-
-// test the validation macro
-// Bool isValidTest();
+extern void show();
 
 // get the Type of a Piece
-Piece getType(Piece b);
+extern Piece getType(Piece b);
 
 // see if a Piece is Empty
-Bool  isEmpty(Piece b);
+extern Bool  isEmpty(Piece b);
 
 // get the value of a piece
-int   getValue(Piece b);
+extern int   getValue(Piece b);
 
 // get the side for a Piece
-Piece getSide(Piece b);
+extern Piece getSide(Piece b);
 
 // see if a Piece has moved
-Bool  hasMoved(Piece b);
+extern Bool  hasMoved(Piece b);
 
 // see if a Piece is in check
-Bool  inCheck(Piece b);
+extern Bool  inCheck(Piece b);
 
 // set the Type of a Piece
-Piece setType(Piece b, Piece type);
+extern Piece setType(Piece b, Piece type);
 
 // set the Color of a Piece
-Piece setSide(Piece b, Piece side);
+extern Piece setSide(Piece b, Piece side);
 
 // set or reset the flag indicating a Piece as moved
-Piece setMoved(Piece b, Bool hasMoved);
+extern Piece setMoved(Piece b, Bool hasMoved);
 
 // set or reset the flag indicating a Piece is in check
-Piece setCheck(Piece b, Bool inCheck);
+extern Piece setCheck(Piece b, Bool inCheck);
 
 // construct a Piece value
-Piece makeSpot(Piece type, Piece side, Bool moved, Bool inCheck);
+extern Piece makeSpot(Piece type, Piece side, Bool moved, Bool inCheck);
 
-char *getName(Piece b);
+extern void show_low_memory();
+extern void show_quiescent_search();
+extern void show_timeout();
 
-char *getColor(Piece b);
+extern const char* ftostr(double const value, int const dec, char * const buff);
 
-const char* addCommas(long int value);
+extern const char* addCommas(long int value);
 
-int debug(print_t const required, char const * const fmt, ...);
+extern int debug(char const * const fmt, ...);
 
-#define printf(level, str, ...) \
-do { \
-    static const char debug_string[] PROGMEM = str; \
-    debug(level, debug_string, ##__VA_ARGS__); \
-} while(0);
+#define printf(__level, __str, ...) \
+if (game.options.print_level >= __level) { \
+    static const char debug_string[] PROGMEM = __str; \
+    debug(debug_string, ##__VA_ARGS__); \
+}
 
-static long const pieceValues[8] = {
-            0,      // empty spot value
-          100,      // pawn value
-          300,      // knight value
-          300,      // bishop value
-          500,      // rook value
-          900,      // queen value
-    MAX_VALUE,      // king value
-            0       // padded for alignment and increased L1 and L2 cache hit gains
+static long constexpr pieceValues[8] = {
+             0,      // empty spot value
+          1000,      // pawn value
+          3000,      // knight value
+          3000,      // bishop value
+          5000,      // rook value
+          9000,      // queen value
+     MAX_VALUE,      // king value
+             0       // padded for alignment and increased L1 and L2 cache hit gains
 };
 
-// adjustable multipiers to alter importance of mobility or center proximity
-// during board evaluation. season to taste
-static long const mobilityBonus = 3L;
-static long const   centerBonus = 5L;
-
-extern long const center_bonus[8][7][2] PROGMEM;
-extern long const material_bonus[7][2] PROGMEM;
-
-extern offset_t const knight_offsets[NUM_KNIGHT_OFFSETS] PROGMEM;
-extern offset_t const rook_offsets[NUM_ROOK_OFFSETS] PROGMEM;
-extern offset_t const bishop_offsets[NUM_BISHOP_OFFSETS] PROGMEM;
-extern offset_t const queen_offsets[NUM_QUEEN_OFFSETS] PROGMEM;
-extern offset_t const king_offsets[NUM_KING_OFFSETS] PROGMEM;
+// Alias' for the current game state
+enum state_t {
+    PLAYING,
+    STALEMATE,
+    WHITE_CHECKMATE,
+    BLACK_CHECKMATE,
+    WHITE_3_MOVE_REP,
+    BLACK_3_MOVE_REP,
+    FIFTY_MOVES
+};
 
 #include "board.h"
 #include "move.h"
 #include "game.h"
-
-void show_move(move_t const &move);
-void show_pieces();
-void show_piece(Piece const p);
+#include "conv.h"
 
 extern game_t game;
 
-struct conv1_t {
-    union {
-        struct {
-             uint8_t  col : 3,
-                      row : 3,
-                     type : 3,
-                     side : 1;
-        } pt;
-        struct {
-            uint8_t index : 6,
-                     type : 3,
-                     side : 1;
-        } ndx;
-    } u;
 
-    conv1_t() : u{ 0, 0, Empty, Black } {}
-    conv1_t(uint8_t index) { u.ndx = { index, Empty, Black  }; }
-    conv1_t(uint8_t index, uint8_t type, uint8_t side) { u.ndx = { index, type, side }; }
-    conv1_t(uint8_t col, uint8_t row) : u{ col, row, Empty, Black } {}
+// define a data type for a callback move generation handler
+typedef Bool (generator_t(struct piece_gen_t &gen));
 
-};  // conv1_t
+// The piece_gen_t type is a parameter passing structure used
+// to speed up the move generation calls for the piece types.
+// This is the structure that is passed to each generator function
+// for each piece type.
+struct piece_gen_t {
+    // The move_t structure to use. Initially for each piece generator, 
+    // only the 'from' field of the move is valid. The generator function 
+    // fills in the 'to' field as it generates moves.
+    move_t      & move;
 
-struct conv2_t {
-    conv1_t from, to;
+    // The best move found for this piece type so far
+    move_t      & best;
 
-    conv2_t() {}
-    conv2_t(uint8_t from, uint8_t to) : from(from), to(to){}
-};
+    // The function to call for each move to be evaluated
+    generator_t * callme;
 
-void add_move(Color side, index_t from, index_t to, long value);
-void add_pawn_moves(Piece p, index_t from, index_t fwd, Color side);
-void add_knight_moves(index_t from, index_t fwd, Color side);
-void add_bishop_moves(index_t from, index_t fwd, Color side);
-void add_rook_moves(index_t from, index_t fwd, Color side);
-void add_queen_moves(index_t from, index_t fwd, Color side);
-void add_king_moves(index_t from, index_t fwd, Color side);
+    uint8_t evaluating : 1,     // True if we are just evaluating the move
+                  side : 1,     // The side the piece is for: White or Black
+           whites_turn : 1,     // True when this move is for White's side
+                cutoff : 1,     // True if we have reached the alpha or beta cutoff
+                   col : 4,
+                   row : 4;
+
+    // The index into the pieces list of the piece being evaluated
+    index_t     piece_index;
+
+    // The Piece beig moved
+    Piece       piece;
+
+    // The Type of the Piece: [Empty | Pawn | Knight | Rook | Bishop | Queen | King]
+    Piece       type;
+
+    piece_gen_t(move_t &m, move_t &b, generator_t *cb, Bool const eval) :
+        move(m), best(b), callme(cb), evaluating(eval), cutoff(False)
+    {
+        piece = board.get(move.from);
+        type = getType(piece);
+        side = getSide(piece);
+        col = move.from % 8;
+        row = move.from / 8;
+    }
+
+}; // piece_gen_t
+
+
+// display a piece, or a move, or the piece list
+extern void show_piece(Piece const p);
+extern void show_move(move_t const &move);
+extern void show_pieces();
+extern void show_time(uint32_t ms);
+
+// show the game time and move statistics
+extern void show_stats();
+
+// show the current memory statistics
+extern Bool check_mem();
+extern int freeMemory();
+
+// control an external LED strip to display the board state
+extern void init_led_strip();
+extern void set_led_strip();
+
+extern Bool timeout();
+
+extern long make_move(piece_gen_t & gen);
+
+extern Bool would_repeat(move_t const move);
+
+extern Bool add_to_history(move_t const &move);
+
+extern void choose_best_move(Color const who, move_t &best, generator_t callback);
+
+extern Bool consider_move(piece_gen_t &gen);
+
+extern void add_pawn_moves(piece_gen_t &gen);
+extern void add_knight_moves(piece_gen_t &gen);
+extern void add_bishop_moves(piece_gen_t &gen);
+extern void add_rook_moves(piece_gen_t &gen);
+extern void add_queen_moves(piece_gen_t &gen);
+extern void add_king_moves(piece_gen_t &gen);
 
 #endif // MICROCHESS_INCL

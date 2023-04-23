@@ -10,7 +10,10 @@
 #define GAME_INCL
 
 #include "Arduino.h"
+#include <stdint.h>
 #include "board.h"
+#include "stats.h"
+#include "options.h"
 
 extern board_t board;
 
@@ -30,154 +33,81 @@ public:
 
 
 ////////////////////////////////////////////////////////////////////////////////////////
-// the statistics of a game
-struct stat_t {
-    // move counts
-    uint16_t    max_moves;                  // max moves generated during make_all_moves()
-
-    uint32_t    moves_gen_game;             // moves generated entire game
-
-    uint32_t    moves_gen_move_start;       // value of moves_gen_game on move start
-    uint32_t    moves_gen_move_end;         // value of moves_gen_game on move end
-    uint32_t    moves_gen_move_delta;       // total moves considered for this move
-
-    // time tracking
-    uint32_t    game_start;
-    uint32_t    game_end;
-    uint32_t    game_time;
-
-    uint32_t    move_start;
-    uint32_t    move_end;
-    uint32_t    move_time;
-
-    // constructor:
-    stat_t() {
-        init();
-    }
-
-    // init method
-    void init() {
-        max_moves = 0;
-
-        moves_gen_game = 0;
-
-        moves_gen_move_start = 0;
-        moves_gen_move_end = 0;
-        moves_gen_move_delta = 0;
-
-        game_start = 0;
-        game_end = 0;
-        game_time = 0;
-
-        move_start = 0;
-        move_end = 0;
-        move_time = 0;
-    }
-
-    // increase the number of moves evaluated
-    void inc_moves_count() {
-        moves_gen_game++;
-    }
-
-    // start the game timers and clear out the game counts
-    void start_game_stats() {
-        game_start = millis();
-        game_end = game_start;
-        game_time = 0;
-        moves_gen_game = 0;
-    }
-
-    // stop the game timers and calc the game stats
-    void stop_game_stats() {
-        game_end = millis();
-        game_time = game_end - game_start;
-    }
-
-    // start the move timers and clear out the move counts
-    void start_move_stats() {
-        move_start = millis();
-        move_end = move_start;
-        move_time = 0;
-
-        moves_gen_move_start = moves_gen_game;
-        moves_gen_move_end = moves_gen_move_start;
-        moves_gen_move_delta = 0;
-    }
-
-    // stop the move timers and calc the move stats
-    void stop_move_stats() {
-        move_end = millis();
-        move_time = move_end - move_start;
-
-        moves_gen_move_end = moves_gen_game;
-        moves_gen_move_delta = moves_gen_move_end - moves_gen_move_start;
-    }
-
-};  // stat_t
-
-////////////////////////////////////////////////////////////////////////////////////////
 // the state of a game
 struct game_t 
 {
 public:
-    point_t   pieces[MAX_PIECES];
-    move_t    moves1[MAX_MOVES];
-    move_t    moves2[MAX_MOVES];
-    Piece     taken1[16];
-    Piece     taken2[16];
-    stat_t    stats;
-    Bool      white_king_in_check;
-    Bool      black_king_in_check;
-    move_t    last_move;
-    uint32_t  last_move_time;
-    uint32_t  last_moves_evaluated;
-    uint8_t   piece_count;
-    uint8_t   move_count1;
-    uint8_t   move_count2;
-    uint8_t   taken_count1;
-    uint8_t   taken_count2;
-    uint8_t   eval_ndx,     // board index being currently evaluated
-                  turn,     // 0 := Black, 1 := White
-                  done;     // 1 := game over
-    uint16_t  move_num;     // increasing move number
+#ifdef ENA_MEM_STATS
+    // The amount of free memory at critical junctions and ply levels
+    struct {
+        uint16_t mem : 12;
+    } freemem[4][5];
+
+    uint16_t   lowest_mem;
+    index_t    lowest_mem_ply;
+#endif
+
+    // The game options
+    static options_t options;
+
+    // static, pre-conputed tables for bonus values
+    static long const center_bonus[8][7][2] PROGMEM;
+    static long const  material_bonus[7][2] PROGMEM;                                
+
+    // The last 'MAX_REPS * 2 - 1' moves are kept to recognize 'MAX_REPS' move repetition
+    move_t      history[MAX_REPS * 2 - 1];
+    index_t     hist_count;
+
+    // The locations of the pieces on the board
+    point_t     pieces[MAX_PIECES];
+    uint8_t     piece_count;
+
+    // The pieces that have been taken
+    Piece       taken_by_white[16];
+    Piece       taken_by_black[16];
+    uint8_t     white_taken_count;
+    uint8_t     black_taken_count;
+
+    // The statistics of the game
+    stat_t      stats;
+
+    // the last move made
+    long        last_value;                     // The value of the last move made
+    move_t      last_move;                      // The last move made
+    Bool        last_was_en_passant     : 1,    // True when last move was an en-passaant capture
+                last_was_castle         : 1,    // True when last move was a castling of a king and a rook
+                last_was_timeout        : 1,    // True when last move timed out
+                last_was_pawn_promotion : 1,    // True when last move promoted a Pawn to a Queen
+                    white_king_in_check : 1,    // The check state of the two kings
+                    black_king_in_check : 1,
+                                   turn : 1;    // Whose turn it is: 0 := Black, 1 := White
+
+    // last move statistics
+    uint32_t    last_move_time;
+    uint32_t    last_moves_evaluated;
+
+    // the current state of the game
+    state_t     state;
+
+    // increasing move number
+    uint16_t    move_num;
+
+    // the current ply level
+    uint8_t     ply;
+
+    // the location of both kings
+    index_t     wking;
+    index_t     bking;
+
+    // the alpha and beta edges of our search envelope
+    long        alpha;
+    long        beta;
 public:
     // constructor
-    game_t()
-    {
-        init();
-    }
+    game_t();
 
-    void init()
-    {
-        // initialize list of pieces in the game
-        piece_count = 0;
-        for (uint8_t ndx=0; ndx < BOARD_SIZE; ++ndx) {
-            if (Empty == getType(board.get(ndx))) continue;
-            if (piece_count < MAX_PIECES) {
-                pieces[piece_count++] = point_t( ndx % 8, ndx / 8);
-            }
-        }
-
-        move_count1 = 0;
-        move_count2 = 0;
-
-        stats = stat_t();
-
-        taken_count1 = 0;
-        taken_count2 = 0;
-
-        last_move = { -1, -1, 0 };
-        last_move_time = 0;
-        last_moves_evaluated = 0;
-
-        white_king_in_check = 0;
-        black_king_in_check = 0;
-
-        turn = White;
-        move_num = 0;
-
-        done = 0;
-    }
+    // init function
+    void init();
 
 };  // game_t
 
