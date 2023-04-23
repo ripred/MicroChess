@@ -479,7 +479,9 @@ long make_move(piece_gen_t & gen)
                             game.alpha = max(game.alpha, value);
                         }
                     }
-                    // value += best.value;
+                    else {
+                        value += best.value;
+                    }
                 }
                 else {
                     best = { -1, -1, MIN_VALUE };
@@ -495,7 +497,9 @@ long make_move(piece_gen_t & gen)
                             game.beta = min(game.beta, value);
                         }
                     }
-                    // value += best.value;
+                    else {
+                        value += best.value;
+                    }
                 }
 
                 // If we weren't in check before but we are now, then this
@@ -638,11 +642,15 @@ long evaluate()
             pgm_read_dword(&game.center_bonus[row][ptype][pside]);
 
         // proximity to opponent's King
+        index_t const kloc = (White == pside) ? game.bking : game.wking;
+        index_t const col_dist = (col > (kloc % 8)) ? (col - (kloc % 8)) : ((kloc % 8) - col);
+        index_t const row_dist = (row > (kloc / 8)) ? (row - (kloc / 8)) : ((kloc / 8) - row);
+        index_t const proxomity = 14 - (col_dist + row_dist);
         if (White == pside) {
-            kingTotal += abs((game.bking % 8) - (7 - col)) + abs((game.bking / 8) - (7 - row));
+            kingTotal += proxomity;
         }
         else {
-            kingTotal += abs((game.wking % 8) - (7 - col)) + abs((game.wking / 8) - (7 - row));
+            kingTotal -= proxomity;
         }
     }
 
@@ -881,9 +889,9 @@ void choose_best_move(Color const who, move_t &best, generator_t callback)
 
 
 ////////////////////////////////////////////////////////////////////////////////////////
-// Make the next move in the game until we reach a stalemate or checkmate
+// Make the next move in the game
 // 
-void play_game()
+void take_turn()
 {
     // see if we've hit the move limit
     if (game.move_num >= game.options.move_limit) {
@@ -1072,8 +1080,8 @@ void set_game_options()
 
     // set whether we play continuously or not
     // game.options.continuous = game.options.random;
-    game.options.continuous = False;
-    // game.options.continuous = True;
+    // game.options.continuous = False;
+    game.options.continuous = True;
 
     // set the time limit per turn in milliseconds
     game.options.time_limit = 90000;
@@ -1196,10 +1204,12 @@ void setup()
         digitalWrite(pin, LOW);
     }
 
+    // Initialize continuous game statistics
     uint32_t state_totals[6] = { 0, 0, 0, 0, 0, 0 };
     uint32_t white_wins = 0;
     uint32_t black_wins = 0;
 
+    // Play a game until it is over
     do {
         set_game_options();
 
@@ -1212,15 +1222,18 @@ void setup()
         game.stats.start_game_stats();
 
         do {
-            play_game();
+            take_turn();
             show();
 
         } while (PLAYING == game.state);
 
+        // Calculate the game statistics
         game.stats.stop_game_stats();
 
+        // Return the output to normal
         game.options.print_level = Debug1;
 
+        // Display the end game reason
         switch (game.state) {
             case STALEMATE:         printf(Debug1, "Stalemate\n\n");                                        break;
             case WHITE_CHECKMATE:   printf(Debug1, "Checkmate! White wins!\n\n");                           break;
@@ -1232,12 +1245,13 @@ void setup()
             case PLAYING:           break;
         }
 
-        // show the final board    
+        // Show the final board    
         show();
 
-        // print out the game move counts and time statistics
+        // Show the game move and game counts and time statistics
         show_stats();
 
+        // Keep track of the game end reasons when playing continuously
         state_totals[game.state - 1]++;
         char str[16] = "";
 

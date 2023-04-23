@@ -42,7 +42,7 @@ public:
     // adjustable multipiers to alter importance of mobility or center proximity
     // during board evaluation. season to taste
     static long  const    mobilityBonus = 3L;
-    static long  const    centerBonus   = 1L;
+    static long  const    centerBonus   = 2L;
     static long  const    kingBonus     = 2L;
 
 public:

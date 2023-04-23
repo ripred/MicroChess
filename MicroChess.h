@@ -123,50 +123,50 @@ static Piece const Moved    = 0b00010000u;
 static Piece const Check    = 0b00100000u;
 
 // show the game board
-void show();
+extern void show();
 
 // get the Type of a Piece
-Piece getType(Piece b);
+extern Piece getType(Piece b);
 
 // see if a Piece is Empty
-Bool  isEmpty(Piece b);
+extern Bool  isEmpty(Piece b);
 
 // get the value of a piece
-int   getValue(Piece b);
+extern int   getValue(Piece b);
 
 // get the side for a Piece
-Piece getSide(Piece b);
+extern Piece getSide(Piece b);
 
 // see if a Piece has moved
-Bool  hasMoved(Piece b);
+extern Bool  hasMoved(Piece b);
 
 // see if a Piece is in check
-Bool  inCheck(Piece b);
+extern Bool  inCheck(Piece b);
 
 // set the Type of a Piece
-Piece setType(Piece b, Piece type);
+extern Piece setType(Piece b, Piece type);
 
 // set the Color of a Piece
-Piece setSide(Piece b, Piece side);
+extern Piece setSide(Piece b, Piece side);
 
 // set or reset the flag indicating a Piece as moved
-Piece setMoved(Piece b, Bool hasMoved);
+extern Piece setMoved(Piece b, Bool hasMoved);
 
 // set or reset the flag indicating a Piece is in check
-Piece setCheck(Piece b, Bool inCheck);
+extern Piece setCheck(Piece b, Bool inCheck);
 
 // construct a Piece value
-Piece makeSpot(Piece type, Piece side, Bool moved, Bool inCheck);
+extern Piece makeSpot(Piece type, Piece side, Bool moved, Bool inCheck);
 
 extern void show_low_memory();
 extern void show_quiescent_search();
 extern void show_timeout();
 
-const char* ftostr(double const value, int const dec, char * const buff);
+extern const char* ftostr(double const value, int const dec, char * const buff);
 
-const char* addCommas(long int value);
+extern const char* addCommas(long int value);
 
-int debug(char const * const fmt, ...);
+extern int debug(char const * const fmt, ...);
 
 #define printf(__level, __str, ...) \
 if (game.options.print_level >= __level) { \
@@ -262,8 +262,8 @@ extern void show_time(uint32_t ms);
 extern void show_stats();
 
 // show the current memory statistics
-Bool check_mem();
-int freeMemory();
+extern Bool check_mem();
+extern int freeMemory();
 
 // control an external LED strip to display the board state
 extern void init_led_strip();
