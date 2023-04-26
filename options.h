@@ -33,17 +33,20 @@ public:
           max_quiescent_ply : 3,    // the maximum ply level to continue if a piece was taken on a move
                      maxply : 3;    // the nominal max ply level
     uint32_t    time_limit;         // optional time limit in ms if != 0
+    index_t     mistakes;           // The percentage of times the engine will make a mistake
+
 
 
     // this stuff stays the same at runtime during the game, and can't be modified
-    static uint32_t const move_limit    =  50;  // The maximum number of moves allowed in a full game
+    static uint32_t const move_limit    = 100;  // The maximum number of moves allowed in a full game
     static int      const low_mem_limit = 187;  // The amount of recursive memory we need to go a ply deeper
 
     // adjustable multipiers to alter importance of mobility or center proximity
     // during board evaluation. season to taste
-    static long  const    mobilityBonus = 3L;
-    static long  const    centerBonus   = 2L;
-    static long  const    kingBonus     = 2L;
+    static long  constexpr  materialBonus = 10L;
+    static long  constexpr  mobilityBonus = 3L;
+    static long  constexpr  centerBonus   = 100L;
+    static long  constexpr  kingBonus     = 100L;
 
 public:
 

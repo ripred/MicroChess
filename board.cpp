@@ -11,7 +11,7 @@
 #include "board.h"
 
 board_t::board_t() {
-    clear();
+    init();
 }
 
 
@@ -21,41 +21,41 @@ void board_t::clear() {
 
 
 void board_t::init() {
-    set( 0, makeSpot(  Rook, Black, 0, 0));
-    set( 1, makeSpot(Knight, Black, 0, 0));
-    set( 2, makeSpot(Bishop, Black, 0, 0));
-    set( 3, makeSpot( Queen, Black, 0, 0));
-    set( 4, makeSpot(  King, Black, 0, 0));
-    set( 5, makeSpot(Bishop, Black, 0, 0));
-    set( 6, makeSpot(Knight, Black, 0, 0));
-    set( 7, makeSpot(  Rook, Black, 0, 0));
-    set( 8, makeSpot(  Pawn, Black, 0, 0));
-    set( 9, makeSpot(  Pawn, Black, 0, 0));
-    set(10, makeSpot(  Pawn, Black, 0, 0));
-    set(11, makeSpot(  Pawn, Black, 0, 0));
-    set(12, makeSpot(  Pawn, Black, 0, 0));
-    set(13, makeSpot(  Pawn, Black, 0, 0));
-    set(14, makeSpot(  Pawn, Black, 0, 0));
-    set(15, makeSpot(  Pawn, Black, 0, 0));
+    clear();
 
-    for (index_t i = 16; i < 48; i++) set(i, Empty);
+    set( 0, makeSpot(  Rook, Black, False, False));
+    set( 1, makeSpot(Knight, Black, False, False));
+    set( 2, makeSpot(Bishop, Black, False, False));
+    set( 3, makeSpot( Queen, Black, False, False));
+    set( 4, makeSpot(  King, Black, False, False));
+    set( 5, makeSpot(Bishop, Black, False, False));
+    set( 6, makeSpot(Knight, Black, False, False));
+    set( 7, makeSpot(  Rook, Black, False, False));
+    set( 8, makeSpot(  Pawn, Black, False, False));
+    set( 9, makeSpot(  Pawn, Black, False, False));
+    set(10, makeSpot(  Pawn, Black, False, False));
+    set(11, makeSpot(  Pawn, Black, False, False));
+    set(12, makeSpot(  Pawn, Black, False, False));
+    set(13, makeSpot(  Pawn, Black, False, False));
+    set(14, makeSpot(  Pawn, Black, False, False));
+    set(15, makeSpot(  Pawn, Black, False, False));
 
-    set(48, makeSpot(  Pawn, White, 0, 0));
-    set(49, makeSpot(  Pawn, White, 0, 0));
-    set(50, makeSpot(  Pawn, White, 0, 0));
-    set(51, makeSpot(  Pawn, White, 0, 0));
-    set(52, makeSpot(  Pawn, White, 0, 0));
-    set(53, makeSpot(  Pawn, White, 0, 0));
-    set(54, makeSpot(  Pawn, White, 0, 0));
-    set(55, makeSpot(  Pawn, White, 0, 0));
-    set(56, makeSpot(  Rook, White, 0, 0));
-    set(57, makeSpot(Knight, White, 0, 0));
-    set(58, makeSpot(Bishop, White, 0, 0));
-    set(59, makeSpot( Queen, White, 0, 0));
-    set(60, makeSpot(  King, White, 0, 0));
-    set(61, makeSpot(Bishop, White, 0, 0));
-    set(62, makeSpot(Knight, White, 0, 0));
-    set(63, makeSpot(  Rook, White, 0, 0));
+    set(48, makeSpot(  Pawn, White, False, False));
+    set(49, makeSpot(  Pawn, White, False, False));
+    set(50, makeSpot(  Pawn, White, False, False));
+    set(51, makeSpot(  Pawn, White, False, False));
+    set(52, makeSpot(  Pawn, White, False, False));
+    set(53, makeSpot(  Pawn, White, False, False));
+    set(54, makeSpot(  Pawn, White, False, False));
+    set(55, makeSpot(  Pawn, White, False, False));
+    set(56, makeSpot(  Rook, White, False, False));
+    set(57, makeSpot(Knight, White, False, False));
+    set(58, makeSpot(Bishop, White, False, False));
+    set(59, makeSpot( Queen, White, False, False));
+    set(60, makeSpot(  King, White, False, False));
+    set(61, makeSpot(Bishop, White, False, False));
+    set(62, makeSpot(Knight, White, False, False));
+    set(63, makeSpot(  Rook, White, False, False));
 }
 
 

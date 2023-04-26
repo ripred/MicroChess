@@ -162,12 +162,12 @@ Bool timeout() {
 
 // check for a low memory condition
 Bool check_mem() {
-#ifdef ENA_MEM_STATS
+    #ifdef ENA_MEM_STATS
     if ((unsigned int)freeMemory() < game.lowest_mem) {
         game.lowest_mem = freeMemory();
         game.lowest_mem_ply = game.ply;
     }
-#endif
+    #endif
 
     Bool const low_mem = freeMemory() < game.options.low_mem_limit;
     if (low_mem) {
@@ -196,8 +196,8 @@ void show_quiescent_search() {
 
 void show_timeout() {
     digitalWrite(DEBUG3_PIN, HIGH);
-    delayMicroseconds(SHOW_DURATION);
-    digitalWrite(DEBUG3_PIN, LOW);
+    // delayMicroseconds(SHOW_DURATION);
+    // digitalWrite(DEBUG3_PIN, LOW);
 
 } // show_timeout()
 

@@ -39,9 +39,9 @@ void set_led_strip()
             Piece   const piece = board.get(board_index);
             Piece   const type = getType(piece);
             Color   const side = getSide(piece);
-            index_t const led_index = BOARD_SIZE - (((y & 1) ? x : (7 - x)) + y * 8) - 1;
+            index_t const led_index = BOARD_SIZE - (((y & 1) ? (7 - x) : x) + y * 8) - 1;
 
-            index_t ex = (y & 1) ? x : 7 - x;
+            index_t const ex = 7 - x;
 
             static index_t constexpr values_per_led  = index_t(3);
             static index_t constexpr values_per_side = index_t(sizeof(piece_colors) / 2);

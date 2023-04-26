@@ -47,12 +47,15 @@ public:
     index_t    lowest_mem_ply;
 #endif
 
+    // Flags indicating when all pieces for this ply level have been evaluated
+    uint8_t     complete;
+
     // The game options
     static options_t options;
 
     // static, pre-conputed tables for bonus values
     static long const center_bonus[8][7][2] PROGMEM;
-    static long const  material_bonus[7][2] PROGMEM;                                
+    static long const material_bonus[7][2] PROGMEM;                                
 
     // The last 'MAX_REPS * 2 - 1' moves are kept to recognize 'MAX_REPS' move repetition
     move_t      history[MAX_REPS * 2 - 1];
@@ -83,7 +86,7 @@ public:
                                    turn : 1;    // Whose turn it is: 0 := Black, 1 := White
 
     // last move statistics
-    uint32_t    last_move_time;
+    // uint32_t    last_move_time;
     uint32_t    last_moves_evaluated;
 
     // the current state of the game
@@ -108,6 +111,9 @@ public:
 
     // init function
     void init();
+
+    // set the pieces[] array based off of the board contents
+    void set_pieces_from_board(board_t &board);
 
 };  // game_t
 

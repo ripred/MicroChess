@@ -35,8 +35,6 @@ enum : uint32_t {
 enum {
     MAX_PLY            =  3,    // max ply depth
 
-    MOVE_LIMIT         = 50,    // the maximum number of moves allowed in a game
-
     DEF_TIME_LIMIT     = 30000, // default time limit per move
 
     MAX_REPS           =  3,    // the max number of times a pair of moves can be repeated
@@ -277,15 +275,15 @@ extern Bool would_repeat(move_t const move);
 
 extern Bool add_to_history(move_t const &move);
 
-extern void choose_best_move(Color const who, move_t &best, generator_t callback);
+extern index_t choose_best_move(Color const who, move_t &best, generator_t callback);
 
 extern Bool consider_move(piece_gen_t &gen);
 
-extern void add_pawn_moves(piece_gen_t &gen);
-extern void add_knight_moves(piece_gen_t &gen);
-extern void add_bishop_moves(piece_gen_t &gen);
-extern void add_rook_moves(piece_gen_t &gen);
-extern void add_queen_moves(piece_gen_t &gen);
-extern void add_king_moves(piece_gen_t &gen);
+extern index_t add_pawn_moves(piece_gen_t &gen);
+extern index_t add_knight_moves(piece_gen_t &gen);
+extern index_t add_bishop_moves(piece_gen_t &gen);
+extern index_t add_rook_moves(piece_gen_t &gen);
+extern index_t add_queen_moves(piece_gen_t &gen);
+extern index_t add_king_moves(piece_gen_t &gen);
 
 #endif // MICROCHESS_INCL
