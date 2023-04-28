@@ -347,7 +347,7 @@ Bool add_to_history(move_t const &move)
 
 
 // display a Piece's color and type
-void show_piece(Piece const p) 
+void show_piece(Piece const p, Bool const align /* = True */) 
 {
     Piece const type = getType(p);
     Color const side = getSide(p);
@@ -359,17 +359,33 @@ void show_piece(Piece const p)
         printf(Debug1, "Black");
     }
 
-    switch (type) {
-        case  Empty: printf(Debug1, " Empty ");  break;
-        case   Pawn: printf(Debug1, " Pawn  ");  break;
-        case   Rook: printf(Debug1, " Rook  ");  break;
-        case Knight: printf(Debug1, " Knight");  break;
-        case Bishop: printf(Debug1, " Bishop");  break;
-        case  Queen: printf(Debug1, " Queen ");  break;
-        case   King: printf(Debug1, " King  ");  break;
-        default:     printf(Debug1, "Error: invalid Piece type: %d\n", type); 
-            break;
+    if (align) {
+        switch (type) {
+            case  Empty: printf(Debug1, " Empty ");  break;
+            case   Pawn: printf(Debug1, " Pawn  ");  break;
+            case   Rook: printf(Debug1, " Rook  ");  break;
+            case Knight: printf(Debug1, " Knight");  break;
+            case Bishop: printf(Debug1, " Bishop");  break;
+            case  Queen: printf(Debug1, " Queen ");  break;
+            case   King: printf(Debug1, " King  ");  break;
+            default:     printf(Debug1, "Error: invalid Piece type: %d\n", type); 
+                break;
+        }
     }
+    else {
+        switch (type) {
+            case  Empty: printf(Debug1, " Empty");  break;
+            case   Pawn: printf(Debug1, " Pawn");  break;
+            case   Rook: printf(Debug1, " Rook");  break;
+            case Knight: printf(Debug1, " Knight");  break;
+            case Bishop: printf(Debug1, " Bishop");  break;
+            case  Queen: printf(Debug1, " Queen");  break;
+            case   King: printf(Debug1, " King");  break;
+            default:     printf(Debug1, "Error: invalid Piece type: %d\n", type); 
+                break;
+        }
+    }
+
 } // show_piece(Piece const p) 
 
 
@@ -408,7 +424,7 @@ void show_move(move_t const &move, Bool const align /* = False */)
     index_t const to_row = move.to / 8;
     Piece   const     op = board.get(move.to);
 
-    show_piece(p);
+    show_piece(p, align);
 
     printf(Debug1, " from: %d,%d (%c%c) to: %d,%d (%c%c)", 
            col,    row,    col + 'A', '8' -    row, 
@@ -416,7 +432,7 @@ void show_move(move_t const &move, Bool const align /* = False */)
 
     if (Empty != getType(op)) {
         printf(Debug1, " taking a ");
-        show_piece(op);
+        show_piece(op, align);
     }
 
     char str_value[16] = "";

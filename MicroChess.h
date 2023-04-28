@@ -255,7 +255,7 @@ struct piece_gen_t {
 
 
 // display a piece, or a move, or the piece list
-extern void show_piece(Piece const p);
+extern void show_piece(Piece const p, Bool const align = True);
 extern void show_move(move_t const &move, Bool const align = False);
 extern void show_pieces();
 extern void show_time(uint32_t ms);
@@ -269,7 +269,7 @@ extern int freeMemory();
 
 // control an external LED strip to display the board state
 extern void init_led_strip();
-extern void set_led_strip();
+extern void set_led_strip(index_t const flash = -1);
 
 extern Bool timeout();
 

@@ -111,25 +111,40 @@ Bool consider_move(piece_gen_t &gen)
         #endif
     }
 
-    // Check to see if this move is equal to the best move we've seen so far
     if (gen.whites_turn) {
-        if ((gen.move.value == gen.wbest.value) && random(2)) {
-            gen.wbest = gen.move;
-            better = True;
-        }
-        else if (gen.move.value > gen.wbest.value) {
+        if (-1 == gen.wbest.to) {
             gen.wbest = gen.move;
             better = True;
         }
     }
     else {
-        if ((gen.move.value == gen.bbest.value) && random(2)) {
+        if (-1 == gen.bbest.to) {
             gen.bbest = gen.move;
             better = True;
         }
-        else if (gen.move.value < gen.bbest.value) {
-            gen.bbest = gen.move;
-            better = True;
+    }
+
+    // Check to see if this move is equal to the best move we've seen so far
+    if (!better) {
+        if (gen.whites_turn) {
+            if ((gen.move.value == gen.wbest.value) && random(2)) {
+                gen.wbest = gen.move;
+                better = True;
+            }
+            else if (gen.move.value > gen.wbest.value) {
+                gen.wbest = gen.move;
+                better = True;
+            }
+        }
+        else {
+            if ((gen.move.value == gen.bbest.value) && random(2)) {
+                gen.bbest = gen.move;
+                better = True;
+            }
+            else if (gen.move.value < gen.bbest.value) {
+                gen.bbest = gen.move;
+                better = True;
+            }
         }
     }
 
@@ -454,7 +469,7 @@ long make_move(piece_gen_t & gen)
 
             if (!game.last_was_timeout || (game.ply < 1)) {
                 // Indicate whether we are on a quiescent search or not
-                digitalWrite(DEBUG2_PIN, quiescent);
+                show_quiescent_search();
 
                 // Explore The Future! (plies)
                 game.ply++;
@@ -520,7 +535,7 @@ long make_move(piece_gen_t & gen)
         static move_t last_led_update = { -1, -1, 0 };
         if (last_led_update.from != gen.move.from || last_led_update.to != gen.move.to) {
             last_led_update = gen.move;
-            set_led_strip();
+            set_led_strip(gen.move.from);
         }
     }
 
@@ -834,22 +849,10 @@ void reset_turn_flags()
     if (White == game.turn) {
         game.alpha = MIN_VALUE;
         game.beta  = MAX_VALUE;
-
-        // Set the game options we want for White
-        // game.options.alpha_beta_pruning = True;
-        // game.options.shuffle_pieces = True;
-        // game.options.max_max_ply = 4;
-        // game.options.maxply = 3;
     }
     else {
         game.alpha = MAX_VALUE;
         game.beta  = MIN_VALUE;
-
-        // Set the game options we want for Black
-        // game.options.alpha_beta_pruning = True;
-        // game.options.shuffle_pieces = False;
-        // game.options.max_max_ply = 2;
-        // game.options.maxply = 2;
     }
 
 }   // reset_move_flags()
@@ -901,9 +904,9 @@ void take_turn()
     }
 
     // Return if the game has ended
-    if (PLAYING != game.state) {
-        return;
-    }
+    // if (PLAYING != game.state) {
+    //     return;
+    // }
 
     // Save the number of pieces in the game before we make the move
     // in order to see if any pieces were taken
@@ -956,11 +959,11 @@ void take_turn()
     Bool const piece_taken = piece_count != game.piece_count;
 
     if (game.last_was_en_passant) {
-        printf(Debug1, " en passant capture ")
+        printf(Debug1, " - en passant capture ")
     }
 
     if (game.last_was_pawn_promotion) {
-        printf(Debug1, " pawn promoted ")
+        printf(Debug1, " - pawn promoted ")
     }
 
     if (game.last_was_timeout) {
@@ -968,7 +971,7 @@ void take_turn()
     }
 
     if (game.last_was_castle) {
-        printf(Debug1, " castling ")
+        printf(Debug1, " - castling ")
     }
 
     printf(Debug1, "\n");
@@ -1046,15 +1049,15 @@ void set_game_options()
  
     // set the time limit per turn in milliseconds
     game.options.time_limit = 0;
-    // game.options.time_limit = 10000;
+    // game.options.time_limit = 1000;
 
     // enable or disable alpha-beta pruning
     game.options.alpha_beta_pruning = False;
     // game.options.alpha_beta_pruning = True;
 
     // set whether or not we process the pieces in random order
-    // game.options.shuffle_pieces = False;
-    game.options.shuffle_pieces = True;
+    game.options.shuffle_pieces = False;
+    // game.options.shuffle_pieces = True;
 
     // set the 'live update' flag
     // game.options.live_update = False;

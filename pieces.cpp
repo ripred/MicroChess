@@ -60,9 +60,9 @@ index_t add_pawn_moves(piece_gen_t &gen) {
     // See if we can capture a piece diagonally
     for (index_t i = -1; i <= 1; i += 2) {
         // See if the turn has timed out
-        if (timeout()) {
-            return count;
-        }
+        // if (timeout()) {
+        //     return count;
+        // }
 
         to_col = gen.col + i;
         to_row = gen.row + (gen.whites_turn ? -1 : +1);
@@ -134,9 +134,9 @@ index_t gen_moves(piece_gen_t &gen, offset_t const * const ptr, index_t const nu
 
         for (index_t iter = 0; iter < num_iter && isValidPos(x, y); iter++) {
             // See if the turn has timed out
-            if (timeout()) {
-                return count;
-            }
+            // if (timeout()) {
+            //     return count;
+            // }
 
             gen.move.to = x + y * 8;
             Piece const other_piece = board.get(gen.move.to);
@@ -243,9 +243,9 @@ index_t add_knight_moves(piece_gen_t &gen) {
 
     for (index_t i = 0; i < index_t(ARRAYSZ(knight_offsets)); i++) {
         // See if the turn has timed out
-        if (timeout()) {
-            return count;
-        }
+        // if (timeout()) {
+        //     return count;
+        // }
 
         index_t const to_col = gen.col + pgm_read_byte(&ptr[i].x);
         index_t const to_row = gen.row + pgm_read_byte(&ptr[i].y);
@@ -287,9 +287,9 @@ index_t add_rook_moves(piece_gen_t &gen) {
 
         while (isValidPos(x, y)) {
             // See if the turn has timed out
-            if (timeout()) {
-                return count;
-            }
+            // if (timeout()) {
+            //     return count;
+            // }
 
             gen.move.to = x + y * 8;
             Piece const op = board.get(gen.move.to);
@@ -341,9 +341,9 @@ index_t add_bishop_moves(piece_gen_t &gen) {
 
         while (isValidPos(x, y)) {
             // See if the turn has timed out
-            if (timeout()) {
-                return count;
-            }
+            // if (timeout()) {
+            //     return count;
+            // }
 
             gen.move.to = x + y * 8;
             Piece const op = board.get(gen.move.to);
@@ -395,9 +395,9 @@ index_t add_king_moves(piece_gen_t &gen) {
 
     for (index_t i = 0; i < index_t(ARRAYSZ(king_offsets)); i++) {
         // See if the turn has timed out
-        if (timeout()) {
-            return count;
-        }
+        // if (timeout()) {
+        //     return count;
+        // }
 
         index_t const to_col = gen.col + pgm_read_byte(&ptr[i].x);
         index_t const to_row = gen.row + pgm_read_byte(&ptr[i].y);
