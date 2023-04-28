@@ -549,11 +549,13 @@ long make_move(piece_gen_t & gen)
     }
 
     // Periodically update the LED strip display and progress indicator if enabled
-    if (game.options.live_update && (game.ply > 0) && (game.ply < game.options.max_max_ply)) {
-        static move_t last_led_update = { -1, -1, 0 };
-        if (last_led_update.from != gen.move.from || last_led_update.to != gen.move.to) {
-            last_led_update = gen.move;
-            set_led_strip(gen.move.from);
+    if (game.options.live_update) {
+        if ((game.ply > 0) && (game.ply < game.options.max_max_ply)) {
+            static move_t last_led_update = { -1, -1, 0 };
+            if (last_led_update.from != gen.move.from || last_led_update.to != gen.move.to) {
+                last_led_update = gen.move;
+                set_led_strip(gen.move.from);
+            }
         }
     }
 
@@ -703,6 +705,37 @@ long evaluate()
 
 
 ////////////////////////////////////////////////////////////////////////////////////////
+// Sort the game.pieces[] array by player side
+void sort_pieces(Color const side)
+{
+    // lambda comparator to sort game.pieces[] by White and then Black
+    auto comparew = [](const void *a, const void *b) -> int {
+        point_t const piece_a = *((point_t*) a);
+        point_t const piece_b = *((point_t*) b);
+        Color   const side_a = getSide(board.get(piece_a.x + piece_a.y * 8));
+        Color   const side_b = getSide(board.get(piece_b.x + piece_b.y * 8));
+        return (side_a == side_b) ? 0 : ((side_a < side_b) ? +1 : -1);
+    };
+
+    // lambda comparator to sort game.pieces[] by Black and then White
+    auto compareb = [](const void *a, const void *b) -> int {
+        point_t const piece_a = *((point_t*) a);
+        point_t const piece_b = *((point_t*) b);
+        Color   const side_a = getSide(board.get(piece_a.x + piece_a.y * 8));
+        Color   const side_b = getSide(board.get(piece_b.x + piece_b.y * 8));
+        return (side_a == side_b) ? 0 : ((side_a > side_b) ? +1 : -1);
+    };
+
+    if (White == side) {
+        qsort(game.pieces, game.piece_count, sizeof(point_t), comparew);
+    }
+    else {
+        qsort(game.pieces, game.piece_count, sizeof(point_t), compareb);
+    }
+}
+
+
+////////////////////////////////////////////////////////////////////////////////////////
 // Evaluate all of the available moves for the specified side.
 // The best move is stored in best.
 // The callback is called for each move.
@@ -724,42 +757,13 @@ void choose_best_moves(move_t &wbest, move_t &bbest, generator_t const callback)
     //  Check for low stack space
     if (check_mem()) { return; }
 
-    // As an aid to the alpha-beta pruning heuristic, we randomize the piece order,
-    // which randomizes the move evaluation order, which make the better moves be discovered
-    // earlier in the search (on average). This helps make the ordering of the move evaluations
-    // closer (on average, sight-unseen, so predicting) to best-move-first sort) order
-    // which makes the heurstic more effective and efficient.
-    // 
-    // Enabling this also randomizes which piece index level we get to, and check
-    // when any move time limits are enabled and hit.
-
-    // First we set their in-order indexes as they are
-    index_t piece_order[32] {};
-    for (index_t i = 0; i < game.piece_count; i++) {
-        piece_order[i] = i;
-    }
-
-    // Now we optionally randomize them
-    if (game.options.shuffle_pieces) {
-        for (int i = 0; i < 32; i++) {
-            index_t const r1 = random(game.piece_count);
-            index_t const r2 = random(game.piece_count);
-            if (r1 != r2) {
-                index_t const tmp = piece_order[r1];
-                piece_order[r1] = piece_order[r2];
-                piece_order[r2] = tmp;
-            }
-        }
-    }
-
     move_t dummy = { -1, -1, 0 };
     piece_gen_t gen(dummy, wbest, bbest, callback, True);
     gen.num_wmoves = 0;
     gen.num_bmoves = 0;
 
     // Walk through the pieces list and evaluate the moves for each piece
-    for (index_t order = 0; order < game.piece_count; order++) {
-        gen.piece_index = piece_order[order];
+    for (gen.piece_index = 0; gen.piece_index < game.piece_count; gen.piece_index++) {
         gen.col = game.pieces[gen.piece_index].x;
         if (-1 == gen.col) { continue; }
 
@@ -905,6 +909,7 @@ void take_turn()
     reset_turn_flags();
 
     // Choose the best moves for both sides
+    sort_pieces(game.turn);
     choose_best_moves(wmove, bmove, consider_move);
 
     // Gather the move statistics for this turn
@@ -1049,7 +1054,7 @@ void set_game_options()
     game.options.max_max_ply = 4;
 
     // set the max ply level (the number of turns we look ahead) for normal moves
-    game.options.maxply = 3;
+    game.options.maxply = 4;
 
     // Set the percentage of moves that might be a mistake
     game.options.mistakes = 0;
@@ -1064,20 +1069,20 @@ void set_game_options()
 
     // set whether we play continuously or not
     // game.options.continuous = game.options.random;
-    game.options.continuous = False;
-    // game.options.continuous = True;
+    // game.options.continuous = False;
+    game.options.continuous = True;
  
     // set the time limit per turn in milliseconds
     // game.options.time_limit = 0;
-    game.options.time_limit = 30000;
+    game.options.time_limit = 67000;
 
     // enable or disable alpha-beta pruning
     game.options.alpha_beta_pruning = False;
     // game.options.alpha_beta_pruning = True;
 
     // set whether or not we process the pieces in random order
-    game.options.shuffle_pieces = False;
-    // game.options.shuffle_pieces = True;
+    // game.options.shuffle_pieces = False;
+    game.options.shuffle_pieces = True;
 
     // set the 'live update' flag
     // game.options.live_update = False;
