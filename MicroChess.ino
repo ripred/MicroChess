@@ -809,14 +809,16 @@ void choose_best_moves(move_t &wbest, move_t &bbest, generator_t const callback)
     } // for each piece on both sides
 
     // See if the game is over
-    if ((0 == gen.num_wmoves) && (0 == gen.num_bmoves)) {
-        game.state = STALEMATE;
-    }
-    else if (0 == gen.num_wmoves) {
-        game.state = BLACK_CHECKMATE;
-    }
-    else if (0 == gen.num_bmoves) {
-        game.state = WHITE_CHECKMATE;
+    if (0 == game.ply) {
+        if ((0 == gen.num_wmoves) && (0 == gen.num_bmoves)) {
+            game.state = STALEMATE;
+        }
+        else if (0 == gen.num_wmoves) {
+            game.state = BLACK_CHECKMATE;
+        }
+        else if (0 == gen.num_bmoves) {
+            game.state = WHITE_CHECKMATE;
+        }
     }
 
 }   // choose_best_moves(...)
@@ -1026,10 +1028,10 @@ void set_game_options()
     // game.options.profiling = True;
 
     // set the ultimate maximum ply level
-    game.options.max_max_ply = 2;
+    game.options.max_max_ply = 3;
 
     // set the max ply level (the number of turns we look ahead) for normal moves
-    game.options.maxply = 1;
+    game.options.maxply = 2;
 
     // Set the percentage of moves that might be a mistake
     game.options.mistakes = 0;
@@ -1048,8 +1050,8 @@ void set_game_options()
     // game.options.continuous = True;
  
     // set the time limit per turn in milliseconds
-    game.options.time_limit = 0;
-    // game.options.time_limit = 1000;
+    // game.options.time_limit = 0;
+    game.options.time_limit = 60000;
 
     // enable or disable alpha-beta pruning
     game.options.alpha_beta_pruning = False;

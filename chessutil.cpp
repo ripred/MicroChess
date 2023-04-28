@@ -152,16 +152,19 @@ const char* ftostr(double const value, int const dec, char * const buff)
 // check for a move timeout
 Bool timeout() {
     if (0 == game.options.time_limit) {
+        game.last_was_timeout = False;
         return False;
     }
 
     // We always evaluate at least ply level 0 and 1 so
     // we only timeout if the ply level is 2 or higher
     if (game.ply <= 1) {
+        game.last_was_timeout = False;
         return False;
     }
 
     if (game.stats.move_stats.duration() < game.options.time_limit) {
+        game.last_was_timeout = False;
         return False;
     }
 
