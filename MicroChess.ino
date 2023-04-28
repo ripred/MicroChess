@@ -1074,15 +1074,16 @@ void set_game_options()
  
     // set the time limit per turn in milliseconds
     // game.options.time_limit = 0;
-    game.options.time_limit = 67000;
+    game.options.time_limit = 30000;
 
     // enable or disable alpha-beta pruning
     game.options.alpha_beta_pruning = False;
     // game.options.alpha_beta_pruning = True;
 
-    // set whether or not we process the pieces in random order
-    // game.options.shuffle_pieces = False;
-    game.options.shuffle_pieces = True;
+    // when sort_pieces is True we sort the pieces[] array before each turn
+    // so that we process the current side's pieces first.
+    // game.options.sort_pieces = False;
+    game.options.sort_pieces = True;
 
     // set the 'live update' flag
     // game.options.live_update = False;
@@ -1167,7 +1168,7 @@ void set_game_options()
     #endif
 
     printf(Always, "Move Shuffling: ");
-    if (game.options.shuffle_pieces) {
+    if (game.options.sort_pieces) {
         printf(Always, "yes\n");
     }
     else {
