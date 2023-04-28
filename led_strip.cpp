@@ -53,7 +53,7 @@ void set_led_strip(index_t const flash /* = -1 */)
                 (((ex ^ y) & 1) ? CRGB(0,0,0) : CRGB(2,3,3)) : 
 
                 // spot with piece
-                (flash == led_index) ? CRGB(0,48,48) : 
+                (flash == led_index) ? CRGB(0,96,96) : 
                 CRGB(pgm_read_byte(&piece_colors[clr    ]), 
                      pgm_read_byte(&piece_colors[clr + 1]), 
                      pgm_read_byte(&piece_colors[clr + 2]));

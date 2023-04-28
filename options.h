@@ -38,14 +38,14 @@ public:
 
 
     // this stuff stays the same at runtime during the game, and can't be modified
-    static uint32_t const move_limit    = 100;  // The maximum number of moves allowed in a full game
+    static uint32_t const move_limit    = 150;  // The maximum number of moves allowed in a full game
     static int      const low_mem_limit = 187;  // The amount of recursive memory we need to go a ply deeper
 
     // adjustable multipiers to alter importance of mobility or center proximity
     // during board evaluation. season to taste
-    static long  constexpr  materialBonus =  3L;
-    static long  constexpr  centerBonus   =  1L;
-    static long  constexpr  kingBonus     =  0L;
+    static long  constexpr  materialBonus =  4L;
+    static long  constexpr  centerBonus   =  2L;
+    static long  constexpr  kingBonus     =  1L;
     static long  constexpr  mobilityBonus =  3L;
 
 public:

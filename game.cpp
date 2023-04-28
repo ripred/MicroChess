@@ -160,7 +160,7 @@ long const game_t::center_bonus[ 8 ][ 7 ][ 2 ] PROGMEM = {
     //                      Black                   ,                      White 
     {
         { 0 *  EMPTY * options.centerBonus * -1,    0 *  EMPTY * options.centerBonus * +1 },       // col/row offset 0; 3 from center
-        { 8 *   PAWN * options.centerBonus * -1,    8 *   PAWN * options.centerBonus * +1 },
+        { 8 *   PAWN * options.centerBonus * -1,   15 *   PAWN * options.centerBonus * +1 },
         { 0 * KNIGHT * options.centerBonus * -1,    0 * KNIGHT * options.centerBonus * +1 },
         { 0 * BISHOP * options.centerBonus * -1,    0 * BISHOP * options.centerBonus * +1 },
         { 0 *   ROOK * options.centerBonus * -1,    0 *   ROOK * options.centerBonus * +1 },
@@ -168,7 +168,7 @@ long const game_t::center_bonus[ 8 ][ 7 ][ 2 ] PROGMEM = {
         {                             MAX_VALUE,                                MIN_VALUE },
     }, {
         { 1 *  EMPTY * options.centerBonus * -1,    1 *  EMPTY * options.centerBonus * +1 },       // col/row offset 0; 3 from center
-        { 9 *   PAWN * options.centerBonus * -1,    9 *   PAWN * options.centerBonus * +1 },
+        { 9 *   PAWN * options.centerBonus * -1,   14 *   PAWN * options.centerBonus * +1 },
         { 1 * KNIGHT * options.centerBonus * -1,    1 * KNIGHT * options.centerBonus * +1 },
         { 1 * BISHOP * options.centerBonus * -1,    1 * BISHOP * options.centerBonus * +1 },
         { 1 *   ROOK * options.centerBonus * -1,    1 *   ROOK * options.centerBonus * +1 },
@@ -176,7 +176,7 @@ long const game_t::center_bonus[ 8 ][ 7 ][ 2 ] PROGMEM = {
         {                             MAX_VALUE,                                MIN_VALUE },
     }, {
         { 2 *  EMPTY * options.centerBonus * -1,    2 *  EMPTY * options.centerBonus * +1 },       // col/row offset 0; 3 from center
-        {10 *   PAWN * options.centerBonus * -1,   10 *   PAWN * options.centerBonus * +1 },
+        {10 *   PAWN * options.centerBonus * -1,   13 *   PAWN * options.centerBonus * +1 },
         { 2 * KNIGHT * options.centerBonus * -1,    2 * KNIGHT * options.centerBonus * +1 },
         { 2 * BISHOP * options.centerBonus * -1,    2 * BISHOP * options.centerBonus * +1 },
         { 2 *   ROOK * options.centerBonus * -1,    2 *   ROOK * options.centerBonus * +1 },
@@ -184,7 +184,7 @@ long const game_t::center_bonus[ 8 ][ 7 ][ 2 ] PROGMEM = {
         {                             MAX_VALUE,                                MIN_VALUE },
     }, {
         { 3 *  EMPTY * options.centerBonus * -1,    3 *  EMPTY * options.centerBonus * +1 },       // col/row offset 0; 3 from center
-        {11 *   PAWN * options.centerBonus * -1,   11 *   PAWN * options.centerBonus * +1 },
+        {11 *   PAWN * options.centerBonus * -1,   12 *   PAWN * options.centerBonus * +1 },
         { 3 * KNIGHT * options.centerBonus * -1,    3 * KNIGHT * options.centerBonus * +1 },
         { 3 * BISHOP * options.centerBonus * -1,    3 * BISHOP * options.centerBonus * +1 },
         { 3 *   ROOK * options.centerBonus * -1,    3 *   ROOK * options.centerBonus * +1 },
@@ -192,7 +192,7 @@ long const game_t::center_bonus[ 8 ][ 7 ][ 2 ] PROGMEM = {
         {                             MAX_VALUE,                                MIN_VALUE },
     }, {
         { 3 *  EMPTY * options.centerBonus * -1,    3 *  EMPTY * options.centerBonus * +1 },       // col/row offset 0; 3 from center
-        {12 *   PAWN * options.centerBonus * -1,   12 *   PAWN * options.centerBonus * +1 },
+        {12 *   PAWN * options.centerBonus * -1,   11 *   PAWN * options.centerBonus * +1 },
         { 3 * KNIGHT * options.centerBonus * -1,    3 * KNIGHT * options.centerBonus * +1 },
         { 3 * BISHOP * options.centerBonus * -1,    3 * BISHOP * options.centerBonus * +1 },
         { 3 *   ROOK * options.centerBonus * -1,    3 *   ROOK * options.centerBonus * +1 },
@@ -200,7 +200,7 @@ long const game_t::center_bonus[ 8 ][ 7 ][ 2 ] PROGMEM = {
         {                             MAX_VALUE,                                MIN_VALUE },
     }, {
         { 2 *  EMPTY * options.centerBonus * -1,    2 *  EMPTY * options.centerBonus * +1 },       // col/row offset 0; 3 from center
-        {13 *   PAWN * options.centerBonus * -1,   13 *   PAWN * options.centerBonus * +1 },
+        {13 *   PAWN * options.centerBonus * -1,   10 *   PAWN * options.centerBonus * +1 },
         { 2 * KNIGHT * options.centerBonus * -1,    2 * KNIGHT * options.centerBonus * +1 },
         { 2 * BISHOP * options.centerBonus * -1,    2 * BISHOP * options.centerBonus * +1 },
         { 2 *   ROOK * options.centerBonus * -1,    2 *   ROOK * options.centerBonus * +1 },
@@ -208,7 +208,7 @@ long const game_t::center_bonus[ 8 ][ 7 ][ 2 ] PROGMEM = {
         {                             MAX_VALUE,                                MIN_VALUE },
     }, {
         { 1 *  EMPTY * options.centerBonus * -1,    1 *  EMPTY * options.centerBonus * +1 },       // col/row offset 0; 3 from center
-        {14 *   PAWN * options.centerBonus * -1,   14 *   PAWN * options.centerBonus * +1 },
+        {14 *   PAWN * options.centerBonus * -1,    9 *   PAWN * options.centerBonus * +1 },
         { 1 * KNIGHT * options.centerBonus * -1,    1 * KNIGHT * options.centerBonus * +1 },
         { 1 * BISHOP * options.centerBonus * -1,    1 * BISHOP * options.centerBonus * +1 },
         { 1 *   ROOK * options.centerBonus * -1,    1 *   ROOK * options.centerBonus * +1 },
@@ -216,7 +216,7 @@ long const game_t::center_bonus[ 8 ][ 7 ][ 2 ] PROGMEM = {
         {                             MAX_VALUE,                                MIN_VALUE },
     }, {
         { 0 *  EMPTY * options.centerBonus * -1,    0 *  EMPTY * options.centerBonus * +1 },       // col/row offset 0; 3 from center
-        {15 *   PAWN * options.centerBonus * -1,   15 *   PAWN * options.centerBonus * +1 },
+        {15 *   PAWN * options.centerBonus * -1,    8 *   PAWN * options.centerBonus * +1 },
         { 0 * KNIGHT * options.centerBonus * -1,    0 * KNIGHT * options.centerBonus * +1 },
         { 0 * BISHOP * options.centerBonus * -1,    0 * BISHOP * options.centerBonus * +1 },
         { 0 *   ROOK * options.centerBonus * -1,    0 *   ROOK * options.centerBonus * +1 },

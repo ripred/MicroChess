@@ -1064,20 +1064,20 @@ void set_game_options()
 
     // set whether we play continuously or not
     // game.options.continuous = game.options.random;
-    // game.options.continuous = False;
-    game.options.continuous = True;
+    game.options.continuous = False;
+    // game.options.continuous = True;
  
     // set the time limit per turn in milliseconds
     // game.options.time_limit = 0;
-    game.options.time_limit = 60000;
+    game.options.time_limit = 30000;
 
     // enable or disable alpha-beta pruning
     game.options.alpha_beta_pruning = False;
     // game.options.alpha_beta_pruning = True;
 
     // set whether or not we process the pieces in random order
-    // game.options.shuffle_pieces = False;
-    game.options.shuffle_pieces = True;
+    game.options.shuffle_pieces = False;
+    // game.options.shuffle_pieces = True;
 
     // set the 'live update' flag
     // game.options.live_update = False;
