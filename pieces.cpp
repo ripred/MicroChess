@@ -20,10 +20,8 @@ index_t add_pawn_moves(piece_gen_t &gen) {
     game.freemem[1][game.ply].mem = freeMemory();
     #endif
 
-    if (freeMemory() < game.options.low_mem_limit) {
-        show_low_memory();
-        return 0;
-    }
+    //  Check for low stack space
+    if (check_mem()) { return 0; }
 
     // See if we can move 1 spot in front of this pawn
     index_t to_col = gen.col;
@@ -45,7 +43,9 @@ index_t add_pawn_moves(piece_gen_t &gen) {
             return 0;
         }
 
-        return gen.callme(gen) ? 1 : 0;
+        gen.callme(gen);
+
+        return 1;
     };
 
     // Check 1 row ahead
@@ -60,7 +60,7 @@ index_t add_pawn_moves(piece_gen_t &gen) {
     // See if we can capture a piece diagonally
     for (index_t i = -1; i <= 1; i += 2) {
         // See if the turn has timed out
-        if ((game.last_was_timeout = timeout())) {
+        if ((game.last_was_timeout = timeout()) && (game.ply > 1)) {
             show_timeout();
             return count;
         }
@@ -99,6 +99,20 @@ index_t add_pawn_moves(piece_gen_t &gen) {
 } // add_pawn_moves(piece_gen_t &gen)
 
 
+static offset_t constexpr knight_offsets[8] PROGMEM = {
+    { -1, +2 }, { -1, -2 }, { -2, +1 }, { -2, -1 }, 
+    { +1, +2 }, { +1, -2 }, { +2, +1 }, { +2, -1 }  
+};
+
+static offset_t constexpr rook_offsets[4] PROGMEM = {
+    {  0,  1 }, {  0, -1 }, { -1,  0 }, {  1,  0 }
+};
+
+static offset_t const bishop_offsets[4] PROGMEM = {
+    { -1, -1 }, { -1,  1 }, {  1, -1 }, {  1,  1 }
+};
+
+
 // #define  USE_NEW
 
 #ifdef USE_NEW
@@ -121,7 +135,7 @@ index_t gen_moves(piece_gen_t &gen, offset_t const * const ptr, index_t const nu
 
         for (index_t iter = 0; iter < num_iter && isValidPos(x, y); iter++) {
             // See if the turn has timed out
-            if ((game.last_was_timeout = timeout())) {
+            if ((game.last_was_timeout = timeout()) && (game.ply > 1)) {
                 show_timeout();
                 return count;
             }
@@ -150,24 +164,7 @@ index_t gen_moves(piece_gen_t &gen, offset_t const * const ptr, index_t const nu
     return count;
 
 } // gen_moves(piece_gen_t &gen, offset_t const * const dirs, index_t const num_dirs, index_t const num_iter)
-#endif
 
-
-static offset_t constexpr knight_offsets[8] PROGMEM = {
-    { -1, +2 }, { -1, -2 }, { -2, +1 }, { -2, -1 }, 
-    { +1, +2 }, { +1, -2 }, { +2, +1 }, { +2, -1 }  
-};
-
-static offset_t constexpr rook_offsets[4] PROGMEM = {
-    {  0,  1 }, {  0, -1 }, { -1,  0 }, {  1,  0 }
-};
-
-static offset_t const bishop_offsets[4] PROGMEM = {
-    { -1, -1 }, { -1,  1 }, {  1, -1 }, {  1,  1 }
-};
-
-
-#ifdef USE_NEW
 
 index_t add_knight_moves(piece_gen_t &gen) {
     return gen_moves(gen, pgm_get_far_address(knight_offsets), ARRAYSZ(knight_offsets), 1);
@@ -238,10 +235,8 @@ index_t add_knight_moves(piece_gen_t &gen) {
     game.freemem[1][game.ply].mem = freeMemory();
     #endif
 
-    if (freeMemory() < game.options.low_mem_limit) {
-        show_low_memory();
-        return 0;
-    }
+    //  Check for low stack space
+    if (check_mem()) { return 0; }
 
     // Count the number of available moves
     index_t count = 0;
@@ -250,7 +245,7 @@ index_t add_knight_moves(piece_gen_t &gen) {
 
     for (index_t i = 0; i < index_t(ARRAYSZ(knight_offsets)); i++) {
         // See if the turn has timed out
-        if ((game.last_was_timeout = timeout())) {
+        if ((game.last_was_timeout = timeout()) && (game.ply > 1)) {
             show_timeout();
             return count;
         }
@@ -281,10 +276,8 @@ index_t add_rook_moves(piece_gen_t &gen) {
     game.freemem[1][game.ply].mem = freeMemory();
     #endif
 
-    if (freeMemory() < game.options.low_mem_limit) {
-        show_low_memory();
-        return 0;
-    }
+    //  Check for low stack space
+    if (check_mem()) { return 0; }
 
     // Count the number of available moves
     index_t count = 0;
@@ -297,7 +290,7 @@ index_t add_rook_moves(piece_gen_t &gen) {
 
         while (isValidPos(x, y)) {
             // See if the turn has timed out
-            if ((game.last_was_timeout = timeout())) {
+            if ((game.last_was_timeout = timeout()) && (game.ply > 1)) {
                 show_timeout();
                 return count;
             }
@@ -339,22 +332,20 @@ index_t add_bishop_moves(piece_gen_t &gen) {
     #endif
 
     //  Check for low stack space
-    if (freeMemory() < game.options.low_mem_limit) {
-        show_low_memory();
-        return 0;
-    }
+    if (check_mem()) { return 0; }
 
     // Count the number of available moves
     index_t count = 0;
 
     offset_t const * const ptr = (offset_t const * const) pgm_get_far_address(bishop_offsets);
+
     for (index_t i = 0; i < index_t(ARRAYSZ(bishop_offsets)); i++) {
         index_t x = gen.col + pgm_read_byte(&ptr[i].x);
         index_t y = gen.row + pgm_read_byte(&ptr[i].y);
 
         while (isValidPos(x, y)) {
             // See if the turn has timed out
-            if ((game.last_was_timeout = timeout())) {
+            if ((game.last_was_timeout = timeout()) && (game.ply > 1)) {
                 show_timeout();
                 return count;
             }
@@ -399,10 +390,8 @@ index_t add_king_moves(piece_gen_t &gen) {
     game.freemem[1][game.ply].mem = freeMemory();
     #endif
 
-    if (freeMemory() < game.options.low_mem_limit) {
-        show_low_memory();
-        return 0;
-    }
+    //  Check for low stack space
+    if (check_mem()) { return 0; }
 
     // Count the number of available moves
     index_t count = 0;
@@ -411,7 +400,7 @@ index_t add_king_moves(piece_gen_t &gen) {
 
     for (index_t i = 0; i < index_t(ARRAYSZ(king_offsets)); i++) {
         // See if the turn has timed out
-        if ((game.last_was_timeout = timeout())) {
+        if ((game.last_was_timeout = timeout()) && (game.ply > 1)) {
             show_timeout();
             return count;
         }

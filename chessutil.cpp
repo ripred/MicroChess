@@ -351,14 +351,15 @@ void show_piece(Piece const p)
     }
 
     switch (type) {
-        case  Empty: printf(Debug1, " Empty");  break;
-        case   Pawn: printf(Debug1, " Pawn");   break;
-        case   Rook: printf(Debug1, " Rook");   break;
-        case Knight: printf(Debug1, " Knight"); break;
-        case Bishop: printf(Debug1, " Bishop"); break;
-        case  Queen: printf(Debug1, " Queen");  break;
-        case   King: printf(Debug1, " King");   break;
-            default: printf(Debug1, "Error: invalid Piece type: %d\n", type); break;
+        case  Empty: printf(Debug1, " Empty ");  break;
+        case   Pawn: printf(Debug1, " Pawn  ");  break;
+        case   Rook: printf(Debug1, " Rook  ");  break;
+        case Knight: printf(Debug1, " Knight");  break;
+        case Bishop: printf(Debug1, " Bishop");  break;
+        case  Queen: printf(Debug1, " Queen ");  break;
+        case   King: printf(Debug1, " King  ");  break;
+        default:     printf(Debug1, "Error: invalid Piece type: %d\n", type); 
+            break;
     }
 } // show_piece(Piece const p) 
 
@@ -389,7 +390,7 @@ void show_pieces()
 
 
 // display a piece being moved
-void show_move(move_t const &move)
+void show_move(move_t const &move, Bool const align /* = False */)
 {
     index_t const    col = move.from % 8;
     index_t const    row = move.from / 8;
@@ -411,7 +412,12 @@ void show_move(move_t const &move)
 
     char str_value[16] = "";
     strcpy(str_value, addCommas(move.value));
-    printf(Debug1, " value: %s%s", (move.value < 0) ? "" : " ", str_value);
+    if (align) {
+        printf(Debug1, " value: %14s", str_value);
+    }
+    else {
+        printf(Debug1, " value: %s", str_value);
+    }
 
 } // show_move(move_t const &move)
 

@@ -114,6 +114,8 @@ public:
 
     // set the pieces[] array based off of the board contents
     void set_pieces_from_board(board_t &board);
+    Bool compare_pieces_to_board(board_t &board);
+    index_t find_piece(index_t const index);
 
 };  // game_t
 

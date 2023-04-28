@@ -91,7 +91,7 @@ enum print_t {
 #define     _getbit(_A, _B)     ((char*)(_A))[(_B) / 8] &   (0x80 >> ((_B) % 8))
 
 // The max and min range for piece values
-#define  MAX_VALUE ((long const)(LONG_MAX / 8))
+#define  MAX_VALUE ((long const)(LONG_MAX / 2))
 #define  MIN_VALUE ((long const)(0 - MAX_VALUE))
 
 // The number of locations on the game board
@@ -191,7 +191,7 @@ enum state_t {
     BLACK_CHECKMATE,
     WHITE_3_MOVE_REP,
     BLACK_3_MOVE_REP,
-    FIFTY_MOVES
+    MOVE_LIMIT
 };
 
 #include "board.h"
@@ -216,7 +216,11 @@ struct piece_gen_t {
     move_t      & move;
 
     // The best move found for this piece type so far
-    move_t      & best;
+    move_t      & wbest;
+    move_t      & bbest;
+
+    index_t     num_wmoves;
+    index_t     num_bmoves;
 
     // The function to call for each move to be evaluated
     generator_t * callme;
@@ -237,8 +241,8 @@ struct piece_gen_t {
     // The Type of the Piece: [Empty | Pawn | Knight | Rook | Bishop | Queen | King]
     Piece       type;
 
-    piece_gen_t(move_t &m, move_t &b, generator_t *cb, Bool const eval) :
-        move(m), best(b), callme(cb), evaluating(eval), cutoff(False)
+    piece_gen_t(move_t &m, move_t &wb, move_t &bb, generator_t *cb, Bool const eval) :
+        move(m), wbest(wb), bbest(bb), callme(cb), evaluating(eval), cutoff(False)
     {
         piece = board.get(move.from);
         type = getType(piece);
@@ -252,7 +256,7 @@ struct piece_gen_t {
 
 // display a piece, or a move, or the piece list
 extern void show_piece(Piece const p);
-extern void show_move(move_t const &move);
+extern void show_move(move_t const &move, Bool const align = False);
 extern void show_pieces();
 extern void show_time(uint32_t ms);
 
@@ -275,7 +279,7 @@ extern Bool would_repeat(move_t const move);
 
 extern Bool add_to_history(move_t const &move);
 
-extern index_t choose_best_move(Color const who, move_t &best, generator_t callback);
+extern void choose_best_moves(Color const who, move_t &wbest, move_t &bbest, generator_t const callback);
 
 extern Bool consider_move(piece_gen_t &gen);
 
