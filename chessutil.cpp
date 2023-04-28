@@ -151,11 +151,25 @@ const char* ftostr(double const value, int const dec, char * const buff)
 
 // check for a move timeout
 Bool timeout() {
-    if (0 != game.options.time_limit) {
-        return game.stats.move_stats.duration() >= game.options.time_limit;
+    if (0 == game.options.time_limit) {
+        return False;
     }
 
-    return False;
+    // We always evaluate at least ply level 0 and 1 so
+    // we only timeout if the ply level is 2 or higher
+    if (game.ply <= 1) {
+        return False;
+    }
+
+    if (game.stats.move_stats.duration() < game.options.time_limit) {
+        return False;
+    }
+
+    game.last_was_timeout = True;
+
+    show_timeout();
+
+    return True;
 
 } // timeout()
 
@@ -180,24 +194,18 @@ Bool check_mem() {
 
 void show_low_memory() {
     digitalWrite(DEBUG1_PIN, HIGH);
-    delayMicroseconds(SHOW_DURATION);
-    digitalWrite(DEBUG1_PIN, LOW);
 
 } // show_low_memory()
 
 
 void show_quiescent_search() {
     digitalWrite(DEBUG2_PIN, HIGH);
-    delayMicroseconds(SHOW_DURATION);
-    digitalWrite(DEBUG2_PIN, LOW);
 
 } // show_quiescent_search()
 
 
 void show_timeout() {
     digitalWrite(DEBUG3_PIN, HIGH);
-    // delayMicroseconds(SHOW_DURATION);
-    // digitalWrite(DEBUG3_PIN, LOW);
 
 } // show_timeout()
 
@@ -252,8 +260,9 @@ void show_memory_stats2() {
 
 } // show_memory_stats2()
 
-
 #endif
+
+
 void show_stats() {
     char str[16]= "";
 

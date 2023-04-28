@@ -450,9 +450,7 @@ long make_move(piece_gen_t & gen)
             // that we always allow the setting of the 'king-in-check' flags for any moves,
             // based on whether any of the opponent's first-level responses place the king in check.
 
-            if ((game.last_was_timeout = timeout())) {
-                show_timeout();
-            }
+            timeout();
 
             if (!game.last_was_timeout || (game.ply < 1)) {
                 // Indicate whether we are on a quiescent search or not
@@ -756,8 +754,9 @@ void choose_best_moves(move_t &wbest, move_t &bbest, generator_t const callback)
             }
         }
 
-        // Check for move timeout if we're at ply level 2 or above
-        if ((game.last_was_timeout = timeout()) && (game.ply > 1)) {
+        // Check for move timeout 
+        // (only if we're at ply level 2 or above, happens internally to timeout())
+        if (timeout()) {
             break;
         }
 
@@ -911,10 +910,9 @@ void take_turn()
     index_t const piece_count = game.piece_count;
 
     // Make the move:
-    move_t dummy_wbest;
-    move_t dummy_bbest;
+    move_t dummy;
     if (whites_turn) {
-        piece_gen_t gen(wmove, dummy_wbest, dummy_bbest, consider_move, False);
+        piece_gen_t gen(wmove, dummy, dummy, consider_move, False);
 
         gen.piece_index = game.find_piece(wmove.from);
 
@@ -934,7 +932,7 @@ void take_turn()
         }
     }
     else {
-        piece_gen_t gen(bmove, dummy_wbest, dummy_bbest, consider_move, False);
+        piece_gen_t gen(bmove, dummy, dummy, consider_move, False);
 
         gen.piece_index = game.find_piece(bmove.from);
 
@@ -1025,10 +1023,10 @@ void set_game_options()
     // game.options.profiling = True;
 
     // set the ultimate maximum ply level
-    game.options.max_max_ply = 3;
+    game.options.max_max_ply = 2;
 
     // set the max ply level (the number of turns we look ahead) for normal moves
-    game.options.maxply = 2;
+    game.options.maxply = 1;
 
     // Set the percentage of moves that might be a mistake
     game.options.mistakes = 0;
@@ -1047,7 +1045,8 @@ void set_game_options()
     // game.options.continuous = True;
  
     // set the time limit per turn in milliseconds
-    game.options.time_limit = 30000;
+    game.options.time_limit = 0;
+    // game.options.time_limit = 10000;
 
     // enable or disable alpha-beta pruning
     game.options.alpha_beta_pruning = False;
