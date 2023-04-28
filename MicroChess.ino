@@ -248,12 +248,17 @@ long make_move(piece_gen_t & gen)
         if (gen.whites_turn) {
             game.black_king_in_check = True;
             gen.move.value = MAX_VALUE;
+            if (0 == game.ply) {
+                return MIN_VALUE;
+            }
         }
         else {
             game.white_king_in_check = True;
             gen.move.value = MIN_VALUE;
+            if (0 == game.ply) {
+                return MAX_VALUE;
+            }
         }
-        // return gen.move.value;
     }
 
     // Save the state of whether or not the kings are in check.
@@ -469,7 +474,12 @@ long make_move(piece_gen_t & gen)
 
             if (!game.last_was_timeout || (game.ply < 1)) {
                 // Indicate whether we are on a quiescent search or not
-                show_quiescent_search();
+                if (quiescent) {
+                    show_quiescent_search();
+                }
+                else {
+                    digitalWrite(DEBUG2_PIN, LOW);
+                }
 
                 // Explore The Future! (plies)
                 game.ply++;
@@ -504,6 +514,10 @@ long make_move(piece_gen_t & gen)
                         if (-1 != wbest.from && -1 != wbest.to) {
                             gen.move.value = wbest.value;
                         }
+
+                        if (game.white_king_in_check && !white_king_in_check) {
+                            gen.move.value = MIN_VALUE;
+                        }
                     }
                 }
                 else {
@@ -520,6 +534,10 @@ long make_move(piece_gen_t & gen)
                     else {
                         if (-1 != bbest.from && -1 != bbest.to) {
                             gen.move.value = bbest.value;
+                        }
+
+                        if (game.black_king_in_check && !black_king_in_check) {
+                            gen.move.value = MAX_VALUE;
                         }
                     }
                 }
@@ -1028,10 +1046,10 @@ void set_game_options()
     // game.options.profiling = True;
 
     // set the ultimate maximum ply level
-    game.options.max_max_ply = 3;
+    game.options.max_max_ply = 4;
 
     // set the max ply level (the number of turns we look ahead) for normal moves
-    game.options.maxply = 2;
+    game.options.maxply = 3;
 
     // Set the percentage of moves that might be a mistake
     game.options.mistakes = 0;
@@ -1041,13 +1059,13 @@ void set_game_options()
     game.options.max_quiescent_ply = min(game.options.maxply + 2, game.options.max_max_ply);
 
     // set game.options.random to True (1) to use randomness in the game decisions
-    game.options.random = False;
-    // game.options.random = True;
+    // game.options.random = False;
+    game.options.random = True;
 
     // set whether we play continuously or not
     // game.options.continuous = game.options.random;
-    game.options.continuous = False;
-    // game.options.continuous = True;
+    // game.options.continuous = False;
+    game.options.continuous = True;
  
     // set the time limit per turn in milliseconds
     // game.options.time_limit = 0;
@@ -1058,8 +1076,8 @@ void set_game_options()
     // game.options.alpha_beta_pruning = True;
 
     // set whether or not we process the pieces in random order
-    game.options.shuffle_pieces = False;
-    // game.options.shuffle_pieces = True;
+    // game.options.shuffle_pieces = False;
+    game.options.shuffle_pieces = True;
 
     // set the 'live update' flag
     // game.options.live_update = False;
@@ -1216,10 +1234,10 @@ void setup()
             take_turn();
             show();
 
-            if (!game.compare_pieces_to_board(board)) {
-                printf(Debug1, "Error: game.pieces[] contents are different from the board contents\n");
-                game.set_pieces_from_board(board);
-            }
+            // if (!game.compare_pieces_to_board(board)) {
+            //     printf(Debug1, "Error: game.pieces[] contents are different from the board contents\n");
+            //     game.set_pieces_from_board(board);
+            // }
 
         } while (PLAYING == game.state);
 

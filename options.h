@@ -45,7 +45,7 @@ public:
     // during board evaluation. season to taste
     static long  constexpr  materialBonus =  3L;
     static long  constexpr  centerBonus   =  1L;
-    static long  constexpr  kingBonus     =  2L;
+    static long  constexpr  kingBonus     =  0L;
     static long  constexpr  mobilityBonus =  3L;
 
 public:

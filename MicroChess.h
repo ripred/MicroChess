@@ -44,8 +44,6 @@ enum {
     NUM_BITS_PT        =  4,    // bits per field in point_t struct
     NUM_BITS_SPOT      =  7,    // bits per field in move_t struct
 
-    SHOW_DURATION      = 20,    // Duration that LED indicator are shown
-
     DEBUG1_PIN         =  5,    // output debug LED pins
     DEBUG2_PIN         =  4,
     DEBUG3_PIN         =  3,
