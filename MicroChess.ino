@@ -9,9 +9,6 @@
  * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
  * TODO:
  * 
- *  [ ] After a move has been made, set the ply level to 0 temporarily and call choose_next_move(...) 
- *      on the opponent so that the 'king-in-check' flags are appropriately set, and then restore the
- *      ply level. Actually the ply level should be 0 already.
  *  [ ] 
  *  [+] Finish enabling the en-passant pawn move generation.
  *  [+] Add a function to display times over 1000 ms as minutes, seconds, and ms
@@ -21,16 +18,12 @@
  * 
  *  [+] Add flags to the game to indicate whether each side is human or not
  *  [+] Add the display of the full game time so far to each show() update
+ * 
+ * 
+ * 
  *  [ ] Change to use true printf, stdin, stdout and stderr so we don't copy the fmt buffer
- *  [ ] Add 64-entry board-to-pieces index translation table to be able to remove
- *      the find_piece(...) function? This may remove too mouch from main RAM,
- *      but unlike the saved 64 bytes trimmed from the choose_best_move(...)
- *      call chain this table is a singleton so it may be okay.
  *  [ ] Add tests that prove that the same moves are chosen when alpha-beta
  *      pruning is enabled that are chosen when it is disabled and running in brute force?
- *  [ ] Add 'pieces evaluated' counters for ech ply level in order to not 
- *      proceed into deeper plies until all first-level moves have been evaluated,
- *      resulting in a breadth-first search instead of a depth first search
  *  [ ] Add optional use of I2C serial RAM to create transposition tables for
  *      moves that have already been searced during this turn.
  *  [ ] Enhance to pause the game when a newline is received
@@ -249,14 +242,16 @@ long make_move(piece_gen_t & gen)
             game.black_king_in_check = True;
             gen.move.value = MAX_VALUE;
             if (0 == game.ply) {
-                return MIN_VALUE;
+                // return MIN_VALUE;
+                return gen.move.value;
             }
         }
         else {
             game.white_king_in_check = True;
             gen.move.value = MIN_VALUE;
             if (0 == game.ply) {
-                return MAX_VALUE;
+                // return MAX_VALUE;
+                return gen.move.value;
             }
         }
     }
@@ -472,7 +467,7 @@ long make_move(piece_gen_t & gen)
 
             timeout();
 
-            if (!game.last_was_timeout || (game.ply < 1)) {
+            if (!game.last_was_timeout1 || (game.ply < 1)) {
                 // Indicate whether we are on a quiescent search or not
                 if (quiescent) {
                     show_quiescent_search();
@@ -706,31 +701,53 @@ long evaluate()
 
 ////////////////////////////////////////////////////////////////////////////////////////
 // Sort the game.pieces[] array by player side
-void sort_pieces(Color const side)
+void sort_and_shuffle(Color const side, index_t const shuffle_count = 16)
 {
-    // lambda comparator to sort game.pieces[] by White and then Black
-    auto comparew = [](const void *a, const void *b) -> int {
-        point_t const piece_a = *((point_t*) a);
-        point_t const piece_b = *((point_t*) b);
-        Color   const side_a = getSide(board.get(piece_a.x + piece_a.y * 8));
-        Color   const side_b = getSide(board.get(piece_b.x + piece_b.y * 8));
-        return (side_a == side_b) ? 0 : ((side_a < side_b) ? +1 : -1);
-    };
-
-    // lambda comparator to sort game.pieces[] by Black and then White
-    auto compareb = [](const void *a, const void *b) -> int {
-        point_t const piece_a = *((point_t*) a);
-        point_t const piece_b = *((point_t*) b);
-        Color   const side_a = getSide(board.get(piece_a.x + piece_a.y * 8));
-        Color   const side_b = getSide(board.get(piece_b.x + piece_b.y * 8));
-        return (side_a == side_b) ? 0 : ((side_a > side_b) ? +1 : -1);
-    };
-
     if (White == side) {
-        qsort(game.pieces, game.piece_count, sizeof(point_t), comparew);
+        // lambda comparator to sort game.pieces[] by White and then Black
+        auto compare = [](const void *a, const void *b) -> int {
+            point_t const piece_a = *((point_t*) a);
+            point_t const piece_b = *((point_t*) b);
+            Color   const side_a = getSide(board.get(piece_a.x + piece_a.y * 8));
+            Color   const side_b = getSide(board.get(piece_b.x + piece_b.y * 8));
+            return (side_a == side_b) ? 0 : ((side_a < side_b) ? +1 : -1);
+        };
+
+        qsort(game.pieces, game.piece_count, sizeof(point_t), compare);
     }
     else {
-        qsort(game.pieces, game.piece_count, sizeof(point_t), compareb);
+        // lambda comparator to sort game.pieces[] by Black and then White
+        auto compare = [](const void *a, const void *b) -> int {
+            point_t const piece_a = *((point_t*) a);
+            point_t const piece_b = *((point_t*) b);
+            Color   const side_a = getSide(board.get(piece_a.x + piece_a.y * 8));
+            Color   const side_b = getSide(board.get(piece_b.x + piece_b.y * 8));
+            return (side_a == side_b) ? 0 : ((side_a > side_b) ? +1 : -1);
+        };
+
+        qsort(game.pieces, game.piece_count, sizeof(point_t), compare);
+    }
+
+    // Now count the number of pieces at the top on the same side and shuffle them
+    index_t count = 0;
+    for (count = 0; (count + 1) < game.piece_count; count++) {
+        index_t const index1 = game.pieces[count].x + game.pieces[count].y * 8;
+        index_t const index2 = game.pieces[count + 1].x + game.pieces[count + 1].y * 8;
+        if (getSide(board.get(index1)) != getSide(board.get(index2))) {
+            break;
+        }
+    }
+
+    // Shuffle the pieces
+    if (count > 1) {
+        for (index_t i = 0; i < shuffle_count; i++) {
+            index_t r1 = random(count);
+            index_t r2 = random(count);
+            if (r1 == r2) { continue; }
+            point_t const tmp = game.pieces[r1];
+            game.pieces[r1] = game.pieces[r2];
+            game.pieces[r2] = tmp;
+        }
     }
 }
 
@@ -791,8 +808,8 @@ void choose_best_moves(move_t &wbest, move_t &bbest, generator_t const callback)
             }
         }
 
-        // Check for move timeout 
-        // (only if we're at ply level 2 or above, happens internally to timeout())
+        // Check for move timeout (only if we're at ply level 2 or above, 
+        // this happens internally in the timeout() function)
         if (timeout()) {
             break;
         }
@@ -824,7 +841,7 @@ void choose_best_moves(move_t &wbest, move_t &bbest, generator_t const callback)
         }
 
         // Check for move timeout if we've finished ply level 1
-        if (game.last_was_timeout && (game.ply > 1)) {
+        if (game.last_was_timeout1 && (game.ply > 1)) {
             break;
         }
 
@@ -864,7 +881,8 @@ void reset_turn_flags()
 
     game.last_was_en_passant = False;
     game.last_was_castle = False;
-    game.last_was_timeout = False;
+    game.last_was_timeout1 = False;
+    game.last_was_timeout2 = False;
     game.last_was_pawn_promotion = False;
 
     // Set the alpha and beta edges to the worst case (brute force)
@@ -909,7 +927,9 @@ void take_turn()
     reset_turn_flags();
 
     // Choose the best moves for both sides
-    sort_pieces(game.turn);
+    if (game.options.sort_pieces) {
+        sort_and_shuffle(game.turn);
+    }
     choose_best_moves(wmove, bmove, consider_move);
 
     // Gather the move statistics for this turn
@@ -927,11 +947,6 @@ void take_turn()
     else {
         show_move(bmove);
     }
-
-    // Return if the game has ended
-    // if (PLAYING != game.state) {
-    //     return;
-    // }
 
     // Save the number of pieces in the game before we make the move
     // in order to see if any pieces were taken
@@ -991,7 +1006,7 @@ void take_turn()
         printf(Debug1, " - pawn promoted ")
     }
 
-    if (game.last_was_timeout) {
+    if (game.last_was_timeout2) {
         printf(Debug1, " - timeout ")
     }
 
@@ -1024,11 +1039,7 @@ void take_turn()
     // Increase the game move counter
     game.move_num++;
 
-    // Now, if we took a piece with this move then go through the piece list and
-    // actually remove the piece that were soft-deleted during evaluation when
-    // the physical layout of the list couldn't be modified. That way all of the
-    // pieces remain contiguous in memory and we don't have to skip over any empty
-    // pieces[] array entries during future evaluations.
+    // Delete any soft-deleted pieces for real
     if (piece_taken) {
         for (index_t i = 0; i < game.piece_count; i++) {
             if (-1 == game.pieces[i].x) {
@@ -1046,44 +1057,44 @@ void take_turn()
 // 
 void set_game_options()
 {
-    // set game.options.profiling to True (1) to disable output and profile the engine
+    // Set game.options.profiling to True (1) to disable output and profile the engine
     game.options.profiling = False;
     // game.options.profiling = True;
 
-    // set the ultimate maximum ply level
-    game.options.max_max_ply = 4;
+    // Set the ultimate maximum ply level
+    game.options.max_max_ply = 3;
 
-    // set the max ply level (the number of turns we look ahead) for normal moves
-    game.options.maxply = 4;
+    // Set the max ply level (the number of turns we look ahead) for normal moves
+    game.options.maxply = 2;
 
     // Set the percentage of moves that might be a mistake
     game.options.mistakes = 0;
 
-    // set the maximum ply level to continue if a move takes a piece
-    // The quiescent search depth is based off of the max ply level
-    game.options.max_quiescent_ply = min(game.options.maxply + 2, game.options.max_max_ply);
+    // Set game.options.random to True (1) to use randomness in the game decisions
+    game.options.random = False;
+    // game.options.random = True;
 
-    // set game.options.random to True (1) to use randomness in the game decisions
-    // game.options.random = False;
-    game.options.random = True;
-
-    // set whether we play continuously or not
+    // Set whether we play continuously or not
     // game.options.continuous = game.options.random;
     // game.options.continuous = False;
     game.options.continuous = True;
  
-    // set the time limit per turn in milliseconds
+    // Set the time limit per turn in milliseconds
     // game.options.time_limit = 0;
     game.options.time_limit = 30000;
 
-    // enable or disable alpha-beta pruning
+    // Enable or disable alpha-beta pruning
     game.options.alpha_beta_pruning = False;
     // game.options.alpha_beta_pruning = True;
 
-    // when sort_pieces is True we sort the pieces[] array before each turn
+    // When sort_pieces is True we sort the pieces[] array before each turn
     // so that we process the current side's pieces first.
     // game.options.sort_pieces = False;
     game.options.sort_pieces = True;
+
+    // Set the maximum ply level to continue if a move takes a piece
+    // The quiescent search depth is based off of the max ply level
+    game.options.max_quiescent_ply = min(game.options.maxply + 1, game.options.max_max_ply);
 
     // set the 'live update' flag
     // game.options.live_update = False;
@@ -1204,17 +1215,20 @@ void set_game_options()
 // 
 void setup()
 {
+    // Initialize the Serial output
     Serial.begin(230400); while (!Serial); Serial.write('\n');
 
+    // Initialize the LED strip
     init_led_strip();
 
+    // Initialize the LED indicators
     static uint8_t const pins[3] = { DEBUG1_PIN, DEBUG2_PIN, DEBUG3_PIN };
     for (uint8_t pin : pins) {
         pinMode(pin, OUTPUT);
         digitalWrite(pin, LOW);
     }
 
-    // Initialize continuous game statistics
+    // Initialize the continuous game statistics
     uint32_t state_totals[6] = { 0, 0, 0, 0, 0, 0 };
     uint32_t white_wins = 0;
     uint32_t black_wins = 0;
@@ -1225,12 +1239,10 @@ void setup()
 
         // initialize the board and the game:
         board.init();
+        game.init();
 
-        // board.clear();
-        // // board.set(2 * 8 + 3, makeSpot(Pawn, Black, True, False));
-        // board.set(0 * 8 + 0, makeSpot(Pawn, White, True, False));
-        // game.init();
-        // game.last_value = evaluate();
+        // Shuffle our pieces really well so we evaluate them in a random order
+        sort_and_shuffle(game.turn, 255);
 
         show();
 

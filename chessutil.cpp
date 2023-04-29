@@ -149,30 +149,31 @@ const char* ftostr(double const value, int const dec, char * const buff)
 } // ftostr(double value, int dec = 2)
 
 
-// check for a move timeout
+// Check for a timeout during a turn
 Bool timeout() {
     if (0 == game.options.time_limit) {
-        game.last_was_timeout = False;
+        game.last_was_timeout1 = False;
+        game.last_was_timeout2 = False;
         return False;
     }
 
-    // We always evaluate at least ply level 0 and 1 so
-    // we only timeout if the ply level is 2 or higher
-    if (game.ply <= 1) {
-        game.last_was_timeout = False;
-        return False;
+    // We have TWO timeout flags; last_was_timeout1 and last_was_timeout2
+    // 2 is set as soon at the timeout happens regardless of ply level
+    // 1 is set when then timeout happens only for ply levels > 1 so that
+    // we always evaluate all moves for ply level 0 and 1 and only timeout
+    // for ply levels >= 2.
+
+    // Set the true timeout flag regardless of ply level
+    game.last_was_timeout2 = game.stats.move_stats.duration() >= game.options.time_limit;
+
+    // Set the other timeout flag ONLY if we are above ply level 1
+    game.last_was_timeout1 = game.last_was_timeout2 && (game.ply >= 2);
+
+    if (game.last_was_timeout2) {
+        show_timeout();
     }
 
-    if (game.stats.move_stats.duration() < game.options.time_limit) {
-        game.last_was_timeout = False;
-        return False;
-    }
-
-    game.last_was_timeout = True;
-
-    show_timeout();
-
-    return True;
+    return game.last_was_timeout1;
 
 } // timeout()
 

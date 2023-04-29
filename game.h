@@ -79,7 +79,8 @@ public:
     move_t      last_move;                      // The last move made
     Bool        last_was_en_passant     : 1,    // True when last move was an en-passaant capture
                 last_was_castle         : 1,    // True when last move was a castling of a king and a rook
-                last_was_timeout        : 1,    // True when last move timed out
+                last_was_timeout1       : 1,    // True when last move timed out - this version used only duing ply 0 and 1
+                last_was_timeout2       : 1,    // True when last move timed out - this version used during all plies
                 last_was_pawn_promotion : 1,    // True when last move promoted a Pawn to a Queen
                     white_king_in_check : 1,    // The check state of the two kings
                     black_king_in_check : 1,

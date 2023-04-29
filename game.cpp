@@ -116,9 +116,9 @@ void game_t::init()
     last_move = { -1, -1, 0 };
     last_was_en_passant = False;
     last_was_castle = False;
-    last_was_timeout = False;
+    last_was_timeout1 = False;
+    last_was_timeout2 = False;
     last_was_pawn_promotion = False;
-    // last_move_time = 0;
     last_moves_evaluated = 0;
 
     white_king_in_check = False;
