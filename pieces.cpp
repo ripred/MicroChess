@@ -47,7 +47,7 @@ index_t add_pawn_moves(piece_gen_t &gen) {
     Piece op;
 
     #ifdef ENA_MEM_STATS
-    game.freemem[1][game.ply].mem = freeMemory();
+    game.freemem[ADD_MOVES][game.ply].mem = freeMemory();
     #endif
 
     //  Check for low stack space
@@ -129,7 +129,7 @@ index_t gen_moves(piece_gen_t &gen, offset_t const * const ptr, index_t const nu
     Piece other_piece;
 
     #ifdef ENA_MEM_STATS
-    game.freemem[1][game.ply].mem = freeMemory();
+    game.freemem[ADD_MOVES][game.ply].mem = freeMemory();
     #endif
 
     //  Check for low stack space
@@ -186,7 +186,7 @@ index_t add_knight_moves(piece_gen_t &gen) {
     // DO NOT MODIFY ANYTHING BEFORE CHECKING THE AVAILABLE STACK
 
     #ifdef ENA_MEM_STATS
-    game.freemem[1][game.ply].mem = freeMemory();
+    game.freemem[ADD_MOVES][game.ply].mem = freeMemory();
     #endif
 
     //  Check for low stack space
@@ -205,7 +205,7 @@ index_t add_rook_moves(piece_gen_t &gen) {
     // DO NOT MODIFY ANYTHING BEFORE CHECKING THE AVAILABLE STACK
 
     #ifdef ENA_MEM_STATS
-    game.freemem[1][game.ply].mem = freeMemory();
+    game.freemem[ADD_MOVES][game.ply].mem = freeMemory();
     #endif
 
     //  Check for low stack space
@@ -224,7 +224,7 @@ index_t add_bishop_moves(piece_gen_t &gen) {
     // DO NOT MODIFY ANYTHING BEFORE CHECKING THE AVAILABLE STACK
 
     #ifdef ENA_MEM_STATS
-    game.freemem[1][game.ply].mem = freeMemory();
+    game.freemem[ADD_MOVES][game.ply].mem = freeMemory();
     #endif
 
     //  Check for low stack space
@@ -248,7 +248,7 @@ index_t add_king_moves(piece_gen_t &gen) {
     Bool empty_queen;
 
     #ifdef ENA_MEM_STATS
-    game.freemem[1][game.ply].mem = freeMemory();
+    game.freemem[ADD_MOVES][game.ply].mem = freeMemory();
     #endif
 
     //  Check for low stack space
@@ -307,7 +307,7 @@ index_t add_queen_moves(piece_gen_t &gen) {
     // DO NOT MODIFY ANYTHING BEFORE CHECKING THE AVAILABLE STACK
 
     #ifdef ENA_MEM_STATS
-    game.freemem[1][game.ply].mem = freeMemory();
+    game.freemem[ADD_MOVES][game.ply].mem = freeMemory();
     #endif
 
     //  Check for low stack space

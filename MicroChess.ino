@@ -13,22 +13,19 @@
  *  [+] Fix alpha-beta bug!
  *  [+] Finish enabling the en-passant pawn move generation.
  *  [+] Add a function to display times over 1000 ms as minutes, seconds, and ms
+ *  [+] Add flags to the game to indicate whether each side is human or not
+ *  [+] Add the display of the full game time so far to each show() update
+ *  [+] Enhance to pause the game when a newline is received
+ *  [+] Enhance the game to allow moves to be entered by a human via the serial port
  *  [+] Change make_move(...) to return MIN_VALUE only if the ply level is 0
  *      so we don't actually choose it. Otherwise consider taking the King
  *      worth MAX_VALUE.
- * 
- *  [+] Add flags to the game to indicate whether each side is human or not
- *  [+] Add the display of the full game time so far to each show() update
- * 
- * 
  * 
  *  [ ] Change to use true printf, stdin, stdout and stderr so we don't copy the fmt buffer
  *  [ ] Add tests that prove that the same moves are chosen when alpha-beta
  *      pruning is enabled that are chosen when it is disabled and running in brute force?
  *  [ ] Add optional use of I2C serial RAM to create transposition tables for
  *      moves that have already been searced during this turn.
- *  [ ] Enhance to pause the game when a newline is received
- *  [ ] Enhance the game to allow moves to be entered by a human via the serial port
  *  [ ] Change to have two sets of option_t in the game, one for each player in order to test
  *      option settings against each other
  *  [ ] Change all of the white and black options, game states and stats into two value arrays
@@ -49,9 +46,8 @@ board_t board;
 // The currently running game states and flags
 game_t game;
 
-
+// uncomment the following line to display each move as it is evaluated
 // #define SHOW1
-
 
 ////////////////////////////////////////////////////////////////////////////////////////
 // Consider a move against the best white move or the best black move
@@ -70,7 +66,7 @@ Bool consider_move(piece_gen_t &gen)
     Bool better;
 
     #ifdef ENA_MEM_STATS
-    game.freemem[2][game.ply].mem = freeMemory();
+    game.freemem[CONSIDER][game.ply].mem = freeMemory();
     #endif
 
     //  Check for low stack space
@@ -189,12 +185,10 @@ long make_move(piece_gen_t & gen)
     // DECLARE ALL LOCAL VARIABLES USED IN THIS CONTEXT HERE AND
     // DO NOT MODIFY ANYTHING BEFORE CHECKING THE AVAILABLE STACK
     struct local_t {
-        local_t() {}
-        ~local_t() {}
 
         uint8_t              to_col : 3,
                              to_row : 3,
-                                 op : 8,
+                                 op : 6,
                               otype : 3,
                               oside : 1,
             last_was_pawn_promotion : 1,
@@ -204,7 +198,6 @@ long make_move(piece_gen_t & gen)
                     last_was_castle : 1,
                           quiescent : 1,
                          board_rook : 6,
-                               rook : 6,
                      captured_piece : 6,
                         place_piece : 6,
                               wking : 6,
@@ -218,7 +211,6 @@ long make_move(piece_gen_t & gen)
     index_t hist_count;
     index_t taken_index, captured, castly_rook;
     static uint32_t last_led_update;
-    uint32_t move_count;
 
     //  Check for low stack space
     if (check_mem()) { return gen.whites_turn ? MIN_VALUE : MAX_VALUE; }
@@ -226,7 +218,7 @@ long make_move(piece_gen_t & gen)
     // Now we can alter local variables! 😎 
 
     #ifdef ENA_MEM_STATS
-    game.freemem[3][game.ply].mem = freeMemory();
+    game.freemem[MAKE][game.ply].mem = freeMemory();
     #endif
 
     // The value of the board.
@@ -265,12 +257,9 @@ long make_move(piece_gen_t & gen)
         // Track the number of moves considered so far
         game.stats.inc_moves_count();
 
-        // Track the max number of moves generated during a turn
-        move_count = game.stats.move_count_so_far();
-
         if (gen.side == game.turn) {
-            if (move_count > game.stats.max_moves) {
-                game.stats.max_moves = move_count;
+            if (game.stats.move_count_so_far() > game.stats.max_moves) {
+                game.stats.max_moves = game.stats.move_count_so_far();
             }
         }
     }
@@ -405,7 +394,7 @@ long make_move(piece_gen_t & gen)
             }
             else {
                 // error
-                printf(Debug1, "Error: Invalid King move at line %d\n", __LINE__);
+                printf(Debug1, "Bad King move at line %d\n", __LINE__);
                 while ((true)) {}
             }
         }
@@ -448,7 +437,8 @@ long make_move(piece_gen_t & gen)
                     show_quiescent_search();
                 }
                 else {
-                    digitalWrite(DEBUG2_PIN, LOW);
+                    bitClear (PORTD, DEBUG2_PIN);    //=digitalWrite(pin,LOW) for pins 2-6
+                    // digitalWrite(DEBUG2_PIN, LOW);
                 }
 
                 if (game.ply < game.options.maxply) {
@@ -566,15 +556,15 @@ long make_move(piece_gen_t & gen)
         // restore any rook moved during a castle move
         game.last_was_castle = vars.last_was_castle;
         if (-1 != castly_rook) {
-            if (game.pieces[castly_rook].x == 3) {
+            if (3 == game.pieces[castly_rook].x) {
                 game.pieces[castly_rook].x = 0;
             }
             else {
                 game.pieces[castly_rook].x = 7;
             }
 
-            vars.rook = game.pieces[castly_rook].x + game.pieces[castly_rook].y * 8;
-            board.set(vars.rook, setMoved(board.get(vars.rook), False));
+            board.set((game.pieces[castly_rook].x + game.pieces[castly_rook].y * 8), 
+                setMoved(board.get((game.pieces[castly_rook].x + game.pieces[castly_rook].y * 8)), False));
         }
     }
 
@@ -590,82 +580,330 @@ long make_move(piece_gen_t & gen)
 // Uses pre-computed material bonus tables for speed.
 // 
 // returns the score/value of the current board
-long evaluate() 
+// 
+// Note: Sanitized stack
+// 
+long evaluate()
 {
-    // calculate the value of the board
-    long materialTotal = 0L;
-    long mobilityTotal = 0L;
-    long centerTotal = 0L;
-    long kingTotal = 0L;
-    long score = 0L;
+    // Stack Management
+    // DECLARE ALL LOCAL VARIABLES USED IN THIS CONTEXT HERE AND
+    // DO NOT MODIFY ANYTHING BEFORE CHECKING THE AVAILABLE STACK
+    long materialTotal, mobilityTotal, centerTotal, kingTotal, score;
+    index_t col, row, piece_index, kloc, col_dist, row_dist, proximity;
+    Piece p, ptype;
+    Color pside;
 
-    for (index_t piece_index = 0; piece_index < game.piece_count; piece_index++) {
-        index_t const col = game.pieces[piece_index].x;
-        index_t const row = game.pieces[piece_index].y;
-        if (-1 == col || -1 == row) continue;
+    #ifdef ENA_MEM_STATS
+    game.freemem[MAKE][game.ply].mem = freeMemory();
+    #endif
 
-        Piece   const p = board.get(col + row * 8);
-        Piece   const ptype = getType(p);
-        Color   const pside = getSide(p);
+    //  Check for low stack space
+    if (check_mem()) { return 0; }
+    else {
+        // Now we can alter local variables! 😎 
 
-        if (Empty == ptype) continue;
+        // Calculate the value of the board:
+        materialTotal = 0L;
+        mobilityTotal = 0L;
+        centerTotal = 0L;
+        kingTotal = 0L;
+        score = 0L;
 
-        // material bonus
-        materialTotal += pgm_read_dword(&game.material_bonus[ptype][pside]) * game.options.materialBonus;
+        for (piece_index = 0; piece_index < game.piece_count; piece_index++) {
+            col = game.pieces[piece_index].x;
+            row = game.pieces[piece_index].y;
+            if (-1 == col || -1 == row) continue;
 
-        // in-check penalty
-        if (inCheck(p)) {
+            p = board.get(col + row * 8);
+            ptype = getType(p);
+            pside = getSide(p);
+
+            if (Empty == ptype) continue;
+
+            // material bonus
+            materialTotal += pgm_read_dword(&game.material_bonus[ptype][pside]) * game.options.materialBonus;
+
+            // in-check penalty
+            if (inCheck(p)) {
+                if (White == pside) {
+                    materialTotal -= ptype;
+                }
+                else {
+                    materialTotal += ptype;
+                }
+            }
+
+            // Let's not encourage the King to wander to
+            // the center of the board mmkay?
+            if (King == ptype) {
+                continue;
+            }
+
+            // center bonus
+            centerTotal +=
+                pgm_read_dword(&game.center_bonus[col][ptype][pside]) +
+                pgm_read_dword(&game.center_bonus[row][ptype][pside]);
+
+            // proximity to opponent's King
+            kloc = (White == pside) ? game.bking : game.wking;
+            col_dist = (col > (kloc % 8)) ? (col - (kloc % 8)) : ((kloc % 8) - col);
+            row_dist = (row > (kloc / 8)) ? (row - (kloc / 8)) : ((kloc / 8) - row);
+            proximity = 14 - (col_dist + row_dist);
             if (White == pside) {
-                materialTotal -= ptype;
+                kingTotal += proximity;
             }
             else {
-                materialTotal += ptype;
+                kingTotal -= proximity;
             }
         }
 
-        // Let's not encourage the King to wander to
-        // the center of the board mmkay?
-        if (King == ptype) {
-            continue;
-        }
+        // The score or 'identity property' of the board can include extra points for
+        // how many total moves (mobility) the remaining pieces can make
+        // if (filter & mobility) {
+        //     long sideFactor = (Black == side) ? -1 : 1;
+        //     mobilityTotal += static_cast<long>(game.move_count1 * mobilityBonus * sideFactor);
+        //     mobilityTotal -= static_cast<long>(game.move_count2 * mobilityBonus * sideFactor);
+        // }
 
-        // center bonus
-        centerTotal +=
-            pgm_read_dword(&game.center_bonus[col][ptype][pside]) +
-            pgm_read_dword(&game.center_bonus[row][ptype][pside]);
+        kingTotal *= game.options.kingBonus;
 
-        // proximity to opponent's King
-        index_t const kloc = (White == pside) ? game.bking : game.wking;
-        index_t const col_dist = (col > (kloc % 8)) ? (col - (kloc % 8)) : ((kloc % 8) - col);
-        index_t const row_dist = (row > (kloc / 8)) ? (row - (kloc / 8)) : ((kloc / 8) - row);
-        index_t const proxomity = 14 - (col_dist + row_dist);
-        if (White == pside) {
-            kingTotal += proxomity;
-        }
-        else {
-            kingTotal -= proxomity;
-        }
+        score = kingTotal + materialTotal + centerTotal + mobilityTotal;
+
+        // printf(Debug4, 
+        //     "evaluation: %ld = centerTotal: %ld  materialTotal: %ld  mobilityTotal: %ld\n", 
+        //     score, centerTotal, materialTotal, mobilityTotal);
     }
 
-    // The score or 'identity property' of the board can include extra points for
-    // how many total moves (mobility) the remaining pieces can make
-    // if (filter & mobility) {
-    //     long sideFactor = (Black == side) ? -1 : 1;
-    //     mobilityTotal += static_cast<long>(game.move_count1 * mobilityBonus * sideFactor);
-    //     mobilityTotal -= static_cast<long>(game.move_count2 * mobilityBonus * sideFactor);
-    // }
-
-    kingTotal *= game.options.kingBonus;
-
-    score = kingTotal + materialTotal + centerTotal + mobilityTotal;
-
-    // printf(Debug4, 
-    //     "evaluation: %ld = centerTotal: %ld  materialTotal: %ld  mobilityTotal: %ld\n", 
-    //     score, centerTotal, materialTotal, mobilityTotal);
 
     return score;
 
 }   // evaluate()
+
+
+////////////////////////////////////////////////////////////////////////////////////////
+// Check for any received serial data
+// 
+// Note: Sanitized stack
+// 
+Bool check_serial()
+{
+    // Stack Management
+    // DECLARE ALL LOCAL VARIABLES USED IN THIS CONTEXT HERE AND
+    // DO NOT MODIFY ANYTHING BEFORE CHECKING THE AVAILABLE STACK
+    Bool moved;
+    Bool digits;
+    char movestr[5];
+    index_t i;
+
+    #ifdef ENA_MEM_STATS
+    game.freemem[CHOOSE][game.ply].mem = freeMemory();
+    #endif
+
+    //  Check for low stack space
+    if (check_mem()) { return False; }
+
+    // Now we can alter local variables! 😎 
+
+    moved = False;
+
+    if (Serial.available() == 5) {
+        digits = True;
+        for (i = 0; i < 5; i++) {
+            movestr[i] = Serial.read();
+            if (i < 4) {
+                if ((movestr[i] >= '0') && (movestr[i] <= '7')) {
+                    movestr[i] -= '0';
+                }
+                else {
+                    digits = False;
+                }
+            }
+        }
+
+        if (digits) {
+            game.user = { index_t(movestr[0] + movestr[1] * 8), index_t(movestr[2] + movestr[3] * 8), 0L };
+            printf(Debug1, "User supplied move: ");
+            show_move(game.user);
+            printf(Debug1, "\n");
+            moved = True;
+            game.user_supplied = True;
+        }
+    }
+    else while (Serial.available()) { Serial.read(); }
+
+    return moved;
+}
+
+
+////////////////////////////////////////////////////////////////////////////////////////
+// Evaluate all of the available moves for both sides.
+// The best moves are stored in wbest and bbest.
+// The callback is called for each move.
+// 
+// This function is the top of the recursive call chain:
+// 
+//  choose_best_move(...)
+//      add_xxxx_moves(...)
+//          consider_move(...)
+//              make_move(...)
+//                  choose_best_move(...)
+// 
+// Note: Sanitized stack
+// 
+void choose_best_moves(move_t &wbest, move_t &bbest, generator_t const callback)
+{
+    // Stack Management
+    // DECLARE ALL LOCAL VARIABLES USED IN THIS CONTEXT HERE AND
+    // DO NOT MODIFY ANYTHING BEFORE CHECKING THE AVAILABLE STACK
+
+    #ifdef ENA_MEM_STATS
+    game.freemem[CHOOSE][game.ply].mem = freeMemory();
+    #endif
+
+    //  Check for low stack space
+    if (check_mem()) { return; }
+    else if (PLAYING != game.state || game.user_supplied) { return; }
+    else {
+        index_t mvcnt;
+        move_t dummy = { -1, -1, 0 };
+        piece_gen_t gen(dummy, wbest, bbest, callback, True);
+        gen.num_wmoves = 0;
+        gen.num_bmoves = 0;
+
+        // Walk through the pieces list and evaluate the moves for each piece
+        for (gen.piece_index = 0; gen.piece_index < game.piece_count; gen.piece_index++) {
+            if (game.user_supplied || PLAYING != game.state) {
+                return;
+            }
+
+            if (check_serial()) {
+                return;
+            }
+            else {
+                gen.col = game.pieces[gen.piece_index].x;
+                if (-1 == gen.col) { continue; }
+
+                // Construct a move_t object with the starting location
+                gen.row = game.pieces[gen.piece_index].y;
+                gen.move.from = gen.col + gen.row * 8;
+                gen.move.to = -1;
+                gen.piece = board.get(gen.move.from);
+                gen.type = getType(gen.piece);
+                gen.side = getSide(gen.piece);
+                gen.whites_turn = White == gen.side;
+                gen.move.value = gen.whites_turn ? MIN_VALUE : MAX_VALUE;
+
+                if (Empty == gen.type) {
+                    continue;
+                }
+
+                // Keep track of the location of the Kings
+                if (King == gen.type) {
+                    if (gen.whites_turn) {
+                        game.wking = gen.move.from;
+                    }
+                    else {
+                        game.bking = gen.move.from;
+                    }
+                }
+
+                // Check for move timeout (only if we're at ply level 2 or above, 
+                // this happens internally in the timeout() function)
+                if (timeout()) {
+                    break;
+                }
+
+                mvcnt = 0;
+                // Evaluate the moves for this Piece Type and get the highest value move
+                switch (gen.type) {
+                    case   Pawn:    mvcnt = add_pawn_moves(gen);       break;
+                    case Knight:    mvcnt = add_knight_moves(gen);     break;
+                    case Bishop:    mvcnt = add_bishop_moves(gen);     break;
+                    case   Rook:    mvcnt = add_rook_moves(gen);       break;
+                    case  Queen:    mvcnt = add_queen_moves(gen);      break;
+                    case   King:    mvcnt = add_king_moves(gen);       break;
+
+                    default:
+                        printf(Always, "bad type = %d at line %d\n", gen.type, __LINE__);
+                        break;
+                }
+
+                if (gen.whites_turn) {
+                    gen.num_wmoves += mvcnt;
+                }
+                else {
+                    gen.num_bmoves += mvcnt;
+                }
+
+                // Check for alpha or beta cuttoff
+                if (gen.cutoff) {
+                    break;
+                }
+
+                // Check for move timeout if we've finished ply level 1
+                if (game.last_was_timeout1 && (game.ply > 1)) {
+                    break;
+                }
+            }
+
+        } // for each piece on both sides
+
+        // See if the game is over
+        if (0 == game.ply) {
+            if ((0 == gen.num_wmoves) && (0 == gen.num_bmoves)) {
+                game.state = STALEMATE;
+            }
+            else if (0 == gen.num_wmoves) {
+                game.state = BLACK_CHECKMATE;
+            }
+            else if (0 == gen.num_bmoves) {
+                game.state = WHITE_CHECKMATE;
+            }
+        }
+    }
+
+}   // choose_best_moves(...)
+
+
+////////////////////////////////////////////////////////////////////////////////////////
+// reset the various move tracking flags
+// 
+// Note: Sanitized stack
+// 
+void reset_turn_flags() 
+{
+    // Stack Management
+    // DECLARE ALL LOCAL VARIABLES USED IN THIS CONTEXT HERE AND
+    // DO NOT MODIFY ANYTHING BEFORE CHECKING THE AVAILABLE STACK
+    index_t index;
+
+    //  Check for low stack space
+    if (check_mem()) { return; }
+
+    // Now we can alter local variables! 😎 
+
+    for (index = 0; index < game.piece_count; index++) {
+        if (-1 == game.pieces[index].x) continue;
+        board.set(         game.pieces[index].x + game.pieces[index].y * 8, 
+        setCheck(board.get(game.pieces[index].x + game.pieces[index].y * 8), False));
+    }
+
+    // Reset the 'ply completed' flags
+    game.complete = 0;
+
+    // reset the king-in-check flags
+    game.white_king_in_check = False;
+    game.black_king_in_check = False;
+
+    game.last_was_en_passant = False;
+    game.last_was_castle = False;
+    game.last_was_timeout1 = False;
+    game.last_was_timeout2 = False;
+    game.last_was_pawn_promotion = False;
+
+    game.user_supplied = False;
+
+}   // reset_move_flags()
 
 
 ////////////////////////////////////////////////////////////////////////////////////////
@@ -722,201 +960,18 @@ void sort_and_shuffle(Color const side, index_t const shuffle_count = 8)
 
 
 ////////////////////////////////////////////////////////////////////////////////////////
-// Check for any received serial data
-Bool check_serial() {
-    Bool moved = False;
-
-    if (Serial.available() == 5) {
-        char movestr[5];
-        Bool digits = True;
-        for (int i = 0; i < 5; i++) {
-            movestr[i] = Serial.read();
-            if (i < 4) {
-                if ((movestr[i] >= '0') && (movestr[i] <= '7')) {
-                    movestr[i] -= '0';
-                }
-                else {
-                    digits = False;
-                }
-            }
-        }
-
-        if (digits) {
-            game.user = { index_t(movestr[0] + movestr[1] * 8), index_t(movestr[2] + movestr[3] * 8), 0L };
-            printf(Debug1, "User supplied move: ");
-            show_move(game.user);
-            printf(Debug1, "\n");
-            moved = True;
-            game.user_supplied = True;
-        }
-    }
-    else while (Serial.available()) { Serial.read(); }
-
-    return moved;
-}
-
-
-////////////////////////////////////////////////////////////////////////////////////////
-// Evaluate all of the available moves for the specified side.
-// The best move is stored in best.
-// The callback is called for each move.
-// 
-// This function is the top of the recursive call chain:
-// 
-//  choose_best_move(...)
-//      add_xxxx_moves(...)
-//          consider_move(...)
-//              make_move(...)
-//                  choose_best_move(...)
-// 
-void choose_best_moves(move_t &wbest, move_t &bbest, generator_t const callback)
-{
-    // Stack Management
-    // DECLARE ALL LOCAL VARIABLES USED IN THIS CONTEXT HERE AND
-    // DO NOT MODIFY ANYTHING BEFORE CHECKING THE AVAILABLE STACK
-    #ifdef ENA_MEM_STATS
-    game.freemem[0][game.ply].mem = freeMemory();
-    #endif
-
-    //  Check for low stack space
-    if (check_mem()) { return; }
-    else if (PLAYING != game.state || game.user_supplied) { return; }
-    else {
-        move_t dummy = { -1, -1, 0 };
-        piece_gen_t gen(dummy, wbest, bbest, callback, True);
-        gen.num_wmoves = 0;
-        gen.num_bmoves = 0;
-
-        // Walk through the pieces list and evaluate the moves for each piece
-        for (gen.piece_index = 0; gen.piece_index < game.piece_count; gen.piece_index++) {
-            if (game.user_supplied || PLAYING != game.state) {
-                return;
-            }
-
-            if (check_serial()) {
-                return;
-            }
-            else {
-                gen.col = game.pieces[gen.piece_index].x;
-                if (-1 == gen.col) { continue; }
-
-                // Construct a move_t object with the starting location
-                gen.row = game.pieces[gen.piece_index].y;
-                gen.move.from = gen.col + gen.row * 8;
-                gen.move.to = -1;
-                gen.piece = board.get(gen.move.from);
-                gen.type = getType(gen.piece);
-                gen.side = getSide(gen.piece);
-                gen.whites_turn = White == gen.side;
-                gen.move.value = gen.whites_turn ? MIN_VALUE : MAX_VALUE;
-
-                if (Empty == gen.type) {
-                    continue;
-                }
-
-                // Keep track of the location of the Kings
-                if (King == gen.type) {
-                    if (gen.whites_turn) {
-                        game.wking = gen.move.from;
-                    }
-                    else {
-                        game.bking = gen.move.from;
-                    }
-                }
-
-                // Check for move timeout (only if we're at ply level 2 or above, 
-                // this happens internally in the timeout() function)
-                if (timeout()) {
-                    break;
-                }
-
-                index_t &num_moves = (gen.whites_turn ? gen.num_wmoves : gen.num_bmoves);
-
-                // Evaluate the moves for this Piece Type and get the highest value move
-                switch (gen.type) {
-                    case   Pawn:    num_moves += add_pawn_moves(gen);       break;
-                    case Knight:    num_moves += add_knight_moves(gen);     break;
-                    case Bishop:    num_moves += add_bishop_moves(gen);     break;
-                    case   Rook:    num_moves += add_rook_moves(gen);       break;
-                    case  Queen:    num_moves += add_queen_moves(gen);      break;
-                    case   King:    num_moves += add_king_moves(gen);       break;
-
-                    default:
-                        printf(Debug1, "error: invalid type = %d at line %d\n", gen.type, __LINE__);
-                        game.options.print_level = Debug1;
-                        show();
-                        game.stats.stop_game_stats();
-                        show_stats();
-                        while ((1)) {}
-                        break;
-                }
-
-                // Check for alpha or beta cuttoff
-                if (gen.cutoff) {
-                    break;
-                }
-
-                // Check for move timeout if we've finished ply level 1
-                if (game.last_was_timeout1 && (game.ply > 1)) {
-                    break;
-                }
-            }
-
-        } // for each piece on both sides
-
-        // See if the game is over
-        if (0 == game.ply) {
-            if ((0 == gen.num_wmoves) && (0 == gen.num_bmoves)) {
-                game.state = STALEMATE;
-            }
-            else if (0 == gen.num_wmoves) {
-                game.state = BLACK_CHECKMATE;
-            }
-            else if (0 == gen.num_bmoves) {
-                game.state = WHITE_CHECKMATE;
-            }
-        }
-    }
-
-}   // choose_best_moves(...)
-
-
-////////////////////////////////////////////////////////////////////////////////////////
-// reset the various move tracking flags
-void reset_turn_flags() 
-{
-    for (point_t const &spot : game.pieces) {
-        if (-1 == spot.x) continue;
-        board.set(spot.x + spot.y * 8, setCheck(board.get(spot.x + spot.y * 8), False));
-    }
-
-    // Reset the 'ply completed' flags
-    game.complete = 0;
-
-    // reset the king-in-check flags
-    game.white_king_in_check = False;
-    game.black_king_in_check = False;
-
-    game.last_was_en_passant = False;
-    game.last_was_castle = False;
-    game.last_was_timeout1 = False;
-    game.last_was_timeout2 = False;
-    game.last_was_pawn_promotion = False;
-
-    game.user_supplied = False;
-
-}   // reset_move_flags()
-
-
-////////////////////////////////////////////////////////////////////////////////////////
 // Make the next move in the game
 // 
 void take_turn()
 {
     // Turn off the LED move indicators
-    digitalWrite(DEBUG1_PIN, LOW);
-    digitalWrite(DEBUG2_PIN, LOW);
-    digitalWrite(DEBUG3_PIN, LOW);
+    bitClear (PORTD, DEBUG1_PIN);    //=digitalWrite(pin,LOW) for pins 2-6
+    bitClear (PORTD, DEBUG2_PIN);    //=digitalWrite(pin,LOW) for pins 2-6
+    bitClear (PORTD, DEBUG3_PIN);    //=digitalWrite(pin,LOW) for pins 2-6
+
+    // digitalWrite(DEBUG1_PIN, LOW);
+    // digitalWrite(DEBUG2_PIN, LOW);
+    // digitalWrite(DEBUG3_PIN, LOW);
 
     // See if we've hit the move limit and return if so
     if (game.move_num >= game.options.move_limit) {
@@ -1087,10 +1142,10 @@ void set_game_options()
     // game.options.profiling = True;
 
     // Set the ultimate maximum ply level (incl)
-    game.options.max_max_ply = 6;
+    game.options.max_max_ply = 5;
 
     // Set the max ply level (inclusive) for normal moves
-    game.options.maxply = 6;
+    game.options.maxply = 2;
 
     // Set the percentage of moves that might be a mistake
     game.options.mistakes = 0;
@@ -1106,7 +1161,7 @@ void set_game_options()
  
     // Set the time limit per turn in milliseconds
     // game.options.time_limit = 0;
-    game.options.time_limit = 60000;
+    game.options.time_limit = 24000;
 
     // Enable or disable alpha-beta pruning
     // game.options.alpha_beta_pruning = False;
@@ -1161,6 +1216,8 @@ void set_game_options()
         upper = game.options.seed >> 16;
         lower = word(game.options.seed);
     }
+
+    printf(Always, "-= MicroChess ver %d.%02d =-\n\n", VERSION_MAJOR, VERSION_MINOR);
 
     char str[16] = "";
     ftostr(MAX_VALUE, 0, str);
@@ -1250,7 +1307,8 @@ void setup()
     static uint8_t const pins[3] = { DEBUG1_PIN, DEBUG2_PIN, DEBUG3_PIN };
     for (uint8_t pin : pins) {
         pinMode(pin, OUTPUT);
-        digitalWrite(pin, LOW);
+        bitClear (PORTD, pin);    //=digitalWrite(pin,LOW) for pins 2-6
+        // digitalWrite(pin, LOW);
     }
 
     // Initialize the continuous game statistics
@@ -1279,10 +1337,10 @@ void setup()
                 show();
             }
 
-            // if (!game.compare_pieces_to_board(board)) {
-            //     printf(Debug1, "Error: game.pieces[] contents are different from the board contents\n");
-            //     game.set_pieces_from_board(board);
-            // }
+            if (!game.compare_pieces_to_board(board)) {
+                printf(Debug1, "Error: game.pieces[] contents are different from the board contents\n");
+                game.set_pieces_from_board(board);
+            }
 
         } while (PLAYING == game.state);
 

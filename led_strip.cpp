@@ -8,10 +8,9 @@
  */
 
 #include <Arduino.h>
+#include <stdint.h>
 #include <FastLED.h>
 #include "MicroChess.h"
-
-#define   DATA_PIN    6
 
 FASTLED_USING_NAMESPACE
 
@@ -19,7 +18,7 @@ CRGB leds[BOARD_SIZE];
 
 void init_led_strip() {
     // tell FastLED about the LED strip configuration
-    FastLED.addLeds<WS2811,DATA_PIN,GRB>(leds, BOARD_SIZE).setCorrection(TypicalLEDStrip);
+    FastLED.addLeds<WS2811, LED_STRIP_PIN, GRB>(leds, BOARD_SIZE).setCorrection(TypicalLEDStrip);
 }
 
 static uint8_t constexpr piece_colors[12*3] PROGMEM = {
@@ -33,27 +32,50 @@ static uint8_t constexpr piece_colors[12*3] PROGMEM = {
 
 void set_led_strip(index_t const flash /* = -1 */)
 {
-    for (index_t y = 0; y < 8; y++) {
-        for (index_t x = 0; x < 8; x++) {
-            index_t const board_index = x + y * 8;
-            Piece   const piece = board.get(board_index);
-            Piece   const type = getType(piece);
-            Color   const side = getSide(piece);
-            index_t const led_index = BOARD_SIZE - (((y & 1) ? (7 - x) : x) + y * 8) - 1;
+    // Stack Management
+    // DECLARE ALL LOCAL VARIABLES USED IN THIS CONTEXT HERE AND
+    // DO NOT MODIFY ANYTHING BEFORE CHECKING THE AVAILABLE STACK
+    struct local_t {
+        uint8_t x : 4,
+                y : 4,
+      board_index : 6,
+            piece : 6,
+             type : 3,
+             side : 1,
+        led_index : 6,
+               ex : 6;
+    } vars;
+    index_t clr;
 
-            index_t const ex = 7 - x;
+    #ifdef ENA_MEM_STATS
+    game.freemem[MAKE][game.ply].mem = freeMemory();
+    #endif
+
+    //  Check for low stack space
+    if (check_mem()) { return; }
+
+    // Now we can alter local variables! 😎 
+
+    for (vars.y = 0; vars.y < 8; vars.y++) {
+        for (vars.x = 0; vars.x < 8; vars.x++) {
+            vars.board_index = vars.x + vars.y * 8;
+            vars.piece = board.get(vars.board_index);
+            vars.type = getType(vars.piece);
+            vars.side = getSide(vars.piece);
+            vars.ex = 7 - vars.x;
+            vars.led_index = BOARD_SIZE - (((vars.y & 1) ? vars.ex : vars.x) + vars.y * 8) - 1;
 
             static index_t constexpr values_per_led  = index_t(3);
             static index_t constexpr values_per_side = index_t(sizeof(piece_colors) / 2);
 
-            index_t const clr = (type * values_per_led) + (side * values_per_side);
+            clr = (vars.type * values_per_led) + (vars.side * values_per_side);
 
-            leds[led_index] = (Empty == type) ? 
+            leds[vars.led_index] = (Empty == vars.type) ? 
                 // empty spots
-                (((ex ^ y) & 1) ? CRGB(0,0,0) : CRGB(2,3,3)) : 
+                (((vars.ex ^ vars.y) & 1) ? CRGB(0,0,0) : CRGB(2,3,3)) : 
 
                 // spot with piece
-                (flash == led_index) ? CRGB(0,96,96) : 
+                (flash == vars.led_index) ? CRGB(0,96,96) : 
                 CRGB(pgm_read_byte(&piece_colors[clr + 0]), 
                      pgm_read_byte(&piece_colors[clr + 1]), 
                      pgm_read_byte(&piece_colors[clr + 2]));

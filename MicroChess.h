@@ -33,6 +33,9 @@ enum : uint32_t {
 };
 
 enum {
+    VERSION_MAJOR      =  1,    // The major sofware revision number
+    VERSION_MINOR      = 23,    // The minor sofware revision number
+
     MAX_REPS           =  3,    // the max number of times a pair of moves can be repeated
 
     MAX_PIECES         = 32,    // max number of pieces in game.pieces[]
@@ -40,6 +43,7 @@ enum {
     NUM_BITS_PT        =  4,    // bits per field in point_t struct
     NUM_BITS_SPOT      =  7,    // bits per field in move_t struct
 
+    LED_STRIP_PIN      =  6,    // The pin used for the LED strip for the board
     DEBUG1_PIN         =  5,    // Output debug LED pins
     DEBUG2_PIN         =  4,
     DEBUG3_PIN         =  3,
@@ -62,6 +66,17 @@ struct offset_t {
 // 
 
 // #define   ENA_MEM_STATS
+
+#ifdef ENA_MEM_STATS
+
+enum {
+    CHOOSE    = 0,
+    ADD_MOVES = 1,
+    CONSIDER  = 2,
+    MAKE      = 3,
+};
+
+#endif
 
 // print_t is used to set and control the output printing level
 enum print_t : uint8_t {
@@ -214,9 +229,6 @@ struct piece_gen_t {
     move_t      & wbest;
     move_t      & bbest;
 
-    index_t     num_wmoves;
-    index_t     num_bmoves;
-
     // The function to call for each move to be evaluated
     generator_t * callme;
 
@@ -230,7 +242,9 @@ struct piece_gen_t {
                    row : 3,     // The row of the piece being moved
            piece_index : 5,     // The index into the pieces list of the piece being evaluated
                   type : 3,     // The Type of the Piece: [Empty|Pawn|Knight|Rook|Bishop|Queen|King]
-                 piece : 6;     // The Piece being moved
+                 piece : 6,     // The Piece being moved
+            num_wmoves : 4,     // The number of white moves available
+            num_bmoves : 4;     // The number of white moves available
 
     piece_gen_t(move_t &m, move_t &wb, move_t &bb, generator_t *cb, Bool const eval) :
         move(m), wbest(wb), bbest(bb), callme(cb), evaluating(eval), cutoff(False), nocall(False), terminal(False)
@@ -248,7 +262,7 @@ struct piece_gen_t {
 
 
 // display a piece, or a move, or the piece list
-extern void show_piece(Piece const p, Bool const align = True);
+extern void show_piece(Piece const p);
 extern void show_move(move_t const &move, Bool const align = False);
 extern void show_pieces();
 extern void show_time(uint32_t ms);

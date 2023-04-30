@@ -197,19 +197,22 @@ Bool check_mem() {
 
 
 void show_low_memory() {
-    digitalWrite(DEBUG1_PIN, HIGH);
+    bitSet(PORTD, DEBUG1_PIN);    //=digitalWrite(pin,LOW) for pins 2-6
+    // digitalWrite(DEBUG1_PIN, HIGH);
 
 } // show_low_memory()
 
 
 void show_quiescent_search() {
-    digitalWrite(DEBUG2_PIN, HIGH);
+    bitSet(PORTD, DEBUG2_PIN);    //=digitalWrite(pin,LOW) for pins 2-6
+    // digitalWrite(DEBUG2_PIN, HIGH);
 
 } // show_quiescent_search()
 
 
 void show_timeout() {
-    digitalWrite(DEBUG3_PIN, HIGH);
+    bitSet(PORTD, DEBUG3_PIN);    //=digitalWrite(pin,LOW) for pins 2-6
+    // digitalWrite(DEBUG3_PIN, HIGH);
 
 } // show_timeout()
 
@@ -223,10 +226,13 @@ void show_memory_stats1() {
     printf(Debug1, "== Memory Usage By Function and Ply Levels ==\n");
 
     for (index_t i = 0; i <= game.options.max_max_ply; i++) {
-        printf(Debug1, "freemem[choose_best_move][ply %d] = %4d\n", i, game.freemem[0][i].mem - prg_ram);
-        printf(Debug1, "freemem[ piece move gen ][ply %d] = %4d\n", i, game.freemem[1][i].mem - prg_ram);
-        printf(Debug1, "freemem[ consider_move  ][ply %d] = %4d\n", i, game.freemem[2][i].mem - prg_ram);
-        printf(Debug1, "freemem[    make_move   ][ply %d] = %4d. Diff = %d\n", i, game.freemem[3][i].mem - prg_ram, game.freemem[0][i].mem - game.freemem[3][i].mem);
+        printf(Debug1, "freemem[choose_best_move][ply %d] = %4d\n", i, game.freemem[CHOOSE][i].mem - prg_ram);
+        printf(Debug1, "freemem[ piece move gen ][ply %d] = %4d\n", i, game.freemem[ADD_MOVES][i].mem - prg_ram);
+        printf(Debug1, "freemem[ consider_move  ][ply %d] = %4d\n", i, game.freemem[CONSIDER][i].mem - prg_ram);
+        printf(Debug1, "freemem[    make_move   ][ply %d] = %4d. Diff = %d\n", 
+            i, 
+            game.freemem[MAKE][i].mem   - prg_ram, 
+            game.freemem[CHOOSE][i].mem - game.freemem[MAKE][i].mem);
     
         printf(Debug1, "\n");
     }
@@ -241,10 +247,10 @@ void show_memory_stats2() {
 
     printf(Debug1, "== Memory Usage By Function and Ply Levels ==\n");
 
-    int const choose_best_move_mem = game.freemem[0][0].mem - game.freemem[1][0].mem;
-    int const piece_move_mem       = game.freemem[1][0].mem - game.freemem[2][0].mem;
-    int const consider_move_mem    = game.freemem[2][0].mem - game.freemem[3][0].mem;
-    int const make_move_mem        = game.freemem[3][0].mem - game.freemem[0][1].mem;
+    int const choose_best_move_mem = game.freemem[CHOOSE][0].mem    - game.freemem[ADD_MOVES][0].mem;
+    int const piece_move_mem       = game.freemem[ADD_MOVES][0].mem - game.freemem[CONSIDER][0].mem;
+    int const consider_move_mem    = game.freemem[CONSIDER][0].mem  - game.freemem[MAKE][0].mem;
+    int const make_move_mem        = game.freemem[MAKE][0].mem      - game.freemem[CHOOSE][1].mem;
 
     printf(Debug1, "choose_best_move(...) memory:   %3d\n", choose_best_move_mem);
     printf(Debug1, "      pieces_gen(...) memory: + %3d\n", piece_move_mem);
@@ -351,7 +357,7 @@ Bool add_to_history(move_t const &move)
 
 
 // display a Piece's color and type
-void show_piece(Piece const p, Bool const align /* = True */) 
+void show_piece(Piece const p)
 {
     Piece const type = getType(p);
     Color const side = getSide(p);
@@ -363,31 +369,16 @@ void show_piece(Piece const p, Bool const align /* = True */)
         printf(Debug1, "Black");
     }
 
-    if (align) {
-        switch (type) {
-            case  Empty: printf(Debug1, " Empty ");  break;
-            case   Pawn: printf(Debug1, " Pawn  ");  break;
-            case   Rook: printf(Debug1, " Rook  ");  break;
-            case Knight: printf(Debug1, " Knight");  break;
-            case Bishop: printf(Debug1, " Bishop");  break;
-            case  Queen: printf(Debug1, " Queen ");  break;
-            case   King: printf(Debug1, " King  ");  break;
-            default:     printf(Debug1, "Error: invalid Piece type: %d\n", type); 
-                break;
-        }
-    }
-    else {
-        switch (type) {
-            case  Empty: printf(Debug1, " Empty");  break;
-            case   Pawn: printf(Debug1, " Pawn");  break;
-            case   Rook: printf(Debug1, " Rook");  break;
-            case Knight: printf(Debug1, " Knight");  break;
-            case Bishop: printf(Debug1, " Bishop");  break;
-            case  Queen: printf(Debug1, " Queen");  break;
-            case   King: printf(Debug1, " King");  break;
-            default:     printf(Debug1, "Error: invalid Piece type: %d\n", type); 
-                break;
-        }
+    switch (type) {
+        case  Empty: printf(Debug1, " Empty");  break;
+        case   Pawn: printf(Debug1, " Pawn");  break;
+        case   Rook: printf(Debug1, " Rook");  break;
+        case Knight: printf(Debug1, " Knight");  break;
+        case Bishop: printf(Debug1, " Bishop");  break;
+        case  Queen: printf(Debug1, " Queen");  break;
+        case   King: printf(Debug1, " King");  break;
+        default:     printf(Debug1, "bad type %d\n", type); 
+            break;
     }
 
 } // show_piece(Piece const p) 
@@ -428,7 +419,7 @@ void show_move(move_t const &move, Bool const align /* = False */)
     index_t const to_row = move.to / 8;
     Piece   const     op = board.get(move.to);
 
-    show_piece(p, align);
+    show_piece(p);
 
     printf(Debug1, " from: %d,%d (%c%c) to: %d,%d (%c%c)", 
            col,    row,    col + 'A', '8' -    row, 
@@ -436,7 +427,7 @@ void show_move(move_t const &move, Bool const align /* = False */)
 
     if (Empty != getType(op)) {
         printf(Debug1, " taking a ");
-        show_piece(op, align);
+        show_piece(op);
     }
 
     char str_value[16] = "";
