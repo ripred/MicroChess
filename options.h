@@ -38,7 +38,7 @@ public:
     // This stuff stays the same at runtime during the game, and can't be modified during the game
 
     static uint32_t const move_limit    = 100;  // The maximum number of moves allowed in a full game
-    static int      const low_mem_limit = 873;  // The amount of memory used as reported by the compiler
+    static int      const low_mem_limit = 886;  // The amount of memory used as reported by the compiler
 
     // adjustable multipiers to alter importance of mobility or center proximity
     // during board evaluation. season to taste

@@ -43,7 +43,7 @@ index_t add_pawn_moves(piece_gen_t &gen) {
     // DECLARE ALL LOCAL VARIABLES USED IN THIS CONTEXT HERE AND
     // DO NOT MODIFY ANYTHING BEFORE CHECKING THE AVAILABLE STACK
     index_t to_col, to_row, count, i;
-    index_t last_move_to_col, last_move_to_row, last_move_from_row;
+    // index_t last_move_to_col, last_move_to_row, last_move_from_row;
     Piece op;
 
     #ifdef ENA_MEM_STATS
@@ -66,18 +66,20 @@ index_t add_pawn_moves(piece_gen_t &gen) {
     // Check 1 row ahead
     count += check_fwd(gen, to_col, to_row);
 
+    if (timeout()) { return count; }
+
     // Check 2 rows ahead
     if (!hasMoved(board.get(gen.move.from))) {
-        to_row += gen.whites_turn ? -1 : +1;
+        to_row += (gen.whites_turn ? -1 : +1);
         count += check_fwd(gen, to_col, to_row);
     }
+
+    if (timeout()) { return count; }
 
     // See if we can capture a piece diagonally
     for (i = -1; i <= 1; i += 2) {
         // See if the turn has timed out
-        if (timeout()) {
-            return count;
-        }
+        if (timeout()) { return count; }
 
         to_col = gen.col + i;
         to_row = gen.row + (gen.whites_turn ? -1 : +1);
@@ -93,22 +95,22 @@ index_t add_pawn_moves(piece_gen_t &gen) {
             }
 
             // // Check for en-passant
-            last_move_from_row = game.last_move.from / 8;
-            last_move_to_col = game.last_move.to % 8;
-            last_move_to_row = game.last_move.to / 8;
+            // last_move_from_row = game.last_move.from / 8;
+            // last_move_to_col = game.last_move.to % 8;
+            // last_move_to_row = game.last_move.to / 8;
 
-            if (last_move_to_col == to_col && last_move_to_row == gen.row) {
-                if (abs(int(last_move_from_row) - int(last_move_to_row)) > 1) {
-                    op = board.get(last_move_to_col + gen.row * 8);
-                    if (Pawn == getType(op) && getSide(op) != gen.side) {
-                        gen.move.to = to_col + (gen.row + (gen.whites_turn ? -1 : 1)) * 8;
-                        if (!gen.nocall) {
-                            gen.callme(gen);
-                        }
-                        count++;
-                    }
-                }
-            }
+            // if (last_move_to_col == to_col && last_move_to_row == gen.row) {
+            //     if (abs(int(last_move_from_row) - int(last_move_to_row)) > 1) {
+            //         op = board.get(last_move_to_col + gen.row * 8);
+            //         if (Pawn == getType(op) && getSide(op) != gen.side) {
+            //             gen.move.to = to_col + (gen.row + (gen.whites_turn ? -1 : 1)) * 8;
+            //             if (!gen.nocall) {
+            //                 gen.callme(gen);
+            //             }
+            //             count++;
+            //         }
+            //     }
+            // }
         }
     }
 

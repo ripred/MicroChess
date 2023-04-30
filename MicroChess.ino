@@ -272,7 +272,6 @@ long make_move(piece_gen_t & gen)
             gen.move.value = MIN_VALUE;
             if (0 == game.ply) {
                 // return MIN_VALUE;
-                return gen.move.value;
             }
         }
         else {
@@ -280,9 +279,9 @@ long make_move(piece_gen_t & gen)
             gen.move.value = MAX_VALUE;
             if (0 == game.ply) {
                 // return MAX_VALUE;
-                return gen.move.value;
             }
         }
+        // return gen.move.value;
     }
 
     // Save the state of whether or not the kings are in check.
@@ -960,6 +959,58 @@ void sort_and_shuffle(Color const side, index_t const shuffle_count = 8)
 
 
 ////////////////////////////////////////////////////////////////////////////////////////
+// A structure to represent an opening move
+struct book_t {
+    static Color side;
+    uint8_t
+        from : 6,  // the starting location
+       type1 : 3,  // the expected starting piece
+          to : 6,  // the ending location
+       type2 : 3;  // the expected ending piece
+    
+    book_t(index_t const f, Piece const t1, index_t const t, Piece const t2) :
+        from(f), type1(t1), to(t), type2(t2) {}
+};
+
+book_t opening1[] = {
+    { 6 * 8 + 4,   Pawn, 5 * 8 + 4, Empty },
+    { 7 * 8 + 5, Bishop, 4 * 8 + 2, Empty },
+    { 7 * 8 + 3,  Queen, 5 * 8 + 5, Empty },
+    { 5 * 8 + 5,  Queen, 1 * 8 + 5,  Pawn },
+};
+
+
+Color book_t::side = White;
+
+
+////////////////////////////////////////////////////////////////////////////////////////
+// Fill in the next opening book move if available.
+// 
+// returns True if there is a move or False otherwise
+Bool check_book(move_t &move)
+{
+    if (game.turn != book_t::side) {
+        return False;
+    }
+
+    static index_t index = 0;
+    if (index < index_t(ARRAYSZ(opening1))) {
+        move = {
+            index_t(opening1[index].from), 
+            index_t(opening1[index].to), 0L };
+        if ((getType(board.get(move.from)) == opening1[index].type1) && 
+            (getType(board.get(move.to  )) == opening1[index].type2)) {
+                index++;
+                return True;
+            }
+    }
+
+    return False;
+
+} // check_book(move_t &move)
+
+
+////////////////////////////////////////////////////////////////////////////////////////
 // Make the next move in the game
 // 
 void take_turn()
@@ -997,20 +1048,36 @@ void take_turn()
 
     Bool const whites_turn = (White == game.turn) ? True : False;
 
-    // Choose the best moves for both sides
-    if (game.options.shuffle_pieces) {
-        sort_and_shuffle(game.turn);
-    }
-    choose_best_moves(wmove, bmove, consider_move);
-
-    if (game.user_supplied) {
+    // See if we have an opening book move and return it if so
+    move_t move;
+    Bool book_supplied = False;
+    if (check_book(move)) {
+        book_supplied = True;
         if (whites_turn) {
-            wmove = game.user;
+            wmove = move;
         }
         else {
-            bmove = game.user;
+            bmove = move;
         }
-    } 
+        game.last_move = move;
+    }
+    else {
+        // Choose the best moves for both sides
+        if (game.options.shuffle_pieces) {
+            sort_and_shuffle(game.turn);
+        }
+
+        choose_best_moves(wmove, bmove, consider_move);
+
+        if (game.user_supplied) {
+            if (whites_turn) {
+                wmove = game.user;
+            }
+            else {
+                bmove = game.user;
+            }
+        } 
+    }
 
     // Gather the move statistics for this turn
     game.stats.stop_move_stats();
@@ -1018,6 +1085,10 @@ void take_turn()
 
     // Display the move that we chose * Before Modifying the Board *
     printf(Debug1, "\nMove #%d: ", game.move_num + 1);
+
+    if (book_supplied) {
+        printf(Debug1, "Opening book move: ");
+    }
 
     if (whites_turn) {
         show_move(wmove);
@@ -1338,7 +1409,7 @@ void setup()
             }
 
             if (!game.compare_pieces_to_board(board)) {
-                printf(Debug1, "Error: game.pieces[] contents are different from the board contents\n");
+                // printf(Debug1, "Error: game.pieces[] contents are different from the board contents\n");
                 game.set_pieces_from_board(board);
             }
 
