@@ -59,7 +59,7 @@ game_t game;
 // 
 // returns True if the move is the new best move, False otherwise
 // 
-// Note: Sanitezed stack
+// Note: Sanitized stack
 // 
 Bool consider_move(piece_gen_t &gen)
 {
@@ -183,7 +183,7 @@ Bool consider_move(piece_gen_t &gen)
 // 
 // returns the value of the board after the move was made
 // 
-// Note: Sanitezed stack
+// Note: Sanitized stack
 // 
 long make_move(piece_gen_t & gen)
 {

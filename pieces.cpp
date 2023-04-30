@@ -5,6 +5,7 @@
  * 
  * move generation for all pieces
  * 
+ * Note: Sanitized stack
  */
 #include <Arduino.h>
 #include <avr/pgmspace.h>

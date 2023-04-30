@@ -239,6 +239,8 @@ struct piece_gen_t {
     // The Type of the Piece: [Empty | Pawn | Knight | Rook | Bishop | Queen | King]
     Piece       type;
 
+    move_t      dummy;
+
     piece_gen_t(move_t &m, move_t &wb, move_t &bb, generator_t *cb, Bool const eval) :
         move(m), wbest(wb), bbest(bb), callme(cb), evaluating(eval), cutoff(False)
     {
@@ -248,6 +250,8 @@ struct piece_gen_t {
         col = move.from % 8;
         row = move.from / 8;
     }
+
+    piece_gen_t() : move(dummy), wbest(dummy), bbest(dummy) {}
 
 }; // piece_gen_t
 
