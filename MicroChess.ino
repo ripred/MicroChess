@@ -10,6 +10,7 @@
  * TODO:
  * 
  *  [ ] 
+ *  [+] Fix alpha-beta bug!
  *  [+] Finish enabling the en-passant pawn move generation.
  *  [+] Add a function to display times over 1000 ms as minutes, seconds, and ms
  *  [+] Change make_move(...) to return MIN_VALUE only if the ply level is 0
@@ -87,6 +88,9 @@ Bool consider_move(piece_gen_t &gen)
         return False;
     }
 
+    if (game.user_supplied || PLAYING != game.state) {
+        return False;
+    }
 
     // Check for alpha-beta cutoff
     if (gen.cutoff) {
@@ -561,6 +565,19 @@ long make_move(piece_gen_t & gen)
                             }
                         }
                     }
+                
+                    if (game.white_king_in_check && 0 == game.ply) {
+                        gen.move.value = (gen.whites_turn ? MIN_VALUE : MAX_VALUE);
+                        if (white_king_in_check) {
+                            game.state = BLACK_CHECKMATE;
+                        }
+                    }
+                    if (game.black_king_in_check && 0 == game.ply) {
+                        gen.move.value = (!gen.whites_turn ? MIN_VALUE : MAX_VALUE);
+                        if (black_king_in_check) {
+                            game.state = WHITE_CHECKMATE;
+                        }
+                    }
                 }
             }
         }
@@ -774,6 +791,39 @@ void sort_and_shuffle(Color const side, index_t const shuffle_count = 16)
 }
 
 
+Bool check_serial() {
+    Bool moved = False;
+
+    if (Serial.available() == 5) {
+        char movestr[5];
+        Bool digits = True;
+        for (int i = 0; i < 5; i++) {
+            movestr[i] = Serial.read();
+            if (i < 4) {
+                if ((movestr[i] >= '0') && (movestr[i] <= '7')) {
+                    movestr[i] -= '0';
+                }
+                else {
+                    digits = False;
+                }
+            }
+        }
+
+        if (digits) {
+            game.user = { index_t(movestr[0] + movestr[1] * 8), index_t(movestr[2] + movestr[3] * 8), 0L };
+            printf(Debug1, "User supplied move: ");
+            show_move(game.user);
+            printf(Debug1, "\n");
+            moved = True;
+            game.user_supplied = True;
+        }
+    }
+    else while (Serial.available()) { Serial.read(); }
+
+    return moved;
+}
+
+
 ////////////////////////////////////////////////////////////////////////////////////////
 // Evaluate all of the available moves for the specified side.
 // The best move is stored in best.
@@ -798,6 +848,7 @@ void choose_best_moves(move_t &wbest, move_t &bbest, generator_t const callback)
 
     //  Check for low stack space
     if (check_mem()) { return; }
+    else if (PLAYING != game.state || game.user_supplied) { return; }
     else {
         move_t dummy = { -1, -1, 0 };
         piece_gen_t gen(dummy, wbest, bbest, callback, True);
@@ -806,68 +857,77 @@ void choose_best_moves(move_t &wbest, move_t &bbest, generator_t const callback)
 
         // Walk through the pieces list and evaluate the moves for each piece
         for (gen.piece_index = 0; gen.piece_index < game.piece_count; gen.piece_index++) {
-            gen.col = game.pieces[gen.piece_index].x;
-            if (-1 == gen.col) { continue; }
-
-            // Construct a move_t object with the starting location
-            gen.row = game.pieces[gen.piece_index].y;
-            gen.move.from = gen.col + gen.row * 8;
-            gen.move.to = -1;
-            gen.piece = board.get(gen.move.from);
-            gen.type = getType(gen.piece);
-            gen.side = getSide(gen.piece);
-            gen.whites_turn = White == gen.side;
-            gen.move.value = gen.whites_turn ? MIN_VALUE : MAX_VALUE;
-
-            if (Empty == gen.type) {
-                continue;
+            if (game.user_supplied || PLAYING != game.state) {
+                return;
             }
 
-            // Keep track of the location of the Kings
-            if (King == gen.type) {
-                if (gen.whites_turn) {
-                    game.wking = gen.move.from;
+            if (check_serial()) {
+                return;
+            }
+            else {
+                gen.col = game.pieces[gen.piece_index].x;
+                if (-1 == gen.col) { continue; }
+
+                // Construct a move_t object with the starting location
+                gen.row = game.pieces[gen.piece_index].y;
+                gen.move.from = gen.col + gen.row * 8;
+                gen.move.to = -1;
+                gen.piece = board.get(gen.move.from);
+                gen.type = getType(gen.piece);
+                gen.side = getSide(gen.piece);
+                gen.whites_turn = White == gen.side;
+                gen.move.value = gen.whites_turn ? MIN_VALUE : MAX_VALUE;
+
+                if (Empty == gen.type) {
+                    continue;
                 }
-                else {
-                    game.bking = gen.move.from;
+
+                // Keep track of the location of the Kings
+                if (King == gen.type) {
+                    if (gen.whites_turn) {
+                        game.wking = gen.move.from;
+                    }
+                    else {
+                        game.bking = gen.move.from;
+                    }
                 }
-            }
 
-            // Check for move timeout (only if we're at ply level 2 or above, 
-            // this happens internally in the timeout() function)
-            if (timeout()) {
-                break;
-            }
-
-            index_t &num_moves = (gen.whites_turn ? gen.num_wmoves : gen.num_bmoves);
-
-            // Evaluate the moves for this Piece Type and get the highest value move
-            switch (gen.type) {
-                case   Pawn:    num_moves += add_pawn_moves(gen);       break;
-                case Knight:    num_moves += add_knight_moves(gen);     break;
-                case Bishop:    num_moves += add_bishop_moves(gen);     break;
-                case   Rook:    num_moves += add_rook_moves(gen);       break;
-                case  Queen:    num_moves += add_queen_moves(gen);      break;
-                case   King:    num_moves += add_king_moves(gen);       break;
-
-                default:
-                    printf(Debug1, "error: invalid type = %d at line %d\n", gen.type, __LINE__);
-                    game.options.print_level = Debug1;
-                    show();
-                    game.stats.stop_game_stats();
-                    show_stats();
-                    while ((1)) {}
+                // Check for move timeout (only if we're at ply level 2 or above, 
+                // this happens internally in the timeout() function)
+                if (timeout()) {
                     break;
-            }
+                }
 
-            // Check for alpha or beta cuttoff
-            if (gen.cutoff) {
-                break;
-            }
+                index_t &num_moves = (gen.whites_turn ? gen.num_wmoves : gen.num_bmoves);
 
-            // Check for move timeout if we've finished ply level 1
-            if (game.last_was_timeout1 && (game.ply > 1)) {
-                break;
+                // Evaluate the moves for this Piece Type and get the highest value move
+                switch (gen.type) {
+                    case   Pawn:    num_moves += add_pawn_moves(gen);       break;
+                    case Knight:    num_moves += add_knight_moves(gen);     break;
+                    case Bishop:    num_moves += add_bishop_moves(gen);     break;
+                    case   Rook:    num_moves += add_rook_moves(gen);       break;
+                    case  Queen:    num_moves += add_queen_moves(gen);      break;
+                    case   King:    num_moves += add_king_moves(gen);       break;
+
+                    default:
+                        printf(Debug1, "error: invalid type = %d at line %d\n", gen.type, __LINE__);
+                        game.options.print_level = Debug1;
+                        show();
+                        game.stats.stop_game_stats();
+                        show_stats();
+                        while ((1)) {}
+                        break;
+                }
+
+                // Check for alpha or beta cuttoff
+                if (gen.cutoff) {
+                    break;
+                }
+
+                // Check for move timeout if we've finished ply level 1
+                if (game.last_was_timeout1 && (game.ply > 1)) {
+                    break;
+                }
             }
 
         } // for each piece on both sides
@@ -911,6 +971,8 @@ void reset_turn_flags()
     game.last_was_timeout2 = False;
     game.last_was_pawn_promotion = False;
 
+    game.user_supplied = False;
+
 }   // reset_move_flags()
 
 
@@ -946,11 +1008,22 @@ void take_turn()
     game.alpha = MIN_VALUE;
     game.beta  = MAX_VALUE;
 
+    Bool const whites_turn = (White == game.turn) ? True : False;
+
     // Choose the best moves for both sides
     if (game.options.sort_pieces) {
         sort_and_shuffle(game.turn);
     }
     choose_best_moves(wmove, bmove, consider_move);
+
+    if (game.user_supplied) {
+        if (whites_turn) {
+            wmove = game.user;
+        }
+        else {
+            bmove = game.user;
+        }
+    } 
 
     // Gather the move statistics for this turn
     game.stats.stop_move_stats();
@@ -958,8 +1031,6 @@ void take_turn()
 
     // Display the move that we chose * Before Modifying the Board *
     printf(Debug1, "\nMove #%d: ", game.move_num + 1);
-
-    Bool const whites_turn = (White == game.turn) ? True : False;
 
     if (whites_turn) {
         show_move(wmove);
@@ -1039,14 +1110,14 @@ void take_turn()
     // Announce if either King is in check
     if (game.white_king_in_check) {
         printf(Debug1, "White King is in check!\n");
-        if (whites_turn) {
+        if (!whites_turn) {
             printf(Always, "illegal move\n");
         }
     }
 
     if (game.black_king_in_check) {
         printf(Debug1, "Black King is in check!\n");
-        if (!whites_turn) {
+        if (whites_turn) {
             printf(Always, "illegal move\n");
         }
     }
@@ -1082,10 +1153,10 @@ void set_game_options()
     // game.options.profiling = True;
 
     // Set the ultimate maximum ply level
-    game.options.max_max_ply = 5;
+    game.options.max_max_ply = 4;
 
     // Set the max ply level (the number of turns we look ahead) for normal moves
-    game.options.maxply = 3;
+    game.options.maxply = 2;
 
     // Set the percentage of moves that might be a mistake
     game.options.mistakes = 0;
@@ -1101,7 +1172,7 @@ void set_game_options()
  
     // Set the time limit per turn in milliseconds
     // game.options.time_limit = 0;
-    game.options.time_limit = 15000;
+    game.options.time_limit = 60000;
 
     // Enable or disable alpha-beta pruning
     // game.options.alpha_beta_pruning = False;
@@ -1109,12 +1180,12 @@ void set_game_options()
 
     // When sort_pieces is True we sort the pieces[] array before each turn
     // so that we process the current side's pieces first.
-    // game.options.sort_pieces = False;
-    game.options.sort_pieces = True;
+    game.options.sort_pieces = False;
+    // game.options.sort_pieces = True;
 
     // Set the maximum ply level to continue if a move takes a piece
     // The quiescent search depth is based off of the max ply level
-    game.options.max_quiescent_ply = min(game.options.maxply + 1, game.options.max_max_ply);
+    game.options.max_quiescent_ply = min(game.options.maxply + 2, game.options.max_max_ply);
 
     // set the 'live update' flag
     // game.options.live_update = False;

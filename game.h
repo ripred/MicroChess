@@ -84,7 +84,8 @@ public:
                 last_was_pawn_promotion : 1,    // True when last move promoted a Pawn to a Queen
                     white_king_in_check : 1,    // The check state of the two kings
                     black_king_in_check : 1,
-                                   turn : 1;    // Whose turn it is: 0 := Black, 1 := White
+                                   turn : 1,    // Whose turn it is: 0 := Black, 1 := White
+                          user_supplied : 1;    // True when the user has supplied a value via serial
 
     // last move statistics
     // uint32_t    last_move_time;
@@ -106,6 +107,8 @@ public:
     // the alpha and beta edges of our search envelope
     long        alpha;
     long        beta;
+
+    move_t      user;
 public:
     // constructor
     game_t();

@@ -138,6 +138,9 @@ void game_t::init()
     alpha = MIN_VALUE;
     beta  = MAX_VALUE;
 
+    user_supplied = False;
+    user = { -1, -1, 0 };
+
 } // game_t::init()
 
 
