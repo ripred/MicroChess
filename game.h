@@ -32,6 +32,16 @@ public:
 };  // point_t
 
 
+struct history_t {
+    // history_t() {}
+    // ~history_t() {}
+
+    index_t 
+        from : 6, 
+          to : 6;
+
+};  // history_t
+
 ////////////////////////////////////////////////////////////////////////////////////////
 // the state of a game
 struct game_t 
@@ -58,7 +68,7 @@ public:
     static long const material_bonus[7][2] PROGMEM;                                
 
     // The last 'MAX_REPS * 2 - 1' moves are kept to recognize 'MAX_REPS' move repetition
-    move_t      history[MAX_REPS * 2 - 1];
+    history_t   history[MAX_REPS * 2 - 1];
     index_t     hist_count;
 
     // The locations of the pieces on the board
@@ -77,38 +87,33 @@ public:
     // the last move made
     long        last_value;                     // The value of the last move made
     move_t      last_move;                      // The last move made
-    Bool        last_was_en_passant     : 1,    // True when last move was an en-passaant capture
+    uint8_t     last_was_en_passant     : 1,    // True when last move was an en-passaant capture
                 last_was_castle         : 1,    // True when last move was a castling of a king and a rook
                 last_was_timeout1       : 1,    // True when last move timed out - this version used only duing ply 0 and 1
                 last_was_timeout2       : 1,    // True when last move timed out - this version used during all plies
                 last_was_pawn_promotion : 1,    // True when last move promoted a Pawn to a Queen
-                    white_king_in_check : 1,    // The check state of the two kings
-                    black_king_in_check : 1,
+                    white_king_in_check : 1,    // The check state of the white king
+                    black_king_in_check : 1,    // The check state of the black king
                                    turn : 1,    // Whose turn it is: 0 := Black, 1 := White
-                          user_supplied : 1;    // True when the user has supplied a value via serial
+                          user_supplied : 1,    // True when the user has supplied a value via serial
+                                  state : 3,    // the current state of the game
+                                    ply : 3,    // the current ply level
+                                  wking : 6,    // the location of the white king
+                                  bking : 6;    // the location of the black king
 
     // last move statistics
     // uint32_t    last_move_time;
     uint32_t    last_moves_evaluated;
 
-    // the current state of the game
-    state_t     state;
-
     // increasing move number
-    uint16_t    move_num;
-
-    // the current ply level
-    uint8_t     ply;
-
-    // the location of both kings
-    index_t     wking;
-    index_t     bking;
+    uint8_t     move_num;
 
     // the alpha and beta edges of our search envelope
     long        alpha;
     long        beta;
 
     move_t      user;
+
 public:
     // constructor
     game_t();

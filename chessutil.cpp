@@ -237,7 +237,7 @@ void show_memory_stats1() {
 
 void show_memory_stats2() {
     // the amount of memory used as reported by the compiler
-    int const prg_ram = 938;
+    int const prg_ram = 933;
 
     printf(Debug1, "== Memory Usage By Function and Ply Levels ==\n");
 
@@ -314,7 +314,7 @@ Bool would_repeat(move_t move)
 
     Bool result = True;
 
-    move_t &m= move;
+    history_t m = { move.from, move.to };
 
     for (index_t i = 1; i < total; i += 2) {
         if (game.history[i].to == m.from && game.history[i].from == m.to) {
@@ -339,8 +339,8 @@ Bool add_to_history(move_t const &move)
 {
     Bool result = would_repeat(move);
 
-    memmove(&game.history[1], &game.history[0], sizeof(move_t) * (ARRAYSZ(game.history) - 1));
-    game.history[0] = move;
+    memmove(&game.history[1], &game.history[0], sizeof(history_t) * (ARRAYSZ(game.history) - 1));
+    game.history[0] = { move.from, move.to };
     if (game.hist_count < index_t(ARRAYSZ(game.history))) {
         game.hist_count++;
     }

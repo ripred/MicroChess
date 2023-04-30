@@ -33,10 +33,6 @@ enum : uint32_t {
 };
 
 enum {
-    MAX_PLY            =  3,    // max ply depth
-
-    DEF_TIME_LIMIT     = 30000, // default time limit per move
-
     MAX_REPS           =  3,    // the max number of times a pair of moves can be repeated
 
     MAX_PIECES         = 32,    // max number of pieces in game.pieces[]
@@ -44,7 +40,7 @@ enum {
     NUM_BITS_PT        =  4,    // bits per field in point_t struct
     NUM_BITS_SPOT      =  7,    // bits per field in move_t struct
 
-    DEBUG1_PIN         =  5,    // output debug LED pins
+    DEBUG1_PIN         =  5,    // Output debug LED pins
     DEBUG2_PIN         =  4,
     DEBUG3_PIN         =  3,
 };
@@ -64,10 +60,11 @@ struct offset_t {
 // macro to enable the gathering of memory statistics at different ply levels
 // un-comment to enable
 // 
+
 // #define   ENA_MEM_STATS
 
 // print_t is used to set and control the output printing level
-enum print_t {
+enum print_t : uint8_t {
     Error  =  0,        // always display
     Always =  0,
     None   =  0,        // for use in setting print_level
@@ -84,9 +81,9 @@ enum print_t {
 #define  ARRAYSZ(A) (sizeof(A) / sizeof(*(A)))
 
 // Macros to manipulate a continguous segment of memory as a series of bits
-#define     _setbit(_A, _B)     ((char*)(_A))[(_B) / 8] |=  (0x80 >> ((_B) % 8))
-#define     _clrbit(_A, _B)     ((char*)(_A))[(_B) / 8] &= ~(0x80 >> ((_B) % 8))
-#define     _getbit(_A, _B)     ((char*)(_A))[(_B) / 8] &   (0x80 >> ((_B) % 8))
+#define     setbit(_A, _B)     ((char*)(_A))[(_B) / 8] |=  (0x80 >> ((_B) % 8))
+#define     clrbit(_A, _B)     ((char*)(_A))[(_B) / 8] &= ~(0x80 >> ((_B) % 8))
+#define     getbit(_A, _B)     ((char*)(_A))[(_B) / 8] &   (0x80 >> ((_B) % 8))
 
 // The max and min range for piece values
 #define  MAX_VALUE ((long const)(LONG_MAX))
@@ -182,8 +179,8 @@ static long constexpr pieceValues[8] = {
 };
 
 // Alias' for the current game state
-enum state_t {
-    PLAYING,
+enum state_t : uint8_t {
+    PLAYING = 0,
     STALEMATE,
     WHITE_CHECKMATE,
     BLACK_CHECKMATE,
@@ -229,19 +226,11 @@ struct piece_gen_t {
                 cutoff : 1,     // True if we have reached the alpha or beta cutoff
                 nocall : 1,     // Don't call the callback, just count the moves
               terminal : 1,     // True when this piece has no moves
-                   col : 4,
-                   row : 4;
-
-    // The index into the pieces list of the piece being evaluated
-    index_t     piece_index;
-
-    // The Piece beig moved
-    Piece       piece;
-
-    // The Type of the Piece: [Empty | Pawn | Knight | Rook | Bishop | Queen | King]
-    Piece       type;
-
-    move_t      dummy;
+                   col : 3,     // The column of the piece being moved
+                   row : 3,     // The row of the piece being moved
+           piece_index : 5,     // The index into the pieces list of the piece being evaluated
+                  type : 3,     // The Type of the Piece: [Empty|Pawn|Knight|Rook|Bishop|Queen|King]
+                 piece : 6;     // The Piece being moved
 
     piece_gen_t(move_t &m, move_t &wb, move_t &bb, generator_t *cb, Bool const eval) :
         move(m), wbest(wb), bbest(bb), callme(cb), evaluating(eval), cutoff(False), nocall(False), terminal(False)
@@ -253,7 +242,7 @@ struct piece_gen_t {
         row = move.from / 8;
     }
 
-    piece_gen_t() : move(dummy), wbest(dummy), bbest(dummy) {}
+    piece_gen_t(move_t &dummy) : move(dummy), wbest(dummy), bbest(dummy) {}
 
 }; // piece_gen_t
 

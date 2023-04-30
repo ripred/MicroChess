@@ -67,9 +67,6 @@ Bool consider_move(piece_gen_t &gen)
     // Stack Management
     // DECLARE ALL LOCAL VARIABLES USED IN THIS CONTEXT HERE AND
     // DO NOT MODIFY ANYTHING BEFORE CHECKING THE AVAILABLE STACK
-    #ifdef SHOW1
-    Bool repeat;
-    #endif
     Bool better;
 
     #ifdef ENA_MEM_STATS
@@ -116,9 +113,6 @@ Bool consider_move(piece_gen_t &gen)
     // Penalize the move if it would cause us to lose by move repetition
     if (would_repeat(gen.move)) {
         gen.move.value = gen.whites_turn ? MIN_VALUE : MAX_VALUE;
-        #ifdef SHOW1
-        repeat = True;
-        #endif
     }
 
     if (gen.whites_turn) {
@@ -162,7 +156,7 @@ Bool consider_move(piece_gen_t &gen)
     #ifdef SHOW1
     if (0 == game.ply) {
         show_move(gen.move, True);
-        printf(Debug1, "%s%s\n", (repeat ? "+" : " "), (better ? "*" : " "));
+        printf(Debug1, "%s\n", (better ? "*" : " "));
     }
     #endif
 
@@ -209,14 +203,20 @@ long make_move(piece_gen_t & gen)
                 black_king_in_check : 1,
                     last_was_castle : 1,
                           quiescent : 1,
-                       captured_col : 3,
-                       captured_row : 3;
+                         board_rook : 6,
+                               rook : 6,
+                     captured_piece : 6,
+                        place_piece : 6,
+                              wking : 6,
+                              bking : 6,
+                  white_taken_count : 5, 
+                  black_taken_count : 5;
     } vars;
 
-    move_t history[MAX_REPS * 2 - 1], last_move, wbest, bbest;
-    index_t hist_count, wking, bking, white_taken_count, black_taken_count;
-    index_t taken_index, captured, castly_rook, dist, board_rook, rook;
-    Piece captured_piece, place_piece;
+    history_t history[MAX_REPS * 2 - 1];
+    move_t last_move, wbest, bbest;
+    index_t hist_count;
+    index_t taken_index, captured, castly_rook;
     static uint32_t last_led_update;
     uint32_t move_count;
 
@@ -246,12 +246,12 @@ long make_move(piece_gen_t & gen)
     hist_count = game.hist_count;
 
     // Save the current king locations
-    wking = game.wking;
-    bking = game.bking;
+    vars.wking = game.wking;
+    vars.bking = game.bking;
 
     // Save the current number of taken pieces
-    white_taken_count = game.white_taken_count;
-    black_taken_count = game.black_taken_count;
+    vars.white_taken_count = game.white_taken_count;
+    vars.black_taken_count = game.black_taken_count;
 
     // Save the current last move and move flags
     vars.last_was_pawn_promotion = game.last_was_pawn_promotion;
@@ -314,20 +314,20 @@ long make_move(piece_gen_t & gen)
 
     // The board index being captured (if any, -1 if none)
     captured = -1;
-    captured_piece = Empty;
+    vars.captured_piece = Empty;
 
     // Check for en-passant capture
     if (Pawn == gen.type && isEmpty(vars.otype) && gen.col != vars.to_col) {
         game.last_was_en_passant = True;
         captured = vars.to_col + gen.row * 8;
-        captured_piece = board.get(captured);
+        vars.captured_piece = board.get(captured);
     }
     else {
         // See if the destination is not empty and not a piece on our side.
         // i.e. an opponent's piece.
         if (Empty != vars.otype && gen.side != vars.oside) {
             captured = gen.move.to;
-            captured_piece = board.get(captured);
+            vars.captured_piece = board.get(captured);
         }
     }
 
@@ -344,10 +344,10 @@ long make_move(piece_gen_t & gen)
 
         // Add the piece to the list of taken pieces
         if (gen.whites_turn) {
-            game.taken_by_white[game.white_taken_count++] = captured_piece;
+            game.taken_by_white[game.white_taken_count++] = vars.captured_piece;
         }
         else {
-            game.taken_by_black[game.black_taken_count++] = captured_piece;
+            game.taken_by_black[game.black_taken_count++] = vars.captured_piece;
         }
     }
 
@@ -355,17 +355,17 @@ long make_move(piece_gen_t & gen)
     /// Step 3: Place the piece being moved at the destination
 
     // Set the 'moved' flag on the piece that we place on the board
-    place_piece = setMoved(gen.piece, True);
+    vars.place_piece = setMoved(gen.piece, True);
 
     // Promote a pawn to a queen if it reaches the back row
     if (Pawn == gen.type && (vars.to_row == (gen.whites_turn ? index_t(0) : index_t(7)))) {
-        place_piece = setType(place_piece, Queen);
+        vars.place_piece = setType(vars.place_piece, Queen);
         game.last_was_pawn_promotion = True;
     }
 
     // Move the piece to the destination on the board
     board.set(gen.move.from, Empty);
-    board.set(gen.move.to, place_piece);
+    board.set(gen.move.to, vars.place_piece);
 
     // Update the piece list to reflect the piece's new location
     game.pieces[gen.piece_index] = { index_t(vars.to_col), index_t(vars.to_row) };
@@ -383,24 +383,23 @@ long make_move(piece_gen_t & gen)
         // }
 
         // Get the horizontal distance the king is moving
-        dist = abs(vars.to_col - (gen.move.from % 8));
 
         // See if it is a castling move
-        if (dist >= 2) {
+        if (abs(vars.to_col - (gen.move.from % 8)) > 1) {
             // see which side we're castling on
-            if (2 == dist) {
+            if (2 == abs(vars.to_col - (gen.move.from % 8))) {
                 // Castle on the King's side
-                board_rook = 7 + gen.row * 8;
-                castly_rook = game.find_piece(board_rook);
-                board.set(board_rook, setMoved(board.get(board_rook), True));
+                vars.board_rook = 7 + gen.row * 8;
+                castly_rook = game.find_piece(vars.board_rook);
+                board.set(vars.board_rook, setMoved(board.get(vars.board_rook), True));
                 game.pieces[castly_rook].x = 5;
                 game.last_was_castle = True;
             }
-            else if (3 == dist) {
+            else if (3 == abs(vars.to_col - (gen.move.from % 8))) {
                 // Castle on the Queen's side
-                board_rook = 0 + gen.row * 8;
-                castly_rook = game.find_piece(board_rook);
-                board.set(board_rook, setMoved(board.get(board_rook), True));
+                vars.board_rook = 0 + gen.row * 8;
+                castly_rook = game.find_piece(vars.board_rook);
+                board.set(vars.board_rook, setMoved(board.get(vars.board_rook), True));
                 game.pieces[castly_rook].x = 3;
                 game.last_was_castle = True;
             }
@@ -512,7 +511,7 @@ long make_move(piece_gen_t & gen)
 
     // Periodically update the LED strip display and progress indicator if enabled
     if (game.options.live_update && (game.ply == game.options.maxply)) {
-        if (abs(millis() - last_led_update ) > 25) {
+        if (abs(millis() - last_led_update ) > 40) {
             last_led_update = millis();
             set_led_strip(gen.move.from);
         }
@@ -525,21 +524,19 @@ long make_move(piece_gen_t & gen)
         if (-1 == captured) {
             board.set(gen.move.to, vars.op);
         } else {
-            vars.captured_col = captured % 8;
-            vars.captured_row = captured / 8;
 
             // restore the captured board changes and
             // set it's "in-check" flag
-            captured_piece = setCheck(captured_piece, True);
-            board.set(captured, captured_piece);
+            vars.captured_piece = setCheck(vars.captured_piece, True);
+            board.set(captured, vars.captured_piece);
 
             // restore the captured piece list changes
-            game.pieces[taken_index] = { index_t(vars.captured_col), index_t(vars.captured_row) };
+            game.pieces[taken_index] = { index_t(captured % 8), index_t(captured / 8) };
         }
 
         // restore the taken pieces list changes
-        game.white_taken_count = white_taken_count;
-        game.black_taken_count = black_taken_count;
+        game.white_taken_count = vars.white_taken_count;
+        game.black_taken_count = vars.black_taken_count;
 
         // restore the changes made to the moves history
         memmove(game.history, history, sizeof(history));
@@ -563,8 +560,8 @@ long make_move(piece_gen_t & gen)
         game.black_king_in_check = vars.black_king_in_check;
 
         // restore the king's locations
-        game.wking = wking;
-        game.bking = bking;
+        game.wking = vars.wking;
+        game.bking = vars.bking;
 
         // restore any rook moved during a castle move
         game.last_was_castle = vars.last_was_castle;
@@ -576,8 +573,8 @@ long make_move(piece_gen_t & gen)
                 game.pieces[castly_rook].x = 7;
             }
 
-            rook = game.pieces[castly_rook].x + game.pieces[castly_rook].y * 8;
-            board.set(rook, setMoved(board.get(rook), False));
+            vars.rook = game.pieces[castly_rook].x + game.pieces[castly_rook].y * 8;
+            board.set(vars.rook, setMoved(board.get(vars.rook), False));
         }
     }
 
@@ -673,7 +670,7 @@ long evaluate()
 
 ////////////////////////////////////////////////////////////////////////////////////////
 // Sort the game.pieces[] array by player side
-void sort_and_shuffle(Color const side, index_t const shuffle_count = 16)
+void sort_and_shuffle(Color const side, index_t const shuffle_count = 8)
 {
     if (White == side) {
         // lambda comparator to sort game.pieces[] by White and then Black
@@ -1108,8 +1105,8 @@ void set_game_options()
     game.options.continuous = True;
  
     // Set the time limit per turn in milliseconds
-    game.options.time_limit = 0;
-    // game.options.time_limit = 10000;
+    // game.options.time_limit = 0;
+    game.options.time_limit = 42000;
 
     // Enable or disable alpha-beta pruning
     // game.options.alpha_beta_pruning = False;
@@ -1278,7 +1275,9 @@ void setup()
 
         do {
             take_turn();
-            show();
+            if (PLAYING == game.state) {
+                show();
+            }
 
             // if (!game.compare_pieces_to_board(board)) {
             //     printf(Debug1, "Error: game.pieces[] contents are different from the board contents\n");
@@ -1305,8 +1304,8 @@ void setup()
             case PLAYING:           break;
         }
 
-        // Show the final board    
-        show();
+        // Show the final board
+        // show();
 
         // Show the game move and game counts and time statistics
         show_stats();
