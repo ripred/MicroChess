@@ -1,9 +1,9 @@
 /**
- * pawn.cpp
+ * pieces.cpp
  * 
  * the MicroChess project: https://github.com/ripred/MicroChess
  * 
- * move generation for pawns
+ * move generation for all pieces
  * 
  */
 #include <Arduino.h>
@@ -11,10 +11,20 @@
 #include <stdint.h>
 #include "MicroChess.h"
 
-/*
- * evaluate the moves for a pawn against the best move so far
- *
- */
+static offset_t constexpr knight_offsets[8] PROGMEM = {
+    { -1, +2 }, { -1, -2 }, { -2, +1 }, { -2, -1 }, 
+    { +1, +2 }, { +1, -2 }, { +2, +1 }, { +2, -1 }  
+};
+
+static offset_t constexpr rook_offsets[4] PROGMEM = {
+    {  0,  1 }, {  0, -1 }, { -1,  0 }, {  1,  0 }
+};
+
+static offset_t const bishop_offsets[4] PROGMEM = {
+    { -1, -1 }, { -1,  1 }, {  1, -1 }, {  1,  1 }
+};
+
+
 index_t add_pawn_moves(piece_gen_t &gen) {
     #ifdef ENA_MEM_STATS
     game.freemem[1][game.ply].mem = freeMemory();
@@ -98,23 +108,6 @@ index_t add_pawn_moves(piece_gen_t &gen) {
 } // add_pawn_moves(piece_gen_t &gen)
 
 
-static offset_t constexpr knight_offsets[8] PROGMEM = {
-    { -1, +2 }, { -1, -2 }, { -2, +1 }, { -2, -1 }, 
-    { +1, +2 }, { +1, -2 }, { +2, +1 }, { +2, -1 }  
-};
-
-static offset_t constexpr rook_offsets[4] PROGMEM = {
-    {  0,  1 }, {  0, -1 }, { -1,  0 }, {  1,  0 }
-};
-
-static offset_t const bishop_offsets[4] PROGMEM = {
-    { -1, -1 }, { -1,  1 }, {  1, -1 }, {  1,  1 }
-};
-
-
-// #define  USE_NEW
-
-#ifdef USE_NEW
 index_t gen_moves(piece_gen_t &gen, offset_t const * const ptr, index_t const num_dirs, index_t const num_iter) {
     #ifdef ENA_MEM_STATS
     game.freemem[1][game.ply].mem = freeMemory();
@@ -161,255 +154,33 @@ index_t gen_moves(piece_gen_t &gen, offset_t const * const ptr, index_t const nu
 
     return count;
 
-} // gen_moves(piece_gen_t &gen, offset_t const * const dirs, index_t const num_dirs, index_t const num_iter)
+} // gen_moves(...)
 
 
 index_t add_knight_moves(piece_gen_t &gen) {
     return gen_moves(gen, pgm_get_far_address(knight_offsets), ARRAYSZ(knight_offsets), 1);
-}
-
-
-index_t add_rook_moves(piece_gen_t &gen) {
-    return gen_moves(gen, pgm_get_far_address(rook_offsets), ARRAYSZ(rook_offsets), 7);
-}
-
-
-index_t add_bishop_moves(piece_gen_t &gen) {
-    return gen_moves(gen, pgm_get_far_address(bishop_offsets), ARRAYSZ(bishop_offsets), 7);
-}
-
-
-index_t add_king_moves(piece_gen_t &gen) {
-    // Count the number of available moves
-    index_t count = 0;
-
-    count += gen_moves(gen, pgm_get_far_address(rook_offsets), ARRAYSZ(rook_offsets), 1);
-    count += gen_moves(gen, pgm_get_far_address(rook_offsets), ARRAYSZ(rook_offsets), 1);
-
-    // check for castling
-    if (!hasMoved(gen.piece)) {
-        // check King's side (right-hand side from white's view)
-        index_t rook_loc = 7 + gen.row * 8;
-        Piece rook = board.get(rook_loc);
-        Bool empty_knight = isEmpty(board.get(1 + gen.row * 8));
-        Bool empty_bishop = isEmpty(board.get(2 + gen.row * 8));
-        if (!isEmpty(rook) && !hasMoved(rook)) {
-            if (empty_knight && empty_bishop) {
-                // We can castle on the King's side
-                gen.move.to = 2 + gen.row * 8;
-                gen.callme(gen);
-                count++;
-            }
-        }
-
-        // check Queen's side (left-hand side from white's view)
-        rook_loc = 0 + gen.row * 8;
-        rook = board.get(rook_loc);
-        if (!isEmpty(rook) && !hasMoved(rook)) {
-            Bool const  empty_queen = isEmpty(board.get(4 + gen.row * 8));
-                       empty_knight = isEmpty(board.get(6 + gen.row * 8));
-                       empty_bishop = isEmpty(board.get(5 + gen.row * 8));
-            if (empty_knight && empty_bishop && empty_queen) {
-                // We can castle on the Queens's side
-                gen.move.to = 6 + gen.row * 8;
-                gen.callme(gen);
-                count++;
-            }
-        }
-    }
-
-    return count;
-
-} // add_king_moves(piece_gen_t &gen)
-
-#else
-
-/*
- * evaluate the moves for a knight against the best move so far
- *
- */
-index_t add_knight_moves(piece_gen_t &gen) {
-    #ifdef ENA_MEM_STATS
-    game.freemem[1][game.ply].mem = freeMemory();
-    #endif
-
-    //  Check for low stack space
-    if (check_mem()) { return 0; }
-
-    // Count the number of available moves
-    index_t count = 0;
-
-    offset_t const * const ptr = (offset_t const *) pgm_get_far_address(knight_offsets);
-
-    for (index_t i = 0; i < index_t(ARRAYSZ(knight_offsets)); i++) {
-        // See if the turn has timed out
-        if (timeout()) {
-            return count;
-        }
-
-        index_t const to_col = gen.col + pgm_read_byte(&ptr[i].x);
-        index_t const to_row = gen.row + pgm_read_byte(&ptr[i].y);
-        if (isValidPos(to_col, to_row)) {
-            gen.move.to = to_col + to_row * 8;
-            Piece const op = board.get(gen.move.to);
-            if (isEmpty(op) || getSide(op) != gen.side) {
-                gen.callme(gen);
-                count++;
-            }
-        }
-    }
-
-    return count;
 
 } // add_knight_moves(piece_gen_t &gen)
 
 
-/*
- * evaluate the moves for a rook against the best move so far
- *
- */
 index_t add_rook_moves(piece_gen_t &gen) {
-    #ifdef ENA_MEM_STATS
-    game.freemem[1][game.ply].mem = freeMemory();
-    #endif
-
-    //  Check for low stack space
-    if (check_mem()) { return 0; }
-
-    // Count the number of available moves
-    index_t count = 0;
-
-    offset_t const * const ptr = (offset_t const * const) pgm_get_far_address(rook_offsets);
-
-    for (index_t i = 0; i < index_t(ARRAYSZ(rook_offsets)); i++) {
-        index_t x = gen.col + pgm_read_byte(&ptr[i].x);
-        index_t y = gen.row + pgm_read_byte(&ptr[i].y);
-
-        while (isValidPos(x, y)) {
-            // See if the turn has timed out
-            if (timeout()) {
-                return count;
-            }
-
-            gen.move.to = x + y * 8;
-            Piece const op = board.get(gen.move.to);
-
-            if (isEmpty(op)) {
-                gen.callme(gen);
-                count++;
-            }
-            else if (getSide(op) != gen.side) {
-                gen.callme(gen);
-                count++;
-                break;
-            }
-            else {
-                break;
-            }
-
-            x += pgm_read_byte(&ptr[i].x);
-            y += pgm_read_byte(&ptr[i].y);
-        }
-    }
-
-    return count;
+    return gen_moves(gen, pgm_get_far_address(rook_offsets), ARRAYSZ(rook_offsets), 7);
 
 } // add_rook_moves(piece_gen_t &gen)
 
 
-/*
- * evaluate the moves for a bishop against the best move so far
- *
- */
 index_t add_bishop_moves(piece_gen_t &gen) {
-    // Keep track of memory usage by function level and ply level
-    #ifdef ENA_MEM_STATS
-    game.freemem[1][game.ply].mem = freeMemory();
-    #endif
-
-    //  Check for low stack space
-    if (check_mem()) { return 0; }
-
-    // Count the number of available moves
-    index_t count = 0;
-
-    offset_t const * const ptr = (offset_t const * const) pgm_get_far_address(bishop_offsets);
-
-    for (index_t i = 0; i < index_t(ARRAYSZ(bishop_offsets)); i++) {
-        index_t x = gen.col + pgm_read_byte(&ptr[i].x);
-        index_t y = gen.row + pgm_read_byte(&ptr[i].y);
-
-        while (isValidPos(x, y)) {
-            // See if the turn has timed out
-            if (timeout()) {
-                return count;
-            }
-
-            gen.move.to = x + y * 8;
-            Piece const op = board.get(gen.move.to);
-
-            if (isEmpty(op)) {
-                gen.callme(gen);
-                count++;
-            }
-            else if (getSide(op) != gen.side) {
-                gen.callme(gen);
-                count++;
-                break;
-            }
-            else {
-                break;
-            }
-
-            x += pgm_read_byte(&ptr[i].x);
-            y += pgm_read_byte(&ptr[i].y);
-        }
-    }
-
-    return count;
+    return gen_moves(gen, pgm_get_far_address(bishop_offsets), ARRAYSZ(bishop_offsets), 7);
 
 } // add_bishop_moves(piece_gen_t &gen)
 
 
-/*
- * evaluate the moves for a king against the best move so far
- *
- */
 index_t add_king_moves(piece_gen_t &gen) {
-    static offset_t constexpr king_offsets[8] PROGMEM = {
-        { -1,  0 }, {  0, -1 }, { -1, -1 }, { +1, -1 }, 
-        { +1,  0 }, {  0, +1 }, { -1, +1 }, { +1, +1 }
-    };
-
-    #ifdef ENA_MEM_STATS
-    game.freemem[1][game.ply].mem = freeMemory();
-    #endif
-
-    //  Check for low stack space
-    if (check_mem()) { return 0; }
-
     // Count the number of available moves
     index_t count = 0;
 
-    offset_t const * const ptr = (offset_t *) pgm_get_far_address(king_offsets);
-
-    for (index_t i = 0; i < index_t(ARRAYSZ(king_offsets)); i++) {
-        // See if the turn has timed out
-        if (timeout()) {
-            return count;
-        }
-
-        index_t const to_col = gen.col + pgm_read_byte(&ptr[i].x);
-        index_t const to_row = gen.row + pgm_read_byte(&ptr[i].y);
-        if (isValidPos(to_col, to_row)) {
-            gen.move.to = to_col + to_row * 8;
-            Piece const op = board.get(gen.move.to);
-            if (isEmpty(op) || getSide(op) != gen.side) {
-                gen.callme(gen);
-                count++;
-            }
-        }
-    }
+    count += gen_moves(gen, pgm_get_far_address(rook_offsets), ARRAYSZ(rook_offsets), 1);
+    count += gen_moves(gen, pgm_get_far_address(bishop_offsets), ARRAYSZ(bishop_offsets), 1);
 
     // check for castling
     if (!hasMoved(gen.piece)) {
@@ -444,15 +215,10 @@ index_t add_king_moves(piece_gen_t &gen) {
     }
 
     return count;
+
 } // add_king_moves(piece_gen_t &gen)
 
-#endif
 
-
-/*
- * evaluate the moves for a queen against the best move so far
- *
- */
 index_t add_queen_moves(piece_gen_t &gen) {
     #ifdef ENA_MEM_STATS
     game.freemem[1][game.ply].mem = freeMemory();

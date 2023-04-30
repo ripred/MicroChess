@@ -20,7 +20,7 @@ public:
     int32_t  value;                     // the value of the move
 
 public:
-    move_t() : from(0), to(0), value(0) {}
+    move_t() /* : from(0), to(0), value(0) */ {}
     move_t(index_t f, index_t t, long v) : from(f), to(t), value(v) {}
 
 };  // move_t

@@ -58,12 +58,24 @@ game_t game;
 // if it has a higher value (or an equal value when we're using random)
 // 
 // returns True if the move is the new best move, False otherwise
+// 
+// Note: Sanitezed stack
+// 
 Bool consider_move(piece_gen_t &gen)
 {
+    // Stack Management
+    // DECLARE ALL LOCAL VARIABLES USED IN THIS CONTEXT HERE AND
+    // DO NOT MODIFY ANYTHING BEFORE CHECKING THE AVAILABLE STACK
+    #ifdef SHOW1
+    Bool repeat;
+    #endif
+    Bool better;
+
     #ifdef ENA_MEM_STATS
     game.freemem[2][game.ply].mem = freeMemory();
     #endif
 
+    //  Check for low stack space
     if (check_mem()) {
         #ifdef SHOW1
         if (0 == game.ply) {
@@ -74,6 +86,7 @@ Bool consider_move(piece_gen_t &gen)
         #endif
         return False;
     }
+
 
     // Check for alpha-beta cutoff
     if (gen.cutoff) {
@@ -91,10 +104,10 @@ Bool consider_move(piece_gen_t &gen)
     make_move(gen);
 
     #ifdef SHOW1
-    Bool repeat = False;
+    repeat = False;
     #endif
 
-    Bool better = False;
+    better = False;
 
     // Penalize the move if it would cause us to lose by move repetition
     if (would_repeat(gen.move)) {
@@ -169,8 +182,59 @@ Bool consider_move(piece_gen_t &gen)
 //  5) If we are just considering the move then put everything back
 // 
 // returns the value of the board after the move was made
+// 
+// Note: Sanitezed stack
+// 
 long make_move(piece_gen_t & gen)
 {
+    // Stack Management
+    // DECLARE ALL LOCAL VARIABLES USED IN THIS CONTEXT HERE AND
+    // DO NOT MODIFY ANYTHING BEFORE CHECKING THE AVAILABLE STACK
+    struct local_t {
+        local_t() {}
+        ~local_t() {}
+
+        // The attributes for the destination location
+        uint8_t     to_col : 3,
+                    to_row : 3,
+        // The attributes for any possible piece being taken at the destination location
+                        op : 8,
+                     otype : 3,
+                     oside : 1;
+    } vars;
+    move_t history[MAX_REPS * 2 - 1];
+    index_t hist_count;
+    index_t wking;
+    index_t bking;
+    index_t white_taken_count;
+    index_t black_taken_count;
+    Bool last_was_pawn_promotion;
+    Bool last_was_en_passant;
+    Bool last_was_castle;
+    move_t last_move;
+    uint32_t move_count;
+    Bool white_king_in_check;
+    Bool black_king_in_check;
+    index_t taken_index;
+    index_t captured;
+    Piece captured_piece;
+    Piece place_piece;
+    index_t castly_rook;
+    index_t dist;
+    index_t board_rook;
+    Bool quiescent;
+    move_t wbest;
+    move_t bbest;
+    static move_t last_led_update;
+    index_t captured_col;
+    index_t captured_row;
+    index_t rook;
+
+    //  Check for low stack space
+    if (check_mem()) { return gen.whites_turn ? MIN_VALUE : MAX_VALUE; }
+
+    // Now we can alter local variables! 😎 
+
     #ifdef ENA_MEM_STATS
     game.freemem[3][game.ply].mem = freeMemory();
     #endif
@@ -180,44 +244,30 @@ long make_move(piece_gen_t & gen)
     // i.e: Don't make the move whatever it is
     gen.move.value = gen.whites_turn ? MIN_VALUE : MAX_VALUE;
 
-
     /// Step 1: Identify the piece being moved
 
-    struct {
-        uint8_t const 
-        // Get the attributes for the destination location
-                    to_col : 3,
-                    to_row : 3,
-
-        // Get the attributes for any possible piece being taken at the destination location
-                        op : 8,
-                     otype : 3,
-                     oside : 1;
-    } vars = { 
-        uint8_t(gen.move.to % 8), 
-        uint8_t(gen.move.to / 8), 
-        board.get(gen.move.to),
-        getType(vars.op),
-        getSide(vars.op)
-    };
+    vars.to_col = uint8_t(gen.move.to % 8);
+    vars.to_row = uint8_t(gen.move.to / 8);
+    vars.op = board.get(gen.move.to);
+    vars.otype = getType(vars.op);
+    vars.oside = getSide(vars.op);        
 
     // Save the current last 5 moves in the game history
-    move_t history[MAX_REPS * 2 - 1];
-    index_t hist_count = game.hist_count;
+    hist_count = game.hist_count;
 
     // Save the current king locations
-    index_t const wking = game.wking;
-    index_t const bking = game.bking;
+    wking = game.wking;
+    bking = game.bking;
 
     // Save the current number of taken pieces
-    index_t const white_taken_count = game.white_taken_count;
-    index_t const black_taken_count = game.black_taken_count;
+    white_taken_count = game.white_taken_count;
+    black_taken_count = game.black_taken_count;
 
     // Save the current last move and move flags
-    Bool const last_was_pawn_promotion = game.last_was_pawn_promotion;
-    Bool const last_was_en_passant = game.last_was_en_passant;
-    Bool const last_was_castle = game.last_was_castle;
-    move_t const last_move = game.last_move;
+    last_was_pawn_promotion = game.last_was_pawn_promotion;
+    last_was_en_passant = game.last_was_en_passant;
+    last_was_castle = game.last_was_castle;
+    last_move = game.last_move;
 
     if (gen.evaluating) {
         memmove(history, game.history, sizeof(history));
@@ -226,7 +276,7 @@ long make_move(piece_gen_t & gen)
         game.stats.inc_moves_count();
 
         // Track the max number of moves generated during a turn
-        uint32_t const move_count = game.stats.move_count_so_far();
+        move_count = game.stats.move_count_so_far();
 
         if (gen.side == game.turn) {
             if (move_count > game.stats.max_moves) {
@@ -259,8 +309,8 @@ long make_move(piece_gen_t & gen)
     // Save the state of whether or not the kings are in check.
     // We do this AFTER we've had a chance to set the 'king-in-check'
     // flags above so that this move leaves the flags behind after evaluation
-    Bool const white_king_in_check = game.white_king_in_check;
-    Bool const black_king_in_check = game.black_king_in_check;
+    white_king_in_check = game.white_king_in_check;
+    black_king_in_check = game.black_king_in_check;
 
 
     /// Step 2: Identify any piece being captured and remove it if so.
@@ -270,11 +320,11 @@ long make_move(piece_gen_t & gen)
     // without passing through the "if (gen.evaluating) { ... }" restoration logic.
 
     // The game.pieces[] index being captured (if any, -1 if none)
-    index_t taken_index = -1;
+    taken_index = -1;
 
     // The board index being captured (if any, -1 if none)
-    index_t captured = -1;
-    Piece captured_piece = Empty;
+    captured = -1;
+    captured_piece = Empty;
 
     // Check for en-passant capture
     if (Pawn == gen.type && isEmpty(vars.otype) && gen.col != vars.to_col) {
@@ -315,7 +365,7 @@ long make_move(piece_gen_t & gen)
     /// Step 3: Place the piece being moved at the destination
 
     // Set the 'moved' flag on the piece that we place on the board
-    Piece place_piece = setMoved(gen.piece, True);
+    place_piece = setMoved(gen.piece, True);
 
     // Promote a pawn to a queen if it reaches the back row
     if (Pawn == gen.type && (vars.to_row == (gen.whites_turn ? index_t(0) : index_t(7)))) {
@@ -331,7 +381,7 @@ long make_move(piece_gen_t & gen)
     game.pieces[gen.piece_index] = { index_t(vars.to_col), index_t(vars.to_row) };
 
     // Check for castling
-    index_t castly_rook = -1;
+    castly_rook = -1;
 
     // If the piece being moved is a King
     if (King == gen.type) {
@@ -343,14 +393,14 @@ long make_move(piece_gen_t & gen)
         // }
 
         // Get the horizontal distance the king is moving
-        index_t dist = abs(vars.to_col - (gen.move.from % 8));
+        dist = abs(vars.to_col - (gen.move.from % 8));
 
         // See if it is a castling move
         if (dist >= 2) {
             // see which side we're castling on
             if (2 == dist) {
                 // Castle on the King's side
-                index_t const board_rook = 7 + gen.row * 8;
+                board_rook = 7 + gen.row * 8;
                 castly_rook = game.find_piece(board_rook);
                 board.set(board_rook, setMoved(board.get(board_rook), True));
                 game.pieces[castly_rook].x = 5;
@@ -358,7 +408,7 @@ long make_move(piece_gen_t & gen)
             }
             else if (3 == dist) {
                 // Castle on the Queen's side
-                index_t const board_rook = 0 + gen.row * 8;
+                board_rook = 0 + gen.row * 8;
                 castly_rook = game.find_piece(board_rook);
                 board.set(board_rook, setMoved(board.get(board_rook), True));
                 game.pieces[castly_rook].x = 3;
@@ -446,25 +496,14 @@ long make_move(piece_gen_t & gen)
     // alphabeta(origin, depth, −∞, +∞, TRUE)
     // ------------------------------------------------------------------------------------------
 
-    Bool const low_mem = check_mem();
-
     // Before we continue we check the evaluating flag to see if it is False, meaning that we are making this move for real.
     // There's no need to explore future plies if we've already made our mind up! We only recurse when we are evaluating 
     // (gen.evaluating == True)
-    if (!low_mem && gen.evaluating) {
+    if (gen.evaluating) {
         // flag indicating whether we are traversing into quiescent moves
-        Bool const quiescent = ((-1 != captured) && (game.ply < (game.options.max_quiescent_ply)) && (game.ply < game.options.max_max_ply));
+        quiescent = ((-1 != captured) && (game.ply < (game.options.max_quiescent_ply)) && (game.ply < game.options.max_max_ply));
 
-        // if (((game.ply < game.options.maxply) || quiescent) && (game.complete & (1 << game.ply)) {
-        if (((game.ply < game.options.maxply) || quiescent)) {
-            // We check for timeouts here after AT LEAST evaluating the current move.
-            // That way, we don't stop without any knowledge of half of the pieces
-            // halfway across the board IF any timeouts do occur.
-            // 
-            // Note that we also require letting the ply level go to AT LEAST level 1 so
-            // that we always allow the setting of the 'king-in-check' flags for any moves,
-            // based on whether any of the opponent's first-level responses place the king in check.
-
+        if ((/*(game.ply < game.options.maxply) ||*/ quiescent)) {
             timeout();
 
             if (!game.last_was_timeout1 || (game.ply < 1)) {
@@ -475,6 +514,36 @@ long make_move(piece_gen_t & gen)
                 else {
                     digitalWrite(DEBUG2_PIN, LOW);
                 }
+
+
+
+/*
+
+                if depth = 0 or node is a terminal node then
+
+
+                    return the heuristic value of node
+                if maximizingPlayer then
+                    value := −∞
+                    for each child of node do
+                        value := max(value, alphabeta(child, depth − 1, α, β, FALSE))
+                        if value > β then
+                            break (* β cutoff *)
+                        α := max(α, value)
+                    return value
+                else
+                    value := +∞
+                    for each child of node do
+                        value := min(value, alphabeta(child, depth − 1, α, β, TRUE))
+                        if value < α then
+                            break (* α cutoff *)
+                        β := min(β, value)
+                    return value
+
+
+*/
+
+
 
                 // Explore The Future! (plies)
                 game.ply++;
@@ -488,51 +557,53 @@ long make_move(piece_gen_t & gen)
                 reset_turn_flags();
 
                 // Create variables to hold the best response moves
-                move_t wbest = { -1, -1, MIN_VALUE };
-                move_t bbest = { -1, -1, MAX_VALUE };
+                wbest = { -1, -1, MIN_VALUE };
+                bbest = { -1, -1, MAX_VALUE };
 
                 choose_best_moves(wbest, bbest, consider_move);
 
                 // Get our opponent's best response
-                if (gen.whites_turn) {
-                    // The awesome, amazing, culling magic of alpha-beta pruning
-                    if (game.options.alpha_beta_pruning) {
-                        gen.move.value = max(gen.move.value, wbest.value);
-                        if (gen.move.value > game.beta) {
-                            gen.cutoff = True;
+                if (0) {
+                    if (gen.whites_turn) {
+                        // The awesome, amazing, culling magic of alpha-beta pruning
+                        if (game.options.alpha_beta_pruning) {
+                            gen.move.value = max(gen.move.value, wbest.value);
+                            if (gen.move.value > game.beta) {
+                                gen.cutoff = True;
+                            }
+                            else {
+                                game.alpha = max(game.alpha, gen.move.value);
+                            }
                         }
                         else {
-                            game.alpha = max(game.alpha, gen.move.value);
+                            if (-1 != wbest.from && -1 != wbest.to) {
+                                gen.move.value = wbest.value;
+                            }
+
+                            if (game.white_king_in_check && !white_king_in_check) {
+                                gen.move.value = MIN_VALUE;
+                            }
                         }
                     }
                     else {
-                        if (-1 != wbest.from && -1 != wbest.to) {
-                            gen.move.value = wbest.value;
-                        }
-
-                        if (game.white_king_in_check && !white_king_in_check) {
-                            gen.move.value = MIN_VALUE;
-                        }
-                    }
-                }
-                else {
-                    // The awesome, amazing, culling magic of alpha-beta pruning
-                    if (game.options.alpha_beta_pruning) {
-                        gen.move.value = min(gen.move.value, bbest.value);
-                        if (gen.move.value < game.alpha) {
-                            gen.cutoff = True;
+                        // The awesome, amazing, culling magic of alpha-beta pruning
+                        if (game.options.alpha_beta_pruning) {
+                            gen.move.value = min(gen.move.value, bbest.value);
+                            if (gen.move.value < game.alpha) {
+                                gen.cutoff = True;
+                            }
+                            else {
+                                game.beta = min(game.beta, gen.move.value);
+                            }
                         }
                         else {
-                            game.beta = min(game.beta, gen.move.value);
-                        }
-                    }
-                    else {
-                        if (-1 != bbest.from && -1 != bbest.to) {
-                            gen.move.value = bbest.value;
-                        }
+                            if (-1 != bbest.from && -1 != bbest.to) {
+                                gen.move.value = bbest.value;
+                            }
 
-                        if (game.black_king_in_check && !black_king_in_check) {
-                            gen.move.value = MAX_VALUE;
+                            if (game.black_king_in_check && !black_king_in_check) {
+                                gen.move.value = MAX_VALUE;
+                            }
                         }
                     }
                 }
@@ -546,7 +617,6 @@ long make_move(piece_gen_t & gen)
     // Periodically update the LED strip display and progress indicator if enabled
     if (game.options.live_update) {
         if ((game.ply > 0) && (game.ply < game.options.max_max_ply)) {
-            static move_t last_led_update = { -1, -1, 0 };
             if (last_led_update.from != gen.move.from || last_led_update.to != gen.move.to) {
                 last_led_update = gen.move;
                 set_led_strip(gen.move.from);
@@ -561,8 +631,8 @@ long make_move(piece_gen_t & gen)
         if (-1 == captured) {
             board.set(gen.move.to, vars.op);
         } else {
-            index_t const captured_col = captured % 8;
-            index_t const captured_row = captured / 8;
+            captured_col = captured % 8;
+            captured_row = captured / 8;
 
             // restore the captured board changes and
             // set it's "in-check" flag
@@ -612,7 +682,7 @@ long make_move(piece_gen_t & gen)
                 game.pieces[castly_rook].x = 7;
             }
 
-            index_t const rook = game.pieces[castly_rook].x + game.pieces[castly_rook].y * 8;
+            rook = game.pieces[castly_rook].x + game.pieces[castly_rook].y * 8;
             board.set(rook, setMoved(board.get(rook), False));
         }
     }
@@ -1062,10 +1132,10 @@ void set_game_options()
     // game.options.profiling = True;
 
     // Set the ultimate maximum ply level
-    game.options.max_max_ply = 3;
+    game.options.max_max_ply = 2;
 
     // Set the max ply level (the number of turns we look ahead) for normal moves
-    game.options.maxply = 2;
+    game.options.maxply = 1;
 
     // Set the percentage of moves that might be a mistake
     game.options.mistakes = 0;

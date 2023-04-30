@@ -144,17 +144,19 @@ void game_t::init()
 ////////////////////////////////////////////////////////////////////////////////////////
 // use pre-computed bonus tables for speed!
 // Alias' for experimenting with center bonus strategies:
+// static int constexpr EMPTY  = Empty;
+// static int constexpr PAWN   = Pawn;
+// static int constexpr KNIGHT = Knight;
+// static int constexpr ROOK   = Rook;
+// static int constexpr BISHOP = Bishop;
+// static int constexpr QUEEN  = Queen;
+
 static int constexpr EMPTY  = Empty;
-static int constexpr PAWN   = Pawn;
-static int constexpr KNIGHT = Knight;
-static int constexpr ROOK   = Rook;
-static int constexpr BISHOP = Bishop;
-static int constexpr QUEEN  = Queen;
-// static int constexpr PAWN   = 1;
-// static int constexpr KNIGHT = 1;
-// static int constexpr ROOK   = 1;
-// static int constexpr BISHOP = 1;
-// static int constexpr QUEEN  = 1;
+static int constexpr PAWN   = 1;
+static int constexpr KNIGHT = 1;
+static int constexpr ROOK   = 1;
+static int constexpr BISHOP = 1;
+static int constexpr QUEEN  = 1;
 
 long const game_t::center_bonus[ 8 ][ 7 ][ 2 ] PROGMEM = {
     //                      Black                   ,                      White 
