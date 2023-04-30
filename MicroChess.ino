@@ -1087,10 +1087,10 @@ void set_game_options()
     // game.options.profiling = True;
 
     // Set the ultimate maximum ply level (incl)
-    game.options.max_max_ply = 5;
+    game.options.max_max_ply = 6;
 
     // Set the max ply level (inclusive) for normal moves
-    game.options.maxply = 5;
+    game.options.maxply = 6;
 
     // Set the percentage of moves that might be a mistake
     game.options.mistakes = 0;
@@ -1106,7 +1106,7 @@ void set_game_options()
  
     // Set the time limit per turn in milliseconds
     // game.options.time_limit = 0;
-    game.options.time_limit = 42000;
+    game.options.time_limit = 60000;
 
     // Enable or disable alpha-beta pruning
     // game.options.alpha_beta_pruning = False;
