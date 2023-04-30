@@ -26,7 +26,7 @@ public:
              y : NUM_BITS_PT;
 
 public:
-    point_t() : x(0), y(0) {}
+    point_t() /* : x(0), y(0) */ {}
     point_t(index_t X, index_t Y) : x(X), y(Y) {}
 
 };  // point_t

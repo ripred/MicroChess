@@ -198,41 +198,27 @@ long make_move(piece_gen_t & gen)
         local_t() {}
         ~local_t() {}
 
-        // The attributes for the destination location
-        uint8_t     to_col : 3,
-                    to_row : 3,
-        // The attributes for any possible piece being taken at the destination location
-                        op : 8,
-                     otype : 3,
-                     oside : 1;
+        uint8_t              to_col : 3,
+                             to_row : 3,
+                                 op : 8,
+                              otype : 3,
+                              oside : 1,
+            last_was_pawn_promotion : 1,
+                last_was_en_passant : 1,
+                white_king_in_check : 1,
+                black_king_in_check : 1,
+                    last_was_castle : 1,
+                          quiescent : 1,
+                       captured_col : 3,
+                       captured_row : 3;
     } vars;
-    move_t history[MAX_REPS * 2 - 1];
-    index_t hist_count;
-    index_t wking;
-    index_t bking;
-    index_t white_taken_count;
-    index_t black_taken_count;
-    Bool last_was_pawn_promotion;
-    Bool last_was_en_passant;
-    Bool last_was_castle;
-    move_t last_move;
-    uint32_t move_count;
-    Bool white_king_in_check;
-    Bool black_king_in_check;
-    index_t taken_index;
-    index_t captured;
-    Piece captured_piece;
-    Piece place_piece;
-    index_t castly_rook;
-    index_t dist;
-    index_t board_rook;
-    Bool quiescent;
-    move_t wbest;
-    move_t bbest;
+
+    move_t history[MAX_REPS * 2 - 1], last_move, wbest, bbest;
+    index_t hist_count, wking, bking, white_taken_count, black_taken_count;
+    index_t taken_index, captured, castly_rook, dist, board_rook, rook;
+    Piece captured_piece, place_piece;
     static uint32_t last_led_update;
-    index_t captured_col;
-    index_t captured_row;
-    index_t rook;
+    uint32_t move_count;
 
     //  Check for low stack space
     if (check_mem()) { return gen.whites_turn ? MIN_VALUE : MAX_VALUE; }
@@ -268,9 +254,9 @@ long make_move(piece_gen_t & gen)
     black_taken_count = game.black_taken_count;
 
     // Save the current last move and move flags
-    last_was_pawn_promotion = game.last_was_pawn_promotion;
-    last_was_en_passant = game.last_was_en_passant;
-    last_was_castle = game.last_was_castle;
+    vars.last_was_pawn_promotion = game.last_was_pawn_promotion;
+    vars.last_was_en_passant = game.last_was_en_passant;
+    vars.last_was_castle = game.last_was_castle;
     last_move = game.last_move;
 
     if (gen.evaluating) {
@@ -294,7 +280,7 @@ long make_move(piece_gen_t & gen)
     if (King == vars.otype && (gen.side != vars.oside)) {
         if (gen.whites_turn) {
             game.black_king_in_check = True;
-            gen.move.value = MAX_VALUE;
+            gen.move.value = MIN_VALUE;
             if (0 == game.ply) {
                 // return MIN_VALUE;
                 return gen.move.value;
@@ -302,7 +288,7 @@ long make_move(piece_gen_t & gen)
         }
         else {
             game.white_king_in_check = True;
-            gen.move.value = MIN_VALUE;
+            gen.move.value = MAX_VALUE;
             if (0 == game.ply) {
                 // return MAX_VALUE;
                 return gen.move.value;
@@ -313,8 +299,8 @@ long make_move(piece_gen_t & gen)
     // Save the state of whether or not the kings are in check.
     // We do this AFTER we've had a chance to set the 'king-in-check'
     // flags above so that this move leaves the flags behind after evaluation
-    white_king_in_check = game.white_king_in_check;
-    black_king_in_check = game.black_king_in_check;
+    vars.white_king_in_check = game.white_king_in_check;
+    vars.black_king_in_check = game.black_king_in_check;
 
 
     /// Step 2: Identify any piece being captured and remove it if so.
@@ -444,75 +430,22 @@ long make_move(piece_gen_t & gen)
     // set our move as the last move
     game.last_move = gen.move;
 
-    // ------------------------------------------------------------------------------------------
     // The move has been made and we have the value for the updated board.
     // Recursively look-ahead and accumulatively update the value here.
-    // This is known as the Minimax (Maximin) algorithm.
-    // 
-    // Minimax Algorithm Pseudo-code:
-    // 
-    // function minimax(node, depth, maximizingPlayer) is
-    //     if depth = 0 or node is a terminal node then
-    //         return the heuristic value of node
-    //     if maximizingPlayer then
-    //         value := −∞
-    //         for each child of node do
-    //             value := max(value, minimax(child, depth − 1, FALSE))
-    //         return value
-    //     else (* minimizing player *)
-    //         value := +∞
-    //         for each child of node do
-    //             value := min(value, minimax(child, depth − 1, TRUE))
-    //         return value
-    // 
-    // (* Initial call *)
-    // minimax(origin, depth, TRUE)
-    // 
-    // ------------------------------------------------------------------------------------------
-    // During move generation, keep track of our best move and our opponents best move and
-    // don't follow move paths that have less value than what we know our opponents's best
-    // move already is.
-    // This is known as the alpha-bea heuristic.
-    // 
-    // Minimax Algorithm with Alpha-Beta Heuristic Pseudo-code:
-    // 
-    // function alphabeta(node, depth, α, β, maximizingPlayer) is
-    //     if depth = 0 or node is a terminal node then
-    //         return the heuristic value of node
-    //     if maximizingPlayer then
-    //         value := −∞
-    //         for each child of node do
-    //             value := max(value, alphabeta(child, depth − 1, α, β, FALSE))
-    //             if value > β then
-    //                 break (* β cutoff *)
-    //             α := max(α, value)
-    //         return value
-    //     else
-    //         value := +∞
-    //         for each child of node do
-    //             value := min(value, alphabeta(child, depth − 1, α, β, TRUE))
-    //             if value < α then
-    //                 break (* α cutoff *)
-    //             β := min(β, value)
-    //         return value
-    // 
-    // (* Initial call *)
-    // alphabeta(origin, depth, −∞, +∞, TRUE)
-    // ------------------------------------------------------------------------------------------
 
     // Before we continue we check the evaluating flag to see if it is False, meaning that we are making this move for real.
     // There's no need to explore future plies if we've already made our mind up! We only recurse when we are evaluating 
     // (gen.evaluating == True)
     if (gen.evaluating) {
         // flag indicating whether we are traversing into quiescent moves
-        quiescent = ((-1 != captured) && (game.ply < (game.options.max_quiescent_ply)) && (game.ply < game.options.max_max_ply));
+        vars.quiescent = ((-1 != captured) && (game.ply < (game.options.max_quiescent_ply)) && (game.ply < game.options.max_max_ply));
 
-        if (((game.ply < game.options.maxply) || quiescent)) {
+        if (((game.ply < game.options.maxply) || vars.quiescent)) {
             timeout();
 
             if (!game.last_was_timeout1 || (game.ply < 1)) {
                 // Indicate whether we are on a quiescent search or not
-                if (quiescent) {
+                if (vars.quiescent) {
                     show_quiescent_search();
                 }
                 else {
@@ -566,17 +499,11 @@ long make_move(piece_gen_t & gen)
                         }
                     }
                 
-                    if (game.white_king_in_check && 0 == game.ply) {
+                    if (game.white_king_in_check) {
                         gen.move.value = (gen.whites_turn ? MIN_VALUE : MAX_VALUE);
-                        if (white_king_in_check) {
-                            game.state = BLACK_CHECKMATE;
-                        }
                     }
-                    if (game.black_king_in_check && 0 == game.ply) {
+                    if (game.black_king_in_check) {
                         gen.move.value = (!gen.whites_turn ? MIN_VALUE : MAX_VALUE);
-                        if (black_king_in_check) {
-                            game.state = WHITE_CHECKMATE;
-                        }
                     }
                 }
             }
@@ -598,8 +525,8 @@ long make_move(piece_gen_t & gen)
         if (-1 == captured) {
             board.set(gen.move.to, vars.op);
         } else {
-            captured_col = captured % 8;
-            captured_row = captured / 8;
+            vars.captured_col = captured % 8;
+            vars.captured_row = captured / 8;
 
             // restore the captured board changes and
             // set it's "in-check" flag
@@ -607,7 +534,7 @@ long make_move(piece_gen_t & gen)
             board.set(captured, captured_piece);
 
             // restore the captured piece list changes
-            game.pieces[taken_index] = { captured_col, captured_row };
+            game.pieces[taken_index] = { index_t(vars.captured_col), index_t(vars.captured_row) };
         }
 
         // restore the taken pieces list changes
@@ -628,19 +555,19 @@ long make_move(piece_gen_t & gen)
         game.last_move = last_move;
 
         // restore the en passant
-        game.last_was_en_passant = last_was_en_passant;
-        game.last_was_castle = last_was_castle;
-        game.last_was_pawn_promotion = last_was_pawn_promotion;
+        game.last_was_en_passant = vars.last_was_en_passant;
+        game.last_was_castle = vars.last_was_castle;
+        game.last_was_pawn_promotion = vars.last_was_pawn_promotion;
 
-        game.white_king_in_check = white_king_in_check;
-        game.black_king_in_check = black_king_in_check;
+        game.white_king_in_check = vars.white_king_in_check;
+        game.black_king_in_check = vars.black_king_in_check;
 
         // restore the king's locations
         game.wking = wking;
         game.bking = bking;
 
         // restore any rook moved during a castle move
-        game.last_was_castle = last_was_castle;
+        game.last_was_castle = vars.last_was_castle;
         if (-1 != castly_rook) {
             if (game.pieces[castly_rook].x == 3) {
                 game.pieces[castly_rook].x = 0;
@@ -687,8 +614,16 @@ long evaluate()
         if (Empty == ptype) continue;
 
         // material bonus
-        if ((true)) {
-            materialTotal += pgm_read_dword(&game.material_bonus[ptype][pside]) * game.options.materialBonus;
+        materialTotal += pgm_read_dword(&game.material_bonus[ptype][pside]) * game.options.materialBonus;
+
+        // in-check penalty
+        if (inCheck(p)) {
+            if (White == pside) {
+                materialTotal -= ptype;
+            }
+            else {
+                materialTotal += ptype;
+            }
         }
 
         // Let's not encourage the King to wander to
@@ -789,6 +724,8 @@ void sort_and_shuffle(Color const side, index_t const shuffle_count = 16)
 }
 
 
+////////////////////////////////////////////////////////////////////////////////////////
+// Check for any received serial data
 Bool check_serial() {
     Bool moved = False;
 
@@ -1009,7 +946,7 @@ void take_turn()
     Bool const whites_turn = (White == game.turn) ? True : False;
 
     // Choose the best moves for both sides
-    if (game.options.sort_pieces) {
+    if (game.options.shuffle_pieces) {
         sort_and_shuffle(game.turn);
     }
     choose_best_moves(wmove, bmove, consider_move);
@@ -1108,15 +1045,17 @@ void take_turn()
     // Announce if either King is in check
     if (game.white_king_in_check) {
         printf(Debug1, "White King is in check!\n");
-        if (!whites_turn) {
-            printf(Always, "illegal move\n");
+        if (whites_turn) {
+            game.state = BLACK_CHECKMATE;
+            // printf(Always, "illegal move\n");
         }
     }
 
     if (game.black_king_in_check) {
         printf(Debug1, "Black King is in check!\n");
-        if (whites_turn) {
-            printf(Always, "illegal move\n");
+        if (!whites_turn) {
+            game.state = WHITE_CHECKMATE;
+            // printf(Always, "illegal move\n");
         }
     }
 
@@ -1150,11 +1089,11 @@ void set_game_options()
     game.options.profiling = False;
     // game.options.profiling = True;
 
-    // Set the ultimate maximum ply level
-    game.options.max_max_ply = 4;
+    // Set the ultimate maximum ply level (incl)
+    game.options.max_max_ply = 5;
 
-    // Set the max ply level (the number of turns we look ahead) for normal moves
-    game.options.maxply = 2;
+    // Set the max ply level (inclusive) for normal moves
+    game.options.maxply = 5;
 
     // Set the percentage of moves that might be a mistake
     game.options.mistakes = 0;
@@ -1169,17 +1108,17 @@ void set_game_options()
     game.options.continuous = True;
  
     // Set the time limit per turn in milliseconds
-    // game.options.time_limit = 0;
-    game.options.time_limit = 60000;
+    game.options.time_limit = 0;
+    // game.options.time_limit = 10000;
 
     // Enable or disable alpha-beta pruning
     // game.options.alpha_beta_pruning = False;
     game.options.alpha_beta_pruning = True;
 
-    // When sort_pieces is True we sort the pieces[] array before each turn
+    // When shuffle_pieces is True we sort the pieces[] array before each turn
     // so that we process the current side's pieces first.
-    game.options.sort_pieces = False;
-    // game.options.sort_pieces = True;
+    // game.options.shuffle_pieces = False;
+    game.options.shuffle_pieces = True;
 
     // Set the maximum ply level to continue if a move takes a piece
     // The quiescent search depth is based off of the max ply level
@@ -1268,7 +1207,7 @@ void set_game_options()
     #endif
 
     printf(Always, "Move Shuffling: ");
-    if (game.options.sort_pieces) {
+    if (game.options.shuffle_pieces) {
         printf(Always, "yes\n");
     }
     else {
@@ -1305,7 +1244,7 @@ void set_game_options()
 void setup()
 {
     // Initialize the Serial output
-    Serial.begin(230400); while (!Serial); Serial.write('\n');
+    Serial.begin(1000000); while (!Serial); Serial.write('\n');
 
     // Initialize the LED strip
     init_led_strip();
@@ -1479,7 +1418,7 @@ void show()
             // display the total game time so far
             case offset + 2:
                 if (game.move_num > 0) {
-                    printf(Debug1, "      Game time elapsed : ");
+                    printf(Debug1, "      Elapsed game time : ");
                     show_time(game.stats.game_stats.duration());
                 }
                 break;

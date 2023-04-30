@@ -24,7 +24,7 @@ public:
                 live_update : 1,    // Periodically update the LED strip and other external indicators as we choose a move
                   profiling : 1,    // Are we profiling the engine?
                  continuous : 1,    // True if we play games continuously one after another
-                sort_pieces : 1,    // True if we want to process the pieces in a random order
+                shuffle_pieces : 1,    // True if we want to process the pieces in a random order
                 white_human : 1,    // Flags indicating if white player is human or not
                 black_human : 1,    // Flags indicating if black player is human or not
          alpha_beta_pruning : 1;    // Use alpha-beta pruning when True
@@ -57,7 +57,7 @@ public:
         live_update(False),
         profiling(False), 
         continuous(False),
-        sort_pieces(True),
+        shuffle_pieces(True),
         white_human(False),
         black_human(False),
         alpha_beta_pruning(True),
