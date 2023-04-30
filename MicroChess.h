@@ -89,7 +89,7 @@ enum print_t {
 #define     _getbit(_A, _B)     ((char*)(_A))[(_B) / 8] &   (0x80 >> ((_B) % 8))
 
 // The max and min range for piece values
-#define  MAX_VALUE ((long const)(LONG_MAX / 2))
+#define  MAX_VALUE ((long const)(LONG_MAX))
 #define  MIN_VALUE ((long const)(0 - MAX_VALUE))
 
 // The number of locations on the game board
@@ -227,6 +227,8 @@ struct piece_gen_t {
                   side : 1,     // The side the piece is for: White or Black
            whites_turn : 1,     // True when this move is for White's side
                 cutoff : 1,     // True if we have reached the alpha or beta cutoff
+                nocall : 1,     // Don't call the callback, just count the moves
+              terminal : 1,     // True when this piece has no moves
                    col : 4,
                    row : 4;
 
@@ -242,7 +244,7 @@ struct piece_gen_t {
     move_t      dummy;
 
     piece_gen_t(move_t &m, move_t &wb, move_t &bb, generator_t *cb, Bool const eval) :
-        move(m), wbest(wb), bbest(bb), callme(cb), evaluating(eval), cutoff(False)
+        move(m), wbest(wb), bbest(bb), callme(cb), evaluating(eval), cutoff(False), nocall(False), terminal(False)
     {
         piece = board.get(move.from);
         type = getType(piece);

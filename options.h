@@ -45,7 +45,7 @@ public:
 
     // adjustable multipiers to alter importance of mobility or center proximity
     // during board evaluation. season to taste
-    static long  constexpr  materialBonus =  2L;
+    static long  constexpr  materialBonus =  1L;
     static long  constexpr  centerBonus   =  1L;
     static long  constexpr  kingBonus     =  1L;
     static long  constexpr  mobilityBonus =  3L;

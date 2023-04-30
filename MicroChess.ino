@@ -503,7 +503,7 @@ long make_move(piece_gen_t & gen)
         // flag indicating whether we are traversing into quiescent moves
         quiescent = ((-1 != captured) && (game.ply < (game.options.max_quiescent_ply)) && (game.ply < game.options.max_max_ply));
 
-        if ((/*(game.ply < game.options.maxply) ||*/ quiescent)) {
+        if (((game.ply < game.options.maxply) || quiescent)) {
             timeout();
 
             if (!game.last_was_timeout1 || (game.ply < 1)) {
@@ -515,101 +515,53 @@ long make_move(piece_gen_t & gen)
                     digitalWrite(DEBUG2_PIN, LOW);
                 }
 
+                if (game.ply < game.options.maxply) {
+                    // Explore The Future! (plies)
+                    game.ply++;
+                    game.turn = !game.turn;
+                    if (game.ply > game.stats.move_stats.maxply) {
+                        game.stats.move_stats.maxply = game.ply;
+                    }
+                    reset_turn_flags();
+                    wbest = { -1, -1, MIN_VALUE };
+                    bbest = { -1, -1, MAX_VALUE };
+                    choose_best_moves(wbest, bbest, consider_move);
+                    game.ply--;
+                    game.turn = !game.turn;
 
-
-/*
-
-                if depth = 0 or node is a terminal node then
-
-
-                    return the heuristic value of node
-                if maximizingPlayer then
-                    value := −∞
-                    for each child of node do
-                        value := max(value, alphabeta(child, depth − 1, α, β, FALSE))
-                        if value > β then
-                            break (* β cutoff *)
-                        α := max(α, value)
-                    return value
-                else
-                    value := +∞
-                    for each child of node do
-                        value := min(value, alphabeta(child, depth − 1, α, β, TRUE))
-                        if value < α then
-                            break (* α cutoff *)
-                        β := min(β, value)
-                    return value
-
-
-*/
-
-
-
-                // Explore The Future! (plies)
-                game.ply++;
-                game.turn = !game.turn;
-
-                // Keep track of the deepest ply level we go to
-                if (game.ply > game.stats.move_stats.maxply) {
-                    game.stats.move_stats.maxply = game.ply;
-                }
-
-                reset_turn_flags();
-
-                // Create variables to hold the best response moves
-                wbest = { -1, -1, MIN_VALUE };
-                bbest = { -1, -1, MAX_VALUE };
-
-                choose_best_moves(wbest, bbest, consider_move);
-
-                // Get our opponent's best response
-                if (0) {
                     if (gen.whites_turn) {
-                        // The awesome, amazing, culling magic of alpha-beta pruning
-                        if (game.options.alpha_beta_pruning) {
-                            gen.move.value = max(gen.move.value, wbest.value);
-                            if (gen.move.value > game.beta) {
-                                gen.cutoff = True;
+                        if (-1 != gen.wbest.from && -1 != gen.wbest.to) {
+                            if (game.options.alpha_beta_pruning) {
+                                gen.move.value = max(gen.move.value, gen.wbest.value);
+                                if (gen.move.value > game.beta) {
+                                    gen.cutoff = True;
+                                }
+                                else {
+                                    game.alpha = max(game.alpha, gen.move.value);
+                                }
                             }
                             else {
-                                game.alpha = max(game.alpha, gen.move.value);
-                            }
-                        }
-                        else {
-                            if (-1 != wbest.from && -1 != wbest.to) {
-                                gen.move.value = wbest.value;
-                            }
-
-                            if (game.white_king_in_check && !white_king_in_check) {
-                                gen.move.value = MIN_VALUE;
+                                gen.move.value = gen.wbest.value;
                             }
                         }
                     }
                     else {
-                        // The awesome, amazing, culling magic of alpha-beta pruning
-                        if (game.options.alpha_beta_pruning) {
-                            gen.move.value = min(gen.move.value, bbest.value);
-                            if (gen.move.value < game.alpha) {
-                                gen.cutoff = True;
+                        if (-1 != gen.bbest.from && -1 != gen.bbest.to) {
+                            if (game.options.alpha_beta_pruning) {
+                                gen.move.value = min(gen.move.value, gen.bbest.value);
+                                if (gen.move.value < game.alpha) {
+                                    gen.cutoff = True;
+                                }
+                                else {
+                                    game.beta = min(game.beta, gen.move.value);
+                                }
                             }
                             else {
-                                game.beta = min(game.beta, gen.move.value);
-                            }
-                        }
-                        else {
-                            if (-1 != bbest.from && -1 != bbest.to) {
-                                gen.move.value = bbest.value;
-                            }
-
-                            if (game.black_king_in_check && !black_king_in_check) {
-                                gen.move.value = MAX_VALUE;
+                                gen.move.value = gen.bbest.value;
                             }
                         }
                     }
                 }
-
-                game.ply--;
-                game.turn = !game.turn;
             }
         }
     }
@@ -959,18 +911,6 @@ void reset_turn_flags()
     game.last_was_timeout2 = False;
     game.last_was_pawn_promotion = False;
 
-    // Set the alpha and beta edges to the worst case (brute force)
-    // O(N) based on whose turn it is. Math is so freakin cool..
-    // Also make any changes to the options that we want the two sides to have.
-    if (White == game.turn) {
-        game.alpha = MIN_VALUE;
-        game.beta  = MAX_VALUE;
-    }
-    else {
-        game.alpha = MAX_VALUE;
-        game.beta  = MIN_VALUE;
-    }
-
 }   // reset_move_flags()
 
 
@@ -999,6 +939,12 @@ void take_turn()
     game.stats.move_stats.maxply = 0;
 
     reset_turn_flags();
+
+    // Set the alpha and beta edges to the worst case (brute force)
+    // O(N) based on whose turn it is. Math is so freakin cool..
+    // Also make any changes to the options that we want the two sides to have.
+    game.alpha = MIN_VALUE;
+    game.beta  = MAX_VALUE;
 
     // Choose the best moves for both sides
     if (game.options.sort_pieces) {
@@ -1139,7 +1085,7 @@ void set_game_options()
     game.options.max_max_ply = 5;
 
     // Set the max ply level (the number of turns we look ahead) for normal moves
-    game.options.maxply = 5;
+    game.options.maxply = 3;
 
     // Set the percentage of moves that might be a mistake
     game.options.mistakes = 0;
@@ -1155,11 +1101,11 @@ void set_game_options()
  
     // Set the time limit per turn in milliseconds
     // game.options.time_limit = 0;
-    game.options.time_limit = 120000;
+    game.options.time_limit = 15000;
 
     // Enable or disable alpha-beta pruning
-    game.options.alpha_beta_pruning = False;
-    // game.options.alpha_beta_pruning = True;
+    // game.options.alpha_beta_pruning = False;
+    game.options.alpha_beta_pruning = True;
 
     // When sort_pieces is True we sort the pieces[] array before each turn
     // so that we process the current side's pieces first.
@@ -1284,7 +1230,7 @@ void set_game_options()
 
 
 ////////////////////////////////////////////////////////////////////////////////////////
-// Continually call play_game() until we reach the end of the game.
+// Continually call take_turn() until we reach the end of the game.
 // Display the statistics for the game and start another game.
 // 
 void setup()

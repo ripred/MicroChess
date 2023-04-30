@@ -22,10 +22,10 @@ void init_led_strip() {
     FastLED.addLeds<WS2811,DATA_PIN,GRB>(leds, BOARD_SIZE).setCorrection(TypicalLEDStrip);
 }
 
-static uint8_t const piece_colors[12*3] PROGMEM = {
+static uint8_t constexpr piece_colors[12*3] PROGMEM = {
 //      King         Pawn          Knight        Bishop        Rook          Queen
 //   R,  G,  B,    R,  G,  B,    R,  G,  B,    R,  G,  B,    R,  G,  B,    R,  G,  B
-     0,  8,  0,    8,  0,  0,    8,  8,  0,    0,  0,  8,    8,  0,  8,    0,  8,  8,     // Black
+     0, 16,  0,    8,  0,  0,    8,  8,  0,    0,  0,  8,    8,  0,  8,    0,  8,  8,     // Black
      0, 16,  0,   16,  0,  0,   16, 16,  0,    0,  0, 16,   16,  0, 16,    0, 16, 16      // White
     //  0,  0,  0,    0,  0,  0,    0,  0,  0,    0,  0,  0,    0,  0,  0,    0, 99,  0,     // Black
     //  0,  0,  0,    0,  0,  0,    0,  0,  0,    0,  0,  0,    0,  0,  0,    0, 99,  0      // White
@@ -54,7 +54,7 @@ void set_led_strip(index_t const flash /* = -1 */)
 
                 // spot with piece
                 (flash == led_index) ? CRGB(0,96,96) : 
-                CRGB(pgm_read_byte(&piece_colors[clr    ]), 
+                CRGB(pgm_read_byte(&piece_colors[clr + 0]), 
                      pgm_read_byte(&piece_colors[clr + 1]), 
                      pgm_read_byte(&piece_colors[clr + 2]));
         }
