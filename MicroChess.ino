@@ -229,7 +229,7 @@ long make_move(piece_gen_t & gen)
     Bool quiescent;
     move_t wbest;
     move_t bbest;
-    static move_t last_led_update;
+    static uint32_t last_led_update;
     index_t captured_col;
     index_t captured_row;
     index_t rook;
@@ -584,12 +584,10 @@ long make_move(piece_gen_t & gen)
     }
 
     // Periodically update the LED strip display and progress indicator if enabled
-    if (game.options.live_update) {
-        if ((game.ply > 0) && (game.ply < game.options.max_max_ply)) {
-            if (last_led_update.from != gen.move.from || last_led_update.to != gen.move.to) {
-                last_led_update = gen.move;
-                set_led_strip(gen.move.from);
-            }
+    if (game.options.live_update && (game.ply == game.options.maxply)) {
+        if (abs(millis() - last_led_update ) > 25) {
+            last_led_update = millis();
+            set_led_strip(gen.move.from);
         }
     }
 
