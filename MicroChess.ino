@@ -421,6 +421,7 @@ long make_move(piece_gen_t & gen)
     // The move has been made and we have the value for the updated board.
     // Recursively look-ahead and accumulatively update the value here.
 
+    ////////////////////////////////////////////////////////////////////////////////////////
     // Before we continue we check the evaluating flag to see if it is False, meaning that we are making this move for real.
     // There's no need to explore future plies if we've already made our mind up! We only recurse when we are evaluating 
     // (gen.evaluating == True)
@@ -431,7 +432,7 @@ long make_move(piece_gen_t & gen)
         if (((game.ply < game.options.maxply) || vars.quiescent)) {
             timeout();
 
-            if (!game.last_was_timeout1 || (game.ply < 1)) {
+            if (!game.last_was_timeout1 /* || (game.ply < 1) */ ) {
                 // Indicate whether we are on a quiescent search or not
                 if (vars.quiescent) {
                     show_quiescent_search();
@@ -468,7 +469,7 @@ long make_move(piece_gen_t & gen)
                                 }
                             }
                             else {
-                                gen.move.value = gen.wbest.value;
+                                gen.move.value = game.options.integrate ? (gen.move.value + gen.wbest.value) : gen.wbest.value;
                             }
                         }
                     }
@@ -485,7 +486,7 @@ long make_move(piece_gen_t & gen)
                                 }
                             }
                             else {
-                                gen.move.value = gen.bbest.value;
+                                gen.move.value = game.options.integrate ? (gen.move.value + gen.bbest.value) : gen.bbest.value;
                             }
                         }
                     }
@@ -843,7 +844,7 @@ void choose_best_moves(move_t &wbest, move_t &bbest, generator_t const callback)
                 }
 
                 // Check for move timeout if we've finished ply level 1
-                if (game.last_was_timeout1 && (game.ply > 1)) {
+                if (game.last_was_timeout1 && (game.ply > 0) ) {
                     break;
                 }
             }
@@ -1216,7 +1217,7 @@ void set_game_options()
     // game.options.profiling = True;
 
     // Set the ultimate maximum ply level (incl)
-    game.options.max_max_ply = 5;
+    game.options.max_max_ply = 3;
 
     // Set the max ply level (inclusive) for normal moves
     game.options.maxply = 2;
@@ -1235,7 +1236,7 @@ void set_game_options()
  
     // Set the time limit per turn in milliseconds
     // game.options.time_limit = 0;
-    game.options.time_limit = 24000;
+    game.options.time_limit = 5000;
 
     // Enable or disable alpha-beta pruning
     // game.options.alpha_beta_pruning = False;
@@ -1335,8 +1336,24 @@ void show_game_options() {
     printf(Always, "RAM usage tracking: no\n");
     #endif
 
+    printf(Always, "Opening book moves: ");
+    if (game.options.openbook) {
+        printf(Always, "yes\n");
+    }
+    else {
+        printf(Always, "no\n");
+    }
+
     printf(Always, "Move Shuffling: ");
     if (game.options.shuffle_pieces) {
+        printf(Always, "yes\n");
+    }
+    else {
+        printf(Always, "no\n");
+    }
+
+    printf(Always, "Integrate: ");
+    if (game.options.integrate) {
         printf(Always, "yes\n");
     }
     else {

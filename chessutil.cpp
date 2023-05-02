@@ -167,7 +167,7 @@ Bool timeout() {
     game.last_was_timeout2 = game.stats.move_stats.duration() >= game.options.time_limit;
 
     // Set the other timeout flag ONLY if we are above ply level 1
-    game.last_was_timeout1 = game.last_was_timeout2 && (game.ply >= 2);
+    game.last_was_timeout1 = game.last_was_timeout2 && (game.ply > 0);
 
     if (game.last_was_timeout2) {
         show_timeout();
