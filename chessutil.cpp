@@ -166,8 +166,16 @@ Bool timeout() {
     // Set the true timeout flag regardless of ply level
     game.last_was_timeout2 = game.stats.move_stats.duration() >= game.options.time_limit;
 
-    // Set the other timeout flag ONLY if we are above ply level 1
-    game.last_was_timeout1 = game.last_was_timeout2 && (game.ply > 0);
+    // Set the other timeout flag ONLY if we are above ply level 1*
+    // NOTE: in order to truly set the game.white_king_in_check or the
+    // game.black_king_in_check flags correctly WE CANNOT RELY ON THE FACT
+    // THAT BOTH SIDES ARE EVALUATED DURING PLY 0. This only evaluates if
+    // the king is in check from the outermost level and stops the responses
+    // to any moves from being evaluated and tis is necessary to stop moves
+    // from being made that place a king in check. So we must allow both ply
+    // level 0 and 1 to complete before we allow a timeout to stop the
+    // evaluations:
+    game.last_was_timeout1 = game.last_was_timeout2 && (game.ply > 1);
 
     if (game.last_was_timeout2) {
         show_timeout();
@@ -526,11 +534,11 @@ extern char *__brkval;
 
 int freeMemory() {
     char top;
-#ifdef __arm__
+    #ifdef __arm__
     return &top - reinterpret_cast<char*>(sbrk(0));
-#elif defined(CORE_TEENSY) || (ARDUINO > 103 && ARDUINO != 151)
+    #elif defined(CORE_TEENSY) || (ARDUINO > 103 && ARDUINO != 151)
     return &top - __brkval;
-#else  // __arm__
+    #else  // __arm__
     return __brkval ? &top - __brkval : &top - __malloc_heap_start;
-#endif  // __arm__
+    #endif  // __arm__
 }

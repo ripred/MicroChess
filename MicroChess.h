@@ -47,6 +47,7 @@ enum {
     DEBUG1_PIN         =  5,    // Output debug LED pins
     DEBUG2_PIN         =  4,
     DEBUG3_PIN         =  3,
+    DEBUG4_PIN         =  7,
 };
 
 typedef   int8_t   index_t;

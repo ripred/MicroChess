@@ -211,7 +211,6 @@ long make_move(piece_gen_t & gen)
     move_t last_move, wbest, bbest;
     index_t hist_count;
     index_t taken_index, captured, castly_rook;
-    static uint32_t last_led_update;
     int32_t recurse_value;
 
     //  Check for low stack space
@@ -283,7 +282,7 @@ long make_move(piece_gen_t & gen)
                 // return MAX_VALUE;
             }
         }
-        // return gen.move.value;
+        return gen.move.value;
     }
 
     // Save the state of whether or not the kings are in check.
@@ -453,8 +452,8 @@ long make_move(piece_gen_t & gen)
                         game.stats.move_stats.maxply = game.ply;
                     }
                     reset_turn_flags();
-                    wbest = { -1, -1, MIN_VALUE };
-                    bbest = { -1, -1, MAX_VALUE };
+                    wbest = { -1, -1, game.alpha };
+                    bbest = { -1, -1, game.beta };
                     choose_best_moves(wbest, bbest, consider_move);
                     game.ply--;
                     game.turn = !game.turn;
@@ -494,22 +493,14 @@ long make_move(piece_gen_t & gen)
                         }
                     }
                 
-                    if (game.white_king_in_check) {
-                        gen.move.value = (gen.whites_turn ? MIN_VALUE : MAX_VALUE);
-                    }
-                    if (game.black_king_in_check) {
-                        gen.move.value = (!gen.whites_turn ? MIN_VALUE : MAX_VALUE);
-                    }
+                    // if (game.white_king_in_check) {
+                    //     gen.move.value = (gen.whites_turn ? MIN_VALUE : MAX_VALUE);
+                    // }
+                    // if (game.black_king_in_check) {
+                    //     gen.move.value = (!gen.whites_turn ? MIN_VALUE : MAX_VALUE);
+                    // }
                 }
             }
-        }
-    }
-
-    // Periodically update the LED strip display and progress indicator if enabled
-    if (game.options.live_update && (game.ply == game.options.maxply)) {
-        if (abs(millis() - last_led_update ) > 35) {
-            last_led_update = millis();
-            set_led_strip(gen.move.from);
         }
     }
 
@@ -547,13 +538,25 @@ long make_move(piece_gen_t & gen)
         // restore the last move made
         game.last_move = last_move;
 
-        // restore the en passant
+        // restore the last move flags
         game.last_was_en_passant = vars.last_was_en_passant;
         game.last_was_castle = vars.last_was_castle;
         game.last_was_pawn_promotion = vars.last_was_pawn_promotion;
 
         game.white_king_in_check = vars.white_king_in_check;
         game.black_king_in_check = vars.black_king_in_check;
+
+        // Don't take the move if it leaves us in check
+        if (gen.whites_turn) {
+            if (game.white_king_in_check) {
+                gen.move.value = MIN_VALUE;
+            }
+        }
+        else {
+            if (game.black_king_in_check) {
+                gen.move.value = MAX_VALUE;
+            }
+        }
 
         // restore the king's locations
         game.wking = vars.wking;
@@ -780,6 +783,7 @@ void choose_best_moves(move_t &wbest, move_t &bbest, generator_t const callback)
     if (check_mem()) { return; }
     else if (PLAYING != game.state || game.user_supplied) { return; }
     else {
+        static uint32_t last_led_update;
         index_t mvcnt;
         move_t dummy = { -1, -1, 0 };
         piece_gen_t gen(dummy, wbest, bbest, callback, True);
@@ -811,6 +815,16 @@ void choose_best_moves(move_t &wbest, move_t &bbest, generator_t const callback)
 
                 if (Empty == gen.type) {
                     continue;
+                }
+
+                // Periodically update the LED strip display and progress indicator if enabled
+                if (game.options.live_update 
+                && (game.ply == game.options.maxply)
+                ) {
+                    if (abs(millis() - last_led_update ) > 35) {
+                        last_led_update = millis();
+                        set_led_strip(gen.move.from);
+                    }
                 }
 
                 // Keep track of the location of the Kings
@@ -869,10 +883,10 @@ void choose_best_moves(move_t &wbest, move_t &bbest, generator_t const callback)
             if ((0 == gen.num_wmoves) && (0 == gen.num_bmoves)) {
                 game.state = STALEMATE;
             }
-            else if (0 == gen.num_wmoves) {
+            else if ((0 == gen.num_wmoves) && game.white_king_in_check) {
                 game.state = BLACK_CHECKMATE;
             }
-            else if (0 == gen.num_bmoves) {
+            else if ((0 == gen.num_wmoves) && game.black_king_in_check) {
                 game.state = WHITE_CHECKMATE;
             }
         }
@@ -1409,10 +1423,10 @@ void setup()
     init_led_strip();
 
     // Initialize the LED indicators
-    static uint8_t const pins[3] = { DEBUG1_PIN, DEBUG2_PIN, DEBUG3_PIN };
+    static uint8_t const pins[] = { DEBUG1_PIN, DEBUG2_PIN, DEBUG3_PIN, DEBUG4_PIN };
     for (uint8_t pin : pins) {
         pinMode(pin, OUTPUT);
-        bitClear (PORTD, pin);    //=digitalWrite(pin,LOW) for pins 2-6
+        bitClear (PORTD, pin);    // = digitalWrite(pin,LOW) for pins 2-6
         // digitalWrite(pin, LOW);
     }
 
@@ -1471,7 +1485,7 @@ void setup()
         }
 
         // Show the final board
-        // show();
+        show();
 
         // Show the game move and game counts and time statistics
         show_stats();
