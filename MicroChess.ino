@@ -10,6 +10,9 @@
  * TODO:
  * 
  *  [ ] 
+ *  [ ] Add awareness of other Arduino's on the I2C bus acting as slave devices
+ *      and add the ability to parallel process to moves between all available
+ *      CPU's!
  *  [+] Fix alpha-beta bug!
  *  [+] Finish enabling the en-passant pawn move generation.
  *  [+] Add a function to display times over 1000 ms as minutes, seconds, and ms
@@ -20,14 +23,14 @@
  *  [+] Change make_move(...) to return MIN_VALUE only if the ply level is 0
  *      so we don't actually choose it. Otherwise consider taking the King
  *      worth MAX_VALUE.
+ *  [+] Change to have two sets of option_t in the game, one for each player in order to test
+ *      option settings against each other
  * 
  *  [ ] Change to use true printf, stdin, stdout and stderr so we don't copy the fmt buffer
  *  [ ] Add tests that prove that the same moves are chosen when alpha-beta
  *      pruning is enabled that are chosen when it is disabled and running in brute force?
  *  [ ] Add optional use of I2C serial RAM to create transposition tables for
  *      moves that have already been searced during this turn.
- *  [ ] Change to have two sets of option_t in the game, one for each player in order to test
- *      option settings against each other
  *  [ ] Change all of the white and black options, game states and stats into two value arrays
  *  [ ] add reading and writing of FEN notation.
  *  [ ] 
@@ -282,7 +285,13 @@ long make_move(piece_gen_t & gen)
                 // return MAX_VALUE;
             }
         }
-        return gen.move.value;
+        show_check();
+
+        direct_write(DEBUG4_PIN, HIGH);
+        // return gen.move.value;
+    }
+    else {
+        direct_write(DEBUG4_PIN, LOW);
     }
 
     // Save the state of whether or not the kings are in check.
@@ -406,7 +415,7 @@ long make_move(piece_gen_t & gen)
     // Step 4: Evaluate the board score after making the move
 
     // get the value of the current board
-    gen.move.value = evaluate();
+    gen.move.value = evaluate(gen);
 
     // Control the percentage of moves that the engine makes a mistake on
     if (0 != game.options.mistakes) {
@@ -440,8 +449,7 @@ long make_move(piece_gen_t & gen)
                     show_quiescent_search();
                 }
                 else {
-                    bitClear (PORTD, DEBUG2_PIN);    //=digitalWrite(pin,LOW) for pins 2-6
-                    // digitalWrite(DEBUG2_PIN, LOW);
+                    direct_write(DEBUG2_PIN, LOW);
                 }
 
                 if (game.ply < game.options.maxply) {
@@ -602,7 +610,7 @@ long make_move(piece_gen_t & gen)
 // 
 // Note: Sanitized stack
 // 
-long evaluate()
+long evaluate(piece_gen_t &gen)
 {
     // Stack Management
     // DECLARE ALL LOCAL VARIABLES USED IN THIS CONTEXT HERE AND
@@ -611,6 +619,7 @@ long evaluate()
     index_t col, row, piece_index, kloc, col_dist, row_dist, proximity;
     Piece p, ptype;
     Color pside;
+    long sideFactor;
 
     #ifdef ENA_MEM_STATS
     game.freemem[MAKE][game.ply].mem = freeMemory();
@@ -618,85 +627,82 @@ long evaluate()
 
     //  Check for low stack space
     if (check_mem()) { return 0; }
-    else {
-        // Now we can alter local variables! 😎 
 
-        // Calculate the value of the board:
-        materialTotal = 0L;
-        mobilityTotal = 0L;
-        centerTotal = 0L;
-        kingTotal = 0L;
-        score = 0L;
+    // Now we can alter local variables! 😎 
 
-        for (piece_index = 0; piece_index < game.piece_count; piece_index++) {
-            col = game.pieces[piece_index].x;
-            row = game.pieces[piece_index].y;
-            if (-1 == col || -1 == row) continue;
+    // Calculate the value of the board:
+    materialTotal = 0L;
+    mobilityTotal = 0L;
+    centerTotal = 0L;
+    kingTotal = 0L;
+    score = 0L;
 
-            p = board.get(col + row * 8);
-            ptype = getType(p);
-            pside = getSide(p);
+    for (piece_index = 0; piece_index < game.piece_count; piece_index++) {
+        col = game.pieces[piece_index].x;
+        row = game.pieces[piece_index].y;
+        if (-1 == col || -1 == row) continue;
 
-            if (Empty == ptype) continue;
+        p = board.get(col + row * 8);
+        ptype = getType(p);
+        pside = getSide(p);
 
-            // material bonus
-            materialTotal += pgm_read_dword(&game.material_bonus[ptype][pside]) * game.options.materialBonus;
+        if (Empty == ptype) continue;
 
-            // in-check penalty
-            if (inCheck(p)) {
-                if (White == pside) {
-                    materialTotal -= ptype;
-                }
-                else {
-                    materialTotal += ptype;
-                }
-            }
+        // Material Bonus
+        materialTotal += pgm_read_dword(&game.material_bonus[ptype][pside]) * game.options.materialBonus;
 
-            // Let's not encourage the King to wander to
-            // the center of the board mmkay?
-            if (King == ptype) {
-                continue;
-            }
-
-            // center bonus
-            centerTotal +=
-                pgm_read_dword(&game.center_bonus[col][ptype][pside]) +
-                pgm_read_dword(&game.center_bonus[row][ptype][pside]);
-
-            // proximity to opponent's King
-            kloc = (White == pside) ? game.bking : game.wking;
-            col_dist = (col > (kloc % 8)) ? (col - (kloc % 8)) : ((kloc % 8) - col);
-            row_dist = (row > (kloc / 8)) ? (row - (kloc / 8)) : ((kloc / 8) - row);
-            proximity = 14 - (col_dist + row_dist);
-            if (White == pside) {
-                kingTotal += proximity;
+        // In-Check Penalty
+        if (inCheck(p)) {
+            if (gen.whites_turn) {
+                materialTotal -= ptype;
             }
             else {
-                kingTotal -= proximity;
+                materialTotal += ptype;
             }
         }
 
-        // The score or 'identity property' of the board can include extra points for
-        // how many total moves (mobility) the remaining pieces can make
-        // if (filter & mobility) {
-        //     long sideFactor = (Black == side) ? -1 : 1;
-        //     mobilityTotal += static_cast<long>(game.move_count1 * mobilityBonus * sideFactor);
-        //     mobilityTotal -= static_cast<long>(game.move_count2 * mobilityBonus * sideFactor);
-        // }
+        // Let's not encourage the King to wander to
+        // the center of the board mmkay?
+        if (King == ptype) {
+            continue;
+        }
 
-        kingTotal *= game.options.kingBonus;
+        // Center Bonus
+        centerTotal +=
+            pgm_read_dword(&game.center_bonus[col][ptype][pside]) +
+            pgm_read_dword(&game.center_bonus[row][ptype][pside]);
 
-        score = kingTotal + materialTotal + centerTotal + mobilityTotal;
-
-        // printf(Debug4, 
-        //     "evaluation: %ld = centerTotal: %ld  materialTotal: %ld  mobilityTotal: %ld\n", 
-        //     score, centerTotal, materialTotal, mobilityTotal);
+        // Proximity to opponent's King Bonus
+        kloc = (White == pside) ? game.bking : game.wking;
+        col_dist = (col > (kloc % 8)) ? (col - (kloc % 8)) : ((kloc % 8) - col);
+        row_dist = (row > (kloc / 8)) ? (row - (kloc / 8)) : ((kloc / 8) - row);
+        proximity = 14 - (col_dist + row_dist);
+        if (White == pside) {
+            kingTotal += proximity;
+        }
+        else {
+            kingTotal -= proximity;
+        }
     }
 
+    kingTotal *= game.options.kingBonus;
+
+    // Mobility Bonus
+    if (true) {
+        sideFactor = (gen.whites_turn) ? +1 : -1;
+        mobilityTotal += static_cast<long>(gen.num_wmoves * game.options.mobilityBonus * sideFactor);
+        mobilityTotal -= static_cast<long>(gen.num_bmoves * game.options.mobilityBonus * sideFactor);
+    }
+
+    score = kingTotal + materialTotal + centerTotal + mobilityTotal;
+
+    // printf(Debug4, 
+    //     "evaluation: %ld = centerTotal: %ld  materialTotal: %ld  mobilityTotal: %ld\n", 
+    //     score, centerTotal, materialTotal, mobilityTotal);
 
     return score;
 
-}   // evaluate()
+}   // evaluate(...)
 
 
 ////////////////////////////////////////////////////////////////////////////////////////
@@ -751,7 +757,8 @@ Bool check_serial()
     else while (Serial.available()) { Serial.read(); }
 
     return moved;
-}
+
+} // check_serial()
 
 
 ////////////////////////////////////////////////////////////////////////////////////////
@@ -819,9 +826,10 @@ void choose_best_moves(move_t &wbest, move_t &bbest, generator_t const callback)
 
                 // Periodically update the LED strip display and progress indicator if enabled
                 if (game.options.live_update 
-                && (game.ply == game.options.maxply)
+                // && (game.ply < game.options.max_max_ply)
+                && (game.ply <= game.options.maxply)
                 ) {
-                    if (abs(millis() - last_led_update ) > 35) {
+                    if (abs(millis() - last_led_update ) > 12) {
                         last_led_update = millis();
                         set_led_strip(gen.move.from);
                     }
@@ -1047,13 +1055,10 @@ Bool check_book(move_t &move)
 void take_turn()
 {
     // Turn off the LED move indicators
-    bitClear (PORTD, DEBUG1_PIN);    //=digitalWrite(pin,LOW) for pins 2-6
-    bitClear (PORTD, DEBUG2_PIN);    //=digitalWrite(pin,LOW) for pins 2-6
-    bitClear (PORTD, DEBUG3_PIN);    //=digitalWrite(pin,LOW) for pins 2-6
-
-    // digitalWrite(DEBUG1_PIN, LOW);
-    // digitalWrite(DEBUG2_PIN, LOW);
-    // digitalWrite(DEBUG3_PIN, LOW);
+    direct_write(DEBUG1_PIN, LOW);
+    direct_write(DEBUG2_PIN, LOW);
+    direct_write(DEBUG3_PIN, LOW);
+    direct_write(DEBUG4_PIN, LOW);
 
     // See if we've hit the move limit and return if so
     if (game.move_num >= game.options.move_limit) {
@@ -1083,6 +1088,7 @@ void take_turn()
     move_t move;
     Bool book_supplied = False;
     if (game.options.openbook && check_book(move)) {
+    // if (game.options.openbook && check_book(move)) {
         book_supplied = True;
         if (whites_turn) {
             wmove = move;
@@ -1134,7 +1140,7 @@ void take_turn()
 
     // Make the move:
     move_t dummy;
-    if (whites_turn) {
+    if (game.options.openbook && game.turn == book_t::side) {
         piece_gen_t gen(wmove, dummy, dummy, consider_move, False);
 
         gen.piece_index = game.find_piece(wmove.from);
@@ -1244,10 +1250,10 @@ void set_game_options()
     // game.options.profiling = True;
 
     // Set the ultimate maximum ply level (incl)
-    game.options.max_max_ply = 3;
+    game.options.max_max_ply = 5;
 
     // Set the max ply level (inclusive) for normal moves
-    game.options.maxply = 2;
+    game.options.maxply = 3;
 
     // Set the percentage of moves that might be a mistake
     game.options.mistakes = 0;
@@ -1263,7 +1269,7 @@ void set_game_options()
  
     // Set the time limit per turn in milliseconds
     // game.options.time_limit = 0;
-    game.options.time_limit = 5000;
+    game.options.time_limit = 42000;
 
     // Enable or disable alpha-beta pruning
     // game.options.alpha_beta_pruning = False;
@@ -1416,8 +1422,26 @@ void show_game_options() {
 // 
 void setup()
 {
+    {
+    static uint32_t const baud_rates[] PROGMEM = {
+        300, 600, 750, 1200, 2400, 4800, 9600, 19200, 31250, 38400,
+        57600, 74480, 115200, 230400, 250000, 460800, 500000, 921600
+    };
+
+    int const empty_size = Serial.availableForWrite();
+    for (index_t i = 0; i < index_t(ARRAYSZ(baud_rates)); i++) {
+        Serial.begin((long)pgm_read_dword(&baud_rates[i]));
+        while (!Serial) {}
+        Serial.println("\n\n1,000,000 baud");
+        // wait for the bytes to all be sent
+        while (empty_size != Serial.availableForWrite()) {}
+        Serial.end();
+    }
+    }
+
     // Initialize the Serial output
-    Serial.begin(1000000); while (!Serial); Serial.write('\n');
+    Serial.begin(1000000); while (!Serial); 
+    Serial.write('\n');
 
     // Initialize the LED strip
     init_led_strip();
@@ -1426,8 +1450,7 @@ void setup()
     static uint8_t const pins[] = { DEBUG1_PIN, DEBUG2_PIN, DEBUG3_PIN, DEBUG4_PIN };
     for (uint8_t pin : pins) {
         pinMode(pin, OUTPUT);
-        bitClear (PORTD, pin);    // = digitalWrite(pin,LOW) for pins 2-6
-        // digitalWrite(pin, LOW);
+        direct_write(pin, LOW);
     }
 
     // Initialize the continuous game statistics
@@ -1540,6 +1563,15 @@ void setup()
 void loop() {}
 
 
+void show_header(Bool const dev) {
+    if (dev) {
+        printf(Debug1, "   0  1  2  3  4  5  6  7")
+    }
+    else {
+        printf(Debug1, "   A  B  C  D  E  F  G  H")
+    }
+}
+
 ////////////////////////////////////////////////////////////////////////////////////////
 // display the game board
 // 
@@ -1553,8 +1585,8 @@ void show()
 
     index_t const offset = 0;
 
-    printf(Debug1, "%s", 
-        !dev ? "   0  1  2  3  4  5  6  7\n" : "   A  B  C  D  E  F  G  H\n");
+    show_header(!dev);
+    printf(Debug1, "\n");
 
     for (unsigned char y = 0; y < 8; ++y) {
         printf(Debug1, "%c ", dev ? ('0' + y) : ('8' - y));
@@ -1643,8 +1675,8 @@ void show()
         }
         printf(Debug1, "%c", '\n');
     }
-    printf(Debug1, "%s", 
-        dev ? "   0  1  2  3  4  5  6  7 " : "   A  B  C  D  E  F  G  H ");
+
+    show_header(!dev);
 
     {
         value = game.last_value;

@@ -167,9 +167,11 @@ extern Piece setCheck(Piece b, Bool inCheck);
 // construct a Piece value
 extern Piece makeSpot(Piece type, Piece side, Bool moved, Bool inCheck);
 
+extern void direct_write(index_t const pin, Bool const value);
 extern void show_low_memory();
 extern void show_quiescent_search();
 extern void show_timeout();
+extern void show_check();
 
 extern const char* ftostr(double const value, int const dec, char * const buff);
 
@@ -214,7 +216,7 @@ extern game_t game;
 
 
 ////////////////////////////////////////////////////////////////////////////////////////
-// A structure to represent an opening move
+// A structure to represent an opening move or sequences of moves
 struct book_t {
     static Color side;
     uint8_t
@@ -277,7 +279,7 @@ struct piece_gen_t {
 }; // piece_gen_t
 
 
-// display a piece, or a move, or the piece list
+// Display a piece, or a move, the piece list, or a time duration
 extern void show_piece(Piece const p);
 extern void show_move(move_t const &move, Bool const align = False);
 extern void show_pieces();
@@ -286,11 +288,11 @@ extern void show_time(uint32_t ms);
 // show the game time and move statistics
 extern void show_stats();
 
-// show the current memory statistics
+// Show the current memory statistics
 extern Bool check_mem();
 extern int freeMemory();
 
-// control an external LED strip to display the board state
+// Control an external LED strip to display the board state
 extern void init_led_strip();
 extern void set_led_strip(index_t const flash = -1);
 

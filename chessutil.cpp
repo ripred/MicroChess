@@ -204,25 +204,59 @@ Bool check_mem() {
 } // check_mem()
 
 
+void direct_write(index_t const pin, Bool const value) {
+    if (!value)
+    {
+        if (pin > 1 && pin < 8 ) {
+            bitClear (PORTD, pin);    // == digitalWrite(pin,LOW) for pins 2-6
+        }
+        else {
+            bitClear (PORTB, (pin-8));  // == digitalWrite(pin,LOW) for pins 8-12
+        }
+    }
+    else
+    {
+        if (pin > 1 && pin < 8 ) {
+            bitSet (PORTD, pin);        // == digitalWrite(pin,HIGH) for pins 2-6
+        }
+        else {
+            bitSet (PORTB, (pin-8));   // == digitalWrite(pin,HIGH) for pins 8-12
+        }
+    }    
+}
+
+
+
 void show_low_memory() {
-    bitSet(PORTD, DEBUG1_PIN);    //=digitalWrite(pin,LOW) for pins 2-6
+    direct_write(DEBUG1_PIN, HIGH);
+    // bitSet(PORTD, DEBUG1_PIN);    // == digitalWrite(pin,LOW) for pins 2-6
     // digitalWrite(DEBUG1_PIN, HIGH);
 
 } // show_low_memory()
 
 
 void show_quiescent_search() {
-    bitSet(PORTD, DEBUG2_PIN);    //=digitalWrite(pin,LOW) for pins 2-6
+    direct_write(DEBUG2_PIN, HIGH);
+    // bitSet(PORTD, DEBUG2_PIN);    // == digitalWrite(pin,LOW) for pins 2-6
     // digitalWrite(DEBUG2_PIN, HIGH);
 
 } // show_quiescent_search()
 
 
 void show_timeout() {
-    bitSet(PORTD, DEBUG3_PIN);    //=digitalWrite(pin,LOW) for pins 2-6
+    direct_write(DEBUG3_PIN, HIGH);
+    // bitSet(PORTD, DEBUG3_PIN);    // == digitalWrite(pin,LOW) for pins 2-6
     // digitalWrite(DEBUG3_PIN, HIGH);
 
 } // show_timeout()
+
+
+void show_check() {
+    direct_write(DEBUG4_PIN, HIGH);
+    // bitSet(PORTD, DEBUG4_PIN);    // == digitalWrite(pin,LOW) for pins 2-6
+    // digitalWrite(DEBUG2_PIN, HIGH);
+
+} // show_quiescent_search()
 
 
 #ifdef ENA_MEM_STATS
