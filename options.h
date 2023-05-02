@@ -22,6 +22,8 @@ public:
                 live_update : 1,    // Periodically update the LED strip and other external indicators as we choose a move
                   profiling : 1,    // Are we profiling the engine?
                  continuous : 1,    // True if we play games continuously one after another
+                  integrate : 1,    // Integrate recursive return values?
+                   openbook : 1,    // Use opening book moves?
              shuffle_pieces : 1,    // True if we want to process the pieces in a random order
                 white_human : 1,    // Flags indicating if white player is human or not
                 black_human : 1,    // Flags indicating if black player is human or not
@@ -54,6 +56,8 @@ public:
         live_update(False),
         profiling(False), 
         continuous(False),
+        integrate(True),
+        openbook(False),
         shuffle_pieces(True),
         white_human(False),
         black_human(False),

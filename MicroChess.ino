@@ -211,6 +211,7 @@ long make_move(piece_gen_t & gen)
     index_t hist_count;
     index_t taken_index, captured, castly_rook;
     static uint32_t last_led_update;
+    int32_t recurse_value;
 
     //  Check for low stack space
     if (check_mem()) { return gen.whites_turn ? MIN_VALUE : MAX_VALUE; }
@@ -457,7 +458,8 @@ long make_move(piece_gen_t & gen)
                     if (gen.whites_turn) {
                         if (-1 != gen.wbest.from && -1 != gen.wbest.to) {
                             if (game.options.alpha_beta_pruning) {
-                                gen.move.value = max(gen.move.value, gen.wbest.value);
+                                recurse_value = max(gen.move.value, gen.wbest.value);
+                                gen.move.value = game.options.integrate ? (gen.move.value + recurse_value) : recurse_value;
                                 if (gen.move.value > game.beta) {
                                     gen.cutoff = True;
                                 }
@@ -473,7 +475,8 @@ long make_move(piece_gen_t & gen)
                     else {
                         if (-1 != gen.bbest.from && -1 != gen.bbest.to) {
                             if (game.options.alpha_beta_pruning) {
-                                gen.move.value = min(gen.move.value, gen.bbest.value);
+                                recurse_value = min(gen.move.value, gen.bbest.value);
+                                gen.move.value = game.options.integrate ? (gen.move.value + recurse_value) : recurse_value;
                                 if (gen.move.value < game.alpha) {
                                     gen.cutoff = True;
                                 }
@@ -865,6 +868,19 @@ void choose_best_moves(move_t &wbest, move_t &bbest, generator_t const callback)
 
 
 ////////////////////////////////////////////////////////////////////////////////////////
+// Set the per-side options. This allows testing feature choices against each other
+// 
+void set_per_side_options() {
+    if (game.turn) {
+        game.options.integrate = True;
+    }
+    else {
+        game.options.integrate = False;
+    }
+}
+
+
+////////////////////////////////////////////////////////////////////////////////////////
 // reset the various move tracking flags
 // 
 // Note: Sanitized stack
@@ -901,6 +917,8 @@ void reset_turn_flags()
     game.last_was_pawn_promotion = False;
 
     game.user_supplied = False;
+
+    set_per_side_options();
 
 }   // reset_move_flags()
 
@@ -958,27 +976,12 @@ void sort_and_shuffle(Color const side, index_t const shuffle_count = 8)
 }
 
 
-////////////////////////////////////////////////////////////////////////////////////////
-// A structure to represent an opening move
-struct book_t {
-    static Color side;
-    uint8_t
-        from : 6,  // the starting location
-       type1 : 3,  // the expected starting piece
-          to : 6,  // the ending location
-       type2 : 3;  // the expected ending piece
-    
-    book_t(index_t const f, Piece const t1, index_t const t, Piece const t2) :
-        from(f), type1(t1), to(t), type2(t2) {}
-};
-
 book_t opening1[] = {
     { 6 * 8 + 4,   Pawn, 5 * 8 + 4, Empty },
     { 7 * 8 + 5, Bishop, 4 * 8 + 2, Empty },
     { 7 * 8 + 3,  Queen, 5 * 8 + 5, Empty },
     { 5 * 8 + 5,  Queen, 1 * 8 + 5,  Pawn },
 };
-
 
 Color book_t::side = White;
 
@@ -1051,7 +1054,7 @@ void take_turn()
     // See if we have an opening book move and return it if so
     move_t move;
     Bool book_supplied = False;
-    if (check_book(move)) {
+    if (game.options.openbook && check_book(move)) {
         book_supplied = True;
         if (whites_turn) {
             wmove = move;
@@ -1253,8 +1256,6 @@ void set_game_options()
 
     // game seed hash for PRN generator - default to 4 hex prime numbers
     game.options.seed = 0x232F89A3;
-    uint16_t upper = game.options.seed >> 16;
-    uint16_t lower = word(game.options.seed);
 
     // Salt the psuedo-random number generator seed if enabled:
     if (game.options.random) {
@@ -1283,11 +1284,12 @@ void set_game_options()
             uint32_t(micros());
 
         game.options.seed += some_bits;        
-
-        upper = game.options.seed >> 16;
-        lower = word(game.options.seed);
     }
 
+}   // set_game_options()
+
+
+void show_game_options() {
     printf(Always, "-= MicroChess ver %d.%02d =-\n\n", VERSION_MAJOR, VERSION_MINOR);
 
     char str[16] = "";
@@ -1297,6 +1299,8 @@ void set_game_options()
     ftostr(MIN_VALUE, 0, str);
     printf(Always, "MIN_VALUE: %14s\n", str);
 
+    uint16_t upper = game.options.seed >> 16;
+    uint16_t lower = word(game.options.seed);
     printf(Always, "PRNG seed hash: 0x%04X%04X\n", upper, lower);
 
     printf(Always, "Ply limits: normal: %d, quiescent: %d, max: %d\n", 
@@ -1359,7 +1363,7 @@ void set_game_options()
 
     randomSeed(game.options.seed);
 
-}   // set_game_options()
+}   // show_game_options()
 
 
 ////////////////////////////////////////////////////////////////////////////////////////
@@ -1386,6 +1390,9 @@ void setup()
     uint32_t state_totals[6] = { 0, 0, 0, 0, 0, 0 };
     uint32_t white_wins = 0;
     uint32_t black_wins = 0;
+
+    set_game_options();
+    show_game_options();
 
     // Play a game until it is over
     do {

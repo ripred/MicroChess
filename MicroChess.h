@@ -212,6 +212,21 @@ enum state_t : uint8_t {
 extern game_t game;
 
 
+////////////////////////////////////////////////////////////////////////////////////////
+// A structure to represent an opening move
+struct book_t {
+    static Color side;
+    uint8_t
+        from : 6,  // the starting location
+       type1 : 3,  // the expected starting piece
+          to : 6,  // the ending location
+       type2 : 3;  // the expected ending piece
+    
+    book_t(index_t const f, Piece const t1, index_t const t, Piece const t2) :
+        from(f), type1(t1), to(t), type2(t2) {}
+};
+
+
 // define a data type for a callback move generation handler
 typedef Bool (generator_t(struct piece_gen_t &gen));
 
