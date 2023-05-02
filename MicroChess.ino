@@ -191,6 +191,7 @@ long make_move(piece_gen_t & gen)
                                  op : 6,
                               otype : 3,
                               oside : 1,
+                         king_taken : 1,
             last_was_pawn_promotion : 1,
                 last_was_en_passant : 1,
                 white_king_in_check : 1,
@@ -270,14 +271,14 @@ long make_move(piece_gen_t & gen)
     if (King == vars.otype && (gen.side != vars.oside)) {
         if (gen.whites_turn) {
             game.black_king_in_check = True;
-            gen.move.value = MIN_VALUE;
+            gen.move.value = MAX_VALUE;
             if (0 == game.ply) {
                 // return MIN_VALUE;
             }
         }
         else {
             game.white_king_in_check = True;
-            gen.move.value = MAX_VALUE;
+            gen.move.value = MIN_VALUE;
             if (0 == game.ply) {
                 // return MAX_VALUE;
             }
@@ -338,6 +339,8 @@ long make_move(piece_gen_t & gen)
         else {
             game.taken_by_black[game.black_taken_count++] = vars.captured_piece;
         }
+
+        vars.king_taken = King == getType(vars.captured_piece);
     }
 
 
@@ -418,14 +421,14 @@ long make_move(piece_gen_t & gen)
     // set our move as the last move
     game.last_move = gen.move;
 
+    ////////////////////////////////////////////////////////////////////////////////////////
     // The move has been made and we have the value for the updated board.
     // Recursively look-ahead and accumulatively update the value here.
-
-    ////////////////////////////////////////////////////////////////////////////////////////
+    // 
     // Before we continue we check the evaluating flag to see if it is False, meaning that we are making this move for real.
     // There's no need to explore future plies if we've already made our mind up! We only recurse when we are evaluating 
     // (gen.evaluating == True)
-    if (gen.evaluating) {
+    if (!vars.king_taken && gen.evaluating) {
         // flag indicating whether we are traversing into quiescent moves
         vars.quiescent = ((-1 != captured) && (game.ply < (game.options.max_quiescent_ply)) && (game.ply < game.options.max_max_ply));
 
@@ -504,7 +507,7 @@ long make_move(piece_gen_t & gen)
 
     // Periodically update the LED strip display and progress indicator if enabled
     if (game.options.live_update && (game.ply == game.options.maxply)) {
-        if (abs(millis() - last_led_update ) > 40) {
+        if (abs(millis() - last_led_update ) > 35) {
             last_led_update = millis();
             set_led_strip(gen.move.from);
         }
@@ -569,6 +572,16 @@ long make_move(piece_gen_t & gen)
             board.set((game.pieces[castly_rook].x + game.pieces[castly_rook].y * 8), 
                 setMoved(board.get((game.pieces[castly_rook].x + game.pieces[castly_rook].y * 8)), False));
         }
+
+        // Keep us from actually taking the king if it was the best move
+        // if (vars.king_taken) {
+        //     if (gen.whites_turn) {
+        //         gen.move.value = MIN_VALUE;
+        //     }
+        //     else {
+        //         gen.move.value = MAX_VALUE;
+        //     }
+        // }
     }
 
     return gen.move.value;
@@ -1526,6 +1539,9 @@ void show()
 
     index_t const offset = 0;
 
+    printf(Debug1, "%s", 
+        !dev ? "   0  1  2  3  4  5  6  7\n" : "   A  B  C  D  E  F  G  H\n");
+
     for (unsigned char y = 0; y < 8; ++y) {
         printf(Debug1, "%c ", dev ? ('0' + y) : ('8' - y));
         for (unsigned char x = 0; x < 8; ++x) {
@@ -1534,6 +1550,8 @@ void show()
                 isEmpty(piece) ? ((y ^ x) & 1 ? '*' : '.') :
                 pgm_read_byte(&icons[((getSide(piece) * 6) + getType(piece) - 1)]));
         }
+
+        printf(Debug1, " %c ", !dev ? ('0' + y) : ('8' - y));
 
         // display the extra status info on certain lines:
         switch (y) {
