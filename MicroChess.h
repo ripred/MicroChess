@@ -34,7 +34,7 @@ enum : uint32_t {
 
 enum {
     VERSION_MAJOR      =  1,    // The major sofware revision number
-    VERSION_MINOR      = 23,    // The minor sofware revision number
+    VERSION_MINOR      = 24,    // The minor sofware revision number
 
     MAX_REPS           =  3,    // the max number of times a pair of moves can be repeated
 
@@ -102,7 +102,7 @@ enum print_t : uint8_t {
 #define     getbit(_A, _B)     ((char*)(_A))[(_B) / 8] &   (0x80 >> ((_B) % 8))
 
 // The max and min range for piece values
-#define  MAX_VALUE ((long const)(LONG_MAX))
+#define  MAX_VALUE ((long const)(LONG_MAX/2))
 #define  MIN_VALUE ((long const)(0 - MAX_VALUE))
 
 // The number of locations on the game board
@@ -299,6 +299,8 @@ extern void set_led_strip(index_t const flash = -1);
 extern Bool timeout();
 
 extern long make_move(piece_gen_t & gen);
+
+extern long evaluate(piece_gen_t & gen);
 
 extern Bool would_repeat(move_t const move);
 

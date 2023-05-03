@@ -18,12 +18,13 @@ struct options_t {
 public:
 
     // This stuff changes at runtime during the game and can be modified
-    uint8_t          random : 1,    // Add randomness to the game?
+    uint8_t          random : 1,    // Add randomness to the game when True
                 live_update : 1,    // Periodically update the LED strip and other external indicators as we choose a move
-                  profiling : 1,    // Are we profiling the engine?
+                  profiling : 1,    // We profiling the engine when True
                  continuous : 1,    // True if we play games continuously one after another
-                  integrate : 1,    // Integrate recursive return values?
-                   openbook : 1,    // Use opening book moves?
+                  integrate : 1,    // Integrate recursive return values when True
+                   openbook : 1,    // Use opening book when True
+                   randskip : 1,    // Randomly skip ply depths when True
              shuffle_pieces : 1,    // True if we want to process the pieces in a random order
                 white_human : 1,    // Flags indicating if white player is human or not
                 black_human : 1,    // Flags indicating if black player is human or not
@@ -40,7 +41,7 @@ public:
     // This stuff stays the same at runtime during the game, and can't be modified during the game
 
     static uint32_t const move_limit    = 100;  // The maximum number of moves allowed in a full game
-    static int      const low_mem_limit = 880;  // The amount of memory used as reported by the compiler
+    static int      const low_mem_limit = 858;  // The amount of memory used as reported by the compiler
 
     // adjustable multipiers to alter importance of mobility or center proximity
     // during board evaluation. season to taste
@@ -58,6 +59,7 @@ public:
         continuous(False),
         integrate(True),
         openbook(False),
+        randskip(False),
         shuffle_pieces(True),
         white_human(False),
         black_human(False),
