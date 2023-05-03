@@ -453,7 +453,6 @@ long make_move(piece_gen_t & gen)
                 }
 
                 if (game.ply < game.options.maxply) {
-
                     if (!game.options.randskip || random(2)) {
                         // Explore The Future! (plies)
                         game.ply++;
@@ -1143,7 +1142,8 @@ void take_turn()
 
     // Make the move:
     move_t dummy;
-    if (game.options.openbook && (whites_turn == book_t::side)) {
+    // if (game.options.openbook && (whites_turn == book_t::side)) {
+    if (whites_turn) {
         piece_gen_t gen(wmove, dummy, dummy, consider_move, False);
         gen.piece_index = game.find_piece(wmove.from);
         gen.col = wmove.from % 8;
@@ -1245,10 +1245,10 @@ void set_game_options()
     // game.options.profiling = True;
 
     // Set the ultimate maximum ply level (incl)
-    game.options.max_max_ply = 6;
+    game.options.max_max_ply = 3;
 
     // Set the max ply level (inclusive) for normal moves
-    game.options.maxply = 6;
+    game.options.maxply = 2;
 
     // Set the percentage of moves that might be a mistake
     game.options.mistakes = 0;
@@ -1258,6 +1258,7 @@ void set_game_options()
     game.options.random = True;
 
     // Randomly skip depth plies when True in order to see moves across more pieces before timeouts
+    // game.options.randskip = False;
     game.options.randskip = True;
 
     // Set whether we play continuously or not
@@ -1267,7 +1268,7 @@ void set_game_options()
  
     // Set the time limit per turn in milliseconds
     // game.options.time_limit = 0;
-    game.options.time_limit = 15000;
+    game.options.time_limit = 1000;
 
     // Enable or disable alpha-beta pruning
     // game.options.alpha_beta_pruning = False;
@@ -1410,7 +1411,7 @@ void show_game_options() {
     // Enable random seed when program is debugged.
     // Disable random seed to reproduce issues or to profile.
     if (game.options.profiling) {
-        printf(Always, "Profiling:\n");
+        printf(Always, "\nProfiling:\n");
 
         // Turn off output if we are profiling
         game.options.print_level = None;
@@ -1561,6 +1562,11 @@ void setup()
 
         printf(Debug1, "   White wins: %3ld   Black wins: %3ld\n\n", white_wins, black_wins)
     
+        if (game.options.profiling) {
+            // Return to no output when profiling
+            game.options.print_level = None;
+        }
+
     } while (game.options.continuous);
 
 }   // setup()
