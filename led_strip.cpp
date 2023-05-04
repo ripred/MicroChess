@@ -47,12 +47,8 @@ void set_led_strip(index_t const flash /* = -1 */)
     } vars;
     index_t clr;
 
-    #ifdef ENA_MEM_STATS
-    game.freemem[MAKE][game.ply].mem = freeMemory();
-    #endif
-
     //  Check for low stack space
-    if (check_mem()) { return; }
+    if (check_mem(MAKE)) { return; }
 
     // Now we can alter local variables! 😎 
 

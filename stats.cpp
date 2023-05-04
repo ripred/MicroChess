@@ -114,8 +114,6 @@ stat_t::stat_t() {
 void stat_t::init() {
     game_stats.init();
     move_stats.init();
-
-    max_moves = 0;
 }
 
 // increase the number of moves evaluated

@@ -103,8 +103,6 @@ void game_t::init()
     lowest_mem_ply = -1;
     #endif
 
-    complete = 0;
-
     hist_count = 0;
 
     stats.init();
@@ -112,14 +110,12 @@ void game_t::init()
     white_taken_count = 0;
     black_taken_count = 0;
 
-    last_value = 0;
     last_move = { -1, -1, 0 };
     last_was_en_passant = False;
     last_was_castle = False;
     last_was_timeout1 = False;
     last_was_timeout2 = False;
     last_was_pawn_promotion = False;
-    last_moves_evaluated = 0;
 
     white_king_in_check = False;
     black_king_in_check = False;

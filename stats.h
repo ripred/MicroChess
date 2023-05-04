@@ -65,7 +65,6 @@ public:
 struct stat_t {
     movetime_t  game_stats;
     movetime_t  move_stats;
-    uint32_t    max_moves;
 
     // constructor:
     stat_t();

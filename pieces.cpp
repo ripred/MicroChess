@@ -12,6 +12,11 @@
 #include <stdint.h>
 #include "MicroChess.h"
 
+// structure to hold the offsets that a piece can move to
+struct offset_t {
+    index_t x, y;
+};
+
 static offset_t constexpr knight_offsets[8] PROGMEM = {
     { -1, +2 }, { -1, -2 }, { -2, +1 }, { -2, -1 }, 
     { +1, +2 }, { +1, -2 }, { +2, +1 }, { +2, -1 }  
@@ -46,12 +51,8 @@ index_t add_pawn_moves(piece_gen_t &gen) {
     // index_t last_move_to_col, last_move_to_row, last_move_from_row;
     Piece op;
 
-    #ifdef ENA_MEM_STATS
-    game.freemem[ADD_MOVES][game.ply].mem = freeMemory();
-    #endif
-
     //  Check for low stack space
-    if (check_mem()) { return 0; }
+    if (check_mem(ADD_MOVES)) { return 0; }
 
     // Now we can alter local variables! 😎 
 
@@ -130,12 +131,8 @@ index_t gen_moves(piece_gen_t &gen, offset_t const * const ptr, index_t const nu
     index_t iter;
     Piece other_piece;
 
-    #ifdef ENA_MEM_STATS
-    game.freemem[ADD_MOVES][game.ply].mem = freeMemory();
-    #endif
-
     //  Check for low stack space
-    if (check_mem()) { return 0; }
+    if (check_mem(ADD_MOVES)) { return 0; }
 
     // Now we can alter local variables! 😎 
 
@@ -187,12 +184,8 @@ index_t add_knight_moves(piece_gen_t &gen) {
     // DECLARE ALL LOCAL VARIABLES USED IN THIS CONTEXT HERE AND
     // DO NOT MODIFY ANYTHING BEFORE CHECKING THE AVAILABLE STACK
 
-    #ifdef ENA_MEM_STATS
-    game.freemem[ADD_MOVES][game.ply].mem = freeMemory();
-    #endif
-
     //  Check for low stack space
-    if (check_mem()) { return 0; }
+    if (check_mem(ADD_MOVES)) { return 0; }
 
     // Now we can alter local variables! 😎 
 
@@ -206,12 +199,8 @@ index_t add_rook_moves(piece_gen_t &gen) {
     // DECLARE ALL LOCAL VARIABLES USED IN THIS CONTEXT HERE AND
     // DO NOT MODIFY ANYTHING BEFORE CHECKING THE AVAILABLE STACK
 
-    #ifdef ENA_MEM_STATS
-    game.freemem[ADD_MOVES][game.ply].mem = freeMemory();
-    #endif
-
     //  Check for low stack space
-    if (check_mem()) { return 0; }
+    if (check_mem(ADD_MOVES)) { return 0; }
 
     // Now we can alter local variables! 😎 
 
@@ -225,12 +214,8 @@ index_t add_bishop_moves(piece_gen_t &gen) {
     // DECLARE ALL LOCAL VARIABLES USED IN THIS CONTEXT HERE AND
     // DO NOT MODIFY ANYTHING BEFORE CHECKING THE AVAILABLE STACK
 
-    #ifdef ENA_MEM_STATS
-    game.freemem[ADD_MOVES][game.ply].mem = freeMemory();
-    #endif
-
     //  Check for low stack space
-    if (check_mem()) { return 0; }
+    if (check_mem(ADD_MOVES)) { return 0; }
 
     // Now we can alter local variables! 😎 
 
@@ -249,12 +234,8 @@ index_t add_king_moves(piece_gen_t &gen) {
     Bool empty_bishop;
     Bool empty_queen;
 
-    #ifdef ENA_MEM_STATS
-    game.freemem[ADD_MOVES][game.ply].mem = freeMemory();
-    #endif
-
     //  Check for low stack space
-    if (check_mem()) { return 0; }
+    if (check_mem(ADD_MOVES)) { return 0; }
 
     // Now we can alter local variables! 😎 
 
@@ -308,12 +289,8 @@ index_t add_queen_moves(piece_gen_t &gen) {
     // DECLARE ALL LOCAL VARIABLES USED IN THIS CONTEXT HERE AND
     // DO NOT MODIFY ANYTHING BEFORE CHECKING THE AVAILABLE STACK
 
-    #ifdef ENA_MEM_STATS
-    game.freemem[ADD_MOVES][game.ply].mem = freeMemory();
-    #endif
-
     //  Check for low stack space
-    if (check_mem()) { return 0; }
+    if (check_mem(ADD_MOVES)) { return 0; }
 
     // Now we can alter local variables! 😎 
 

@@ -3,74 +3,53 @@
  * 
  * the MicroChess project: https://github.com/ripred/MicroChess
  * 
+ * The board_t class used to represent the state of the game board
+ * 
  */
-
-#if 0
-
-
-#ifndef BOARD_INCL
-#define BOARD_INCL
-
-struct board_t {
-private:
-    Piece  board[BOARD_SIZE];
-
-public:
-    board_t();
-
-    void clear();
-    void init();
-
-    Piece get(index_t const index) const;
-    void  set(index_t const index, Piece const piece);
-
-}; // board_t
-
-#endif // BOARD_INCL
-
-#else
-
-
 #ifndef BOARD_INCL
 #define BOARD_INCL
 
 #include <math.h>
 
-struct spot_t {
-    uint8_t  type : 3,     // one of the Piece types above
-             side : 1,     // one of the Color types above
-            moved : 1,     // 1 if moved
-            check : 1;     // 1 if in check
+class spot_t {
+    private:
+    uint8_t  type : 3,     // one of the Piece types
+             side : 1,     // one of the Color types
+            moved : 1,     // True if moved
+            check : 1;     // True if in check
+
+    public:
     spot_t() :
         type(Empty), 
         side(Black), 
-        moved(0), 
-        check(0)
+        moved(False), 
+        check(False)
     {
     }
-    spot_t(Piece p) 
+
+    spot_t(Piece const &ref)
     {
-        *this = *((spot_t *) &p);
+        *this = *((spot_t *) &ref);
     }
-    spot_t(uint8_t t, uint8_t s, uint8_t m, uint8_t c) :
+
+    spot_t(uint8_t const t, uint8_t const s, uint8_t const m, uint8_t const c) :
         type(t), 
         side(s), 
         moved(m), 
         check(c)
     {
     }
-};
+
+};  // spot_t
 
 
-/***
- * board_t version 1
- *
- */
-struct board_t1 {
+class board_t1 {
+    private:
     struct row_t {
         spot_t  cols[8];
     } rows[8];
 
+    public:
     Piece get(unsigned char index) const 
     {
         return *((Piece*) &rows[index / 8].cols[index % 8]);
@@ -80,14 +59,12 @@ struct board_t1 {
     {
         rows[index / 8].cols[index % 8] = piece;
     }    
-};
+
+};  // board_t1
 
 
-/***
- * board_t version 2
- *
- */
-struct board_t2 {
+class board_t2 {
+    private:
     struct row_t {
         uint8_t  type1 : 3,     // one of the Piece types
                  side1 : 1,     // one of the Color types
@@ -131,6 +108,7 @@ struct board_t2 {
 
     } rows[8];
 
+    public:
     Piece get(unsigned char index) const 
     {
         int const row = index / 8;
@@ -215,12 +193,14 @@ struct board_t2 {
         }
     }    
 
-};
+};  // board_t2
 
 
-struct board_t {
+class board_t {
+    private:
     board_t2  board;
 
+    public:
     board_t();
 
     void init();
@@ -230,10 +210,7 @@ struct board_t {
     Piece get(unsigned char index) const;
 
     void set(unsigned char index, Piece const piece);
-};
+
+};  // board_t
 
 #endif // BOARD_INCL
-
-
-#endif
-

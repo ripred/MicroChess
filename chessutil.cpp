@@ -1,3 +1,4 @@
+#include "HardwareSerial.h"
 /**
  * chessutil.cpp
  * 
@@ -100,7 +101,7 @@ Piece makeSpot(Piece type, Piece side, unsigned char moved, unsigned char inChec
 } // makeSpot(Piece type, Piece side, unsigned char moved, unsigned char inCheck)
 
 
-const char* addCommas(long int value) {
+char const * addCommas(long int value) {
     static char buff[16];
     snprintf(buff, sizeof(buff), "%ld", value);
 
@@ -114,6 +115,18 @@ const char* addCommas(long int value) {
 
 } // addCommas(long int value)
 
+
+// repeat printing a character a number of times
+void printrep(print_t const level, char const c, index_t repeat) {
+    if (game.options.print_level < level) { return; }
+    while (repeat--) {
+        Serial.write(c);
+    }
+}
+
+void printnl(print_t const level, index_t repeat /* = 1 */) {
+    printrep(level, '\n', repeat);
+}
 
 int debug(char const * const progmem, ...) {
     char fmt[128];
@@ -187,12 +200,18 @@ Bool timeout() {
 
 
 // check for a low memory condition
-Bool check_mem() {
+Bool check_mem(index_t const
+    #ifdef ENA_MEM_STATS    // get rid of 'unused' warning when not tracking memory
+    level
+    #endif
+    ) {
     #ifdef ENA_MEM_STATS
     if ((unsigned int)freeMemory() < game.lowest_mem) {
         game.lowest_mem = freeMemory();
         game.lowest_mem_ply = game.ply;
     }
+
+    game.freemem[level][game.ply].mem = freeMemory();
     #endif
 
     Bool const low_mem = freeMemory() < game.options.low_mem_limit;
@@ -201,7 +220,7 @@ Bool check_mem() {
     }
     return low_mem;
 
-} // check_mem()
+} // check_mem(index_t const level)
 
 
 void direct_write(index_t const pin, Bool const value) {
@@ -226,62 +245,53 @@ void direct_write(index_t const pin, Bool const value) {
 }
 
 
-
 void show_low_memory() {
     direct_write(DEBUG1_PIN, HIGH);
-    // bitSet(PORTD, DEBUG1_PIN);    // == digitalWrite(pin,LOW) for pins 2-6
-    // digitalWrite(DEBUG1_PIN, HIGH);
 
 } // show_low_memory()
 
 
 void show_quiescent_search() {
     direct_write(DEBUG2_PIN, HIGH);
-    // bitSet(PORTD, DEBUG2_PIN);    // == digitalWrite(pin,LOW) for pins 2-6
-    // digitalWrite(DEBUG2_PIN, HIGH);
 
 } // show_quiescent_search()
 
 
 void show_timeout() {
     direct_write(DEBUG3_PIN, HIGH);
-    // bitSet(PORTD, DEBUG3_PIN);    // == digitalWrite(pin,LOW) for pins 2-6
-    // digitalWrite(DEBUG3_PIN, HIGH);
 
 } // show_timeout()
 
 
 void show_check() {
     direct_write(DEBUG4_PIN, HIGH);
-    // bitSet(PORTD, DEBUG4_PIN);    // == digitalWrite(pin,LOW) for pins 2-6
-    // digitalWrite(DEBUG2_PIN, HIGH);
 
 } // show_quiescent_search()
 
 
 #ifdef ENA_MEM_STATS
 
-void show_memory_stats1() {
-    // the amount of memory used as reported by the compiler
-    int const prg_ram = 938;
+// void show_memory_stats1() {
+//     // the amount of memory used as reported by the compiler
+//     int const prg_ram = 938;
 
-    printf(Debug1, "== Memory Usage By Function and Ply Levels ==\n");
+//     printf(Debug1, "== Memory Usage By Function and Ply Levels ==\n");
 
-    for (index_t i = 0; i <= game.options.max_max_ply; i++) {
-        printf(Debug1, "freemem[choose_best_move][ply %d] = %4d\n", i, game.freemem[CHOOSE][i].mem - prg_ram);
-        printf(Debug1, "freemem[ piece move gen ][ply %d] = %4d\n", i, game.freemem[ADD_MOVES][i].mem - prg_ram);
-        printf(Debug1, "freemem[ consider_move  ][ply %d] = %4d\n", i, game.freemem[CONSIDER][i].mem - prg_ram);
-        printf(Debug1, "freemem[    make_move   ][ply %d] = %4d. Diff = %d\n", 
-            i, 
-            game.freemem[MAKE][i].mem   - prg_ram, 
-            game.freemem[CHOOSE][i].mem - game.freemem[MAKE][i].mem);
+//     for (index_t i = 0; i <= game.options.max_max_ply; i++) {
+//         printf(Debug1, "freemem[choose_best_move][ply %d] = %4d\n", i, game.freemem[CHOOSE][i].mem - prg_ram);
+//         printf(Debug1, "freemem[ piece move gen ][ply %d] = %4d\n", i, game.freemem[ADD_MOVES][i].mem - prg_ram);
+//         printf(Debug1, "freemem[ consider_move  ][ply %d] = %4d\n", i, game.freemem[CONSIDER][i].mem - prg_ram);
+//         printf(Debug1, "freemem[    make_move   ][ply %d] = %4d. Diff = %d\n", 
+//             i, 
+//             game.freemem[MAKE][i].mem   - prg_ram, 
+//             game.freemem[CHOOSE][i].mem - game.freemem[MAKE][i].mem);
     
-        printf(Debug1, "\n");
-    }
+//         printnl(Debug1);
+//     }
 
-    printf(Debug1, "\n");
+//     printnl(Debug1);
 
-} // show_memory_stats1()
+// } // show_memory_stats1()
 
 void show_memory_stats2() {
     // the amount of memory used as reported by the compiler
@@ -305,10 +315,12 @@ void show_memory_stats2() {
         consider_move_mem +
         make_move_mem;
 
-    printf(Debug1, "===================================\n", recurs_mem);
-    printf(Debug1, "       Total Recusive Memory: %d\n", recurs_mem);
+    printrep(Debug1, '=', 35);
+    printf(Debug1, "%d\n", recurs_mem);
+    printrep(Debug1, ' ', 7);
+    printf(Debug1, "Total Recusive Memory: %d\n", recurs_mem);
     printf(Debug1, "    Lowest Memory Registered: %4d at ply level %d\n", game.lowest_mem - prg_ram, game.lowest_mem_ply);
-    printf(Debug1, "\n");
+    printnl(Debug1);
 
 } // show_memory_stats2()
 
@@ -319,14 +331,17 @@ void show_stats() {
     char str[16]= "";
 
     // print out the game move counts and time statistics
-    printf(Debug1, "======================================================================\n");
-    printf(Debug1, "           total game time: ");
+    printrep(Debug1, '=', 70);
+    printnl(Debug1);
+    printrep(Debug1, ' ', 11);
+    printf(Debug1, "total game time: ");
     show_time(game.stats.game_stats.duration());
-    printf(Debug1, "\n");
+    printnl(Debug1);
 
     uint32_t const move_count = game.move_num;
     ftostr(move_count, 0, str);
-    printf(Debug1, "           number of moves: %s\n", str);
+    printrep(Debug1, ' ', 11);
+    printf(Debug1, "number of moves: %s\n", str);
 
     uint32_t const game_count = game.stats.game_stats.counter();
     ftostr(game_count, 0, str);
@@ -336,10 +351,6 @@ void show_stats() {
     ftostr(moves_per_sec, 0, str);
     printf(Debug1, "  average moves per second: %s %s\n", str, 
         game.options.profiling ? "" : "(this includes waiting on the serial output)");
-
-    ftostr(game.stats.max_moves, 0, str);
-    printf(Debug1, "   max move count per turn: %s\n", str);
-    printf(Debug1, "\n");
 
     #ifdef ENA_MEM_STATS
     show_memory_stats2();
@@ -354,17 +365,29 @@ void show_stats() {
 // returns True if the move would violate the rule and end the game, otherwise False
 Bool would_repeat(move_t move) 
 {
-    index_t const total = MAX_REPS * 2 - 1;
+    // Stack Management
+    // DECLARE ALL LOCAL VARIABLES USED IN THIS CONTEXT HERE AND
+    // DO NOT MODIFY ANYTHING BEFORE CHECKING THE AVAILABLE STACK
+    index_t total, i;
+    Bool result;
+    game_t::history_t m;
+
+    //  Check for low stack space
+    if (check_mem(ADD_MOVES)) { return 0; }
+
+    // Now we can alter local variables! 😎 
+
+    total = MAX_REPS * 2 - 1;
 
     if (game.hist_count < total) {
         return False;
     }
 
-    Bool result = True;
+    result = True;
 
-    history_t m = { move.from, move.to };
+    m = { move.from, move.to };
 
-    for (index_t i = 1; i < total; i += 2) {
+    for (i = 1; i < total; i += 2) {
         if (game.history[i].to == m.from && game.history[i].from == m.to) {
             m = game.history[i];
         }
@@ -385,9 +408,19 @@ Bool would_repeat(move_t move)
 // returns True if the move violates the rule and end the game, otherwise False
 Bool add_to_history(move_t const &move)
 {
-    Bool result = would_repeat(move);
+    // Stack Management
+    // DECLARE ALL LOCAL VARIABLES USED IN THIS CONTEXT HERE AND
+    // DO NOT MODIFY ANYTHING BEFORE CHECKING THE AVAILABLE STACK
+    Bool result;
 
-    memmove(&game.history[1], &game.history[0], sizeof(history_t) * (ARRAYSZ(game.history) - 1));
+    //  Check for low stack space
+    if (check_mem(ADD_MOVES)) { return 0; }
+
+    // Now we can alter local variables! 😎 
+
+    result = would_repeat(move);
+
+    memmove(&game.history[1], &game.history[0], sizeof(game_t::history_t) * (ARRAYSZ(game.history) - 1));
     game.history[0] = { move.from, move.to };
     if (game.hist_count < index_t(ARRAYSZ(game.history))) {
         game.hist_count++;
@@ -444,7 +477,7 @@ void show_pieces()
             show_piece(p);
         }
 
-        printf(Debug1, "\n");
+        printnl(Debug1);
     }
     printf(Debug1, "};\n");
 

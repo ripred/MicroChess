@@ -18,6 +18,7 @@ struct options_t {
 public:
 
     // This stuff changes at runtime during the game and can be modified
+
     uint8_t          random : 1,    // Add randomness to the game when True
                 live_update : 1,    // Periodically update the LED strip and other external indicators as we choose a move
                   profiling : 1,    // We profiling the engine when True
@@ -40,8 +41,8 @@ public:
 
     // This stuff stays the same at runtime during the game, and can't be modified during the game
 
-    static uint32_t const move_limit    = 100;  // The maximum number of moves allowed in a full game
-    static int      const low_mem_limit = 858;  // The amount of memory used as reported by the compiler
+    static uint32_t constexpr move_limit    = 100;  // The maximum number of moves allowed in a full game
+    static int      constexpr low_mem_limit = 801;  // The amount of memory used as reported by the compiler
 
     // adjustable multipiers to alter importance of mobility or center proximity
     // during board evaluation. season to taste

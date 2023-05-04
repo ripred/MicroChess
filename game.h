@@ -25,26 +25,15 @@ public:
     index_t  x : NUM_BITS_PT, 
              y : NUM_BITS_PT;
 
-public:
-    point_t() /* : x(0), y(0) */ {}
+    point_t() {}
     point_t(index_t X, index_t Y) : x(X), y(Y) {}
 
 };  // point_t
 
 
-struct history_t {
-    // history_t() {}
-    // ~history_t() {}
-
-    index_t 
-        from : 6, 
-          to : 6;
-
-};  // history_t
-
 ////////////////////////////////////////////////////////////////////////////////////////
 // the state of a game
-struct game_t 
+class game_t 
 {
 public:
 #ifdef ENA_MEM_STATS
@@ -57,9 +46,6 @@ public:
     index_t    lowest_mem_ply;
 #endif
 
-    // Flags indicating when all pieces for this ply level have been evaluated
-    uint8_t     complete;
-
     // The game options
     static options_t options;
 
@@ -68,7 +54,12 @@ public:
     static long const material_bonus[7][2] PROGMEM;                                
 
     // The last 'MAX_REPS * 2 - 1' moves are kept to recognize 'MAX_REPS' move repetition
-    history_t   history[MAX_REPS * 2 - 1];
+    struct history_t {
+    index_t 
+        from : 6, 
+          to : 6;
+
+    } history[MAX_REPS * 2 - 1];
     index_t     hist_count;
 
     // The locations of the pieces on the board
@@ -76,8 +67,14 @@ public:
     uint8_t     piece_count;
 
     // The pieces that have been taken
-    Piece       taken_by_white[16];
-    Piece       taken_by_black[16];
+    struct {
+        uint8_t piece : 6;
+    } taken_by_white[16];
+
+    struct {
+        uint8_t piece : 6;
+    } taken_by_black[16];
+
     uint8_t     white_taken_count;
     uint8_t     black_taken_count;
 
@@ -85,7 +82,6 @@ public:
     stat_t      stats;
 
     // the last move made
-    long        last_value;                     // The value of the last move made
     move_t      last_move;                      // The last move made
     uint8_t     last_was_en_passant     : 1,    // True when last move was an en-passaant capture
                 last_was_castle         : 1,    // True when last move was a castling of a king and a rook
@@ -100,10 +96,6 @@ public:
                                     ply : 3,    // the current ply level
                                   wking : 6,    // the location of the white king
                                   bking : 6;    // the location of the black king
-
-    // last move statistics
-    // uint32_t    last_move_time;
-    uint32_t    last_moves_evaluated;
 
     // increasing move number
     uint8_t     move_num;
