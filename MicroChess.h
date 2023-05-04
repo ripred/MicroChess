@@ -34,7 +34,7 @@ enum : uint32_t {
 
 enum {
     VERSION_MAJOR      =  1,    // The major sofware revision number
-    VERSION_MINOR      = 50,    // The minor sofware revision number
+    VERSION_MINOR      = 51,    // The minor sofware revision number
 
     MAX_REPS           =  3,    // the max number of times a pair of moves can be repeated
 
@@ -116,7 +116,7 @@ static Piece constexpr Rook   = 4u;
 static Piece constexpr Queen  = 5u;
 static Piece constexpr King   = 6u;
 
-// the masks for the Piece bit fields
+// The masks for the Piece bit fields
 static Piece constexpr Type  = 0b00000111u;
 static Piece constexpr Side  = 0b00001000u;
 static Piece constexpr Moved = 0b00010000u;
@@ -166,8 +166,8 @@ extern void     show_check();
 
 extern char const * ftostr(double const value, int const dec, char * const buff);
 extern char const * addCommas(long int value);
-extern void printrep(print_t const level, char const c, index_t repeat);
-extern void printnl(print_t const level, index_t repeat= 1);
+extern void     printrep(print_t const level, char const c, index_t repeat);
+extern void     printnl(print_t const level, index_t repeat= 1);
 extern int      debug(char const * const fmt, ...);
 
 #define printf(__level, __str, ...) \
@@ -222,7 +222,7 @@ struct book_t {
 
 
 // define a data type for a callback move generation handler
-typedef Bool    (generator_t(struct piece_gen_t &gen));
+typedef void    (generator_t(struct piece_gen_t &gen));
 
 
 // The piece_gen_t type is a parameter passing structure used
@@ -307,12 +307,13 @@ extern void     set_led_strip(index_t const flash = -1);
 
 extern Bool     timeout();
 
-extern Bool     consider_move(piece_gen_t &gen);
+extern void     consider_move(piece_gen_t &gen);
 extern long     make_move(piece_gen_t & gen);
 extern long     evaluate(piece_gen_t & gen);
 extern Bool     would_repeat(move_t const move);
 extern Bool     add_to_history(move_t const &move);
 extern void     choose_best_moves(Color const who, move_t &wbest, move_t &bbest, generator_t const callback);
+extern void     check_kings();
 
 extern index_t  add_pawn_moves(piece_gen_t &gen);
 extern index_t  add_knight_moves(piece_gen_t &gen);

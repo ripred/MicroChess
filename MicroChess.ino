@@ -53,9 +53,24 @@
 // The game board
 board_t board;
 
+
 ////////////////////////////////////////////////////////////////////////////////////////
 // The currently running game states and flags
 game_t game;
+
+
+////////////////////////////////////////////////////////////////////////////////////////
+// Opening book moves (if enabled)
+book_t const opening1[] = {
+    { 6 * 8 + 4,   Pawn, 5 * 8 + 4, Empty },
+    { 7 * 8 + 5, Bishop, 4 * 8 + 2, Empty },
+    { 7 * 8 + 3,  Queen, 5 * 8 + 5, Empty },
+    { 5 * 8 + 5,  Queen, 1 * 8 + 5,  Pawn }
+
+}; // opening1
+
+Color const book_t::side = White;
+
 
 // uncomment the following line to display each move as it is evaluated
 // #define SHOW1
@@ -65,16 +80,13 @@ game_t game;
 // depending on the color of the piece and set this as the best move
 // if it has a higher value (or an equal value when we're using random)
 // 
-// returns True if the move is the new best move, False otherwise
-// 
 // Note: Sanitized stack
 // 
-Bool consider_move(piece_gen_t &gen)
+void consider_move(piece_gen_t &gen)
 {
     // Stack Management
     // DECLARE ALL LOCAL VARIABLES USED IN THIS CONTEXT HERE AND
     // DO NOT MODIFY ANYTHING BEFORE CHECKING THE AVAILABLE STACK
-    Bool better;
 
     //  Check for low stack space
     if (check_mem(CONSIDER)) {
@@ -85,11 +97,11 @@ Bool consider_move(piece_gen_t &gen)
             printf(Debug1, " early : line %d\n", __LINE__);
         }
         #endif
-        return False;
+        return;
     }
 
     if (game.user_supplied || PLAYING != game.state) {
-        return False;
+        return;
     }
 
     // Check for alpha-beta cutoff
@@ -101,57 +113,43 @@ Bool consider_move(piece_gen_t &gen)
             printf(Debug1, " returning early at line %d\n", __LINE__);
         }
         #endif
-        return False;
+        return;
     }
 
     // Recursively generate the move's value
     make_move(gen);
-
-    #ifdef SHOW1
-    repeat = False;
-    #endif
-
-    better = False;
 
     // Penalize the move if it would cause us to lose by move repetition
     if (would_repeat(gen.move)) {
         gen.move.value = gen.whites_turn ? MIN_VALUE : MAX_VALUE;
     }
 
+    // if (gen.whites_turn) {
+    //     if (-1 == gen.wbest.to) {
+    //         gen.wbest = gen.move;
+    //     }
+    // }
+    // else {
+    //     if (-1 == gen.bbest.to) {
+    //         gen.bbest = gen.move;
+    //     }
+    // }
+
+    // Check to see if this move is equal to the best move we've seen so far
     if (gen.whites_turn) {
-        if (-1 == gen.wbest.to) {
+        if ((gen.move.value == gen.wbest.value) && random(2)) {
             gen.wbest = gen.move;
-            better = True;
+        }
+        else if (gen.move.value > gen.wbest.value) {
+            gen.wbest = gen.move;
         }
     }
     else {
-        if (-1 == gen.bbest.to) {
+        if ((gen.move.value == gen.bbest.value) && random(2)) {
             gen.bbest = gen.move;
-            better = True;
         }
-    }
-
-    // Check to see if this move is equal to the best move we've seen so far
-    if (!better) {
-        if (gen.whites_turn) {
-            if ((gen.move.value == gen.wbest.value) && random(2)) {
-                gen.wbest = gen.move;
-                better = True;
-            }
-            else if (gen.move.value > gen.wbest.value) {
-                gen.wbest = gen.move;
-                better = True;
-            }
-        }
-        else {
-            if ((gen.move.value == gen.bbest.value) && random(2)) {
-                gen.bbest = gen.move;
-                better = True;
-            }
-            else if (gen.move.value < gen.bbest.value) {
-                gen.bbest = gen.move;
-                better = True;
-            }
+        else if (gen.move.value < gen.bbest.value) {
+            gen.bbest = gen.move;
         }
     }
 
@@ -159,11 +157,8 @@ Bool consider_move(piece_gen_t &gen)
     #ifdef SHOW1
     if (0 == game.ply) {
         show_move(gen.move, True);
-        printf(Debug1, "%s\n", (better ? "*" : " "));
     }
     #endif
-
-    return better;
 
 }   // consider_move(piece_gen_t &gen)
 
@@ -388,10 +383,12 @@ long make_move(piece_gen_t & gen)
         }
     }
 
+    // Check the check state for both Kings
+    check_kings();
 
     // Step 4: Evaluate the board score after making the move
 
-    // get the value of the current board
+    // Get the value of the current board
     gen.move.value = evaluate(gen);
 
     // Control the percentage of moves that the engine makes a mistake on
@@ -491,11 +488,17 @@ long make_move(piece_gen_t & gen)
                         // if (game.black_king_in_check) {
                         //     gen.move.value = (!gen.whites_turn ? MIN_VALUE : MAX_VALUE);
                         // }
+
+                        if (game.ply > 0) {
+                            game.white_king_in_check = vars.white_king_in_check;
+                            game.black_king_in_check = vars.black_king_in_check;
+                        }
                     }
                 }
             }
         }
-    }
+
+    } // if (!(vars.king_taken && game.ply == 0) && gen.evaluating)
 
 
     // Step 5: If we are just considering the move then put everything back
@@ -535,8 +538,8 @@ long make_move(piece_gen_t & gen)
         game.last_was_castle = vars.last_was_castle;
         game.last_was_pawn_promotion = vars.last_was_pawn_promotion;
 
-        game.white_king_in_check = vars.white_king_in_check;
-        game.black_king_in_check = vars.black_king_in_check;
+        // game.white_king_in_check = vars.white_king_in_check;
+        // game.black_king_in_check = vars.black_king_in_check;
 
         // Don't take the move if it leaves us in check
         if (gen.whites_turn) {
@@ -568,16 +571,7 @@ long make_move(piece_gen_t & gen)
                 setMoved(board.get((game.pieces[castly_rook].x + game.pieces[castly_rook].y * 8)), False));
         }
 
-        // Keep us from actually taking the king if it was the best move
-        // if (vars.king_taken) {
-        //     if (gen.whites_turn) {
-        //         gen.move.value = MIN_VALUE;
-        //     }
-        //     else {
-        //         gen.move.value = MAX_VALUE;
-        //     }
-        // }
-    }
+    } // if (gen.evaluating)
 
     return gen.move.value;
 
@@ -930,6 +924,66 @@ void choose_best_moves(move_t &wbest, move_t &bbest, generator_t const callback)
 
 
 ////////////////////////////////////////////////////////////////////////////////////////
+// Enumerate over all available moves and set the game.white_king_in_check
+// and game.black_king_in_check flags
+// returns True if either King is in check
+void check_kings() {
+    if (game.king_checker) { return; }
+
+    auto visitor = [](piece_gen_t &gen) -> void {
+        if (King == getType(board.get(gen.move.to))) {
+            if (White == getSide(board.get(gen.move.to))) {
+                game.white_king_in_check = True;
+            }
+            else {
+                game.black_king_in_check = True;
+            }
+        }
+    };
+
+    move_t scratch = { -1, -1, 0 };
+    move_t wbest = { -1, -1, MIN_VALUE };
+    move_t bbest = { -1, -1, MAX_VALUE };
+    piece_gen_t gen(scratch, wbest, bbest, visitor, False);
+
+    // Walk through the game.pieces[] list and set the king-in-check flags if necessary
+    for (index_t i = 0; i < game.piece_count; i++) {
+        gen.col = game.pieces[i].x;
+        if (-1 == gen.col) { continue; }
+
+        // Construct a move_t object with the starting location
+        gen.row = game.pieces[i].y;
+        gen.move.from = gen.col + gen.row * 8;
+        gen.move.to = -1;
+        gen.piece = board.get(gen.move.from);
+        gen.type = getType(gen.piece);
+        gen.side = getSide(gen.piece);
+        gen.whites_turn = White == gen.side;
+        gen.move.value = gen.whites_turn ? MIN_VALUE : MAX_VALUE;
+
+        if (Empty == gen.type) {
+            continue;
+        }
+
+        // Evaluate the moves for this Piece Type and get the highest value move
+        switch (gen.type) {
+            case   Pawn:    add_pawn_moves(gen);           break;
+            case Knight:    add_knight_moves(gen);         break;
+            case Bishop:    add_bishop_moves(gen);         break;
+            case   Rook:    add_rook_moves(gen);           break;
+            case  Queen:    add_queen_moves(gen);          break;
+            case   King:    add_king_moves(gen);           break;
+            default: printf(Always, "bad type: line %d\n", __LINE__);   break;
+        }
+
+    } // for each piece on both sides
+
+
+
+
+} // check_kings()
+
+////////////////////////////////////////////////////////////////////////////////////////
 // Set the per-side options. This allows testing feature choices against each other
 // 
 void set_per_side_options() {
@@ -984,17 +1038,6 @@ void reset_turn_flags()
 }   // reset_move_flags()
 
 
-book_t const opening1[] = {
-    { 6 * 8 + 4,   Pawn, 5 * 8 + 4, Empty },
-    { 7 * 8 + 5, Bishop, 4 * 8 + 2, Empty },
-    { 7 * 8 + 3,  Queen, 5 * 8 + 5, Empty },
-    { 5 * 8 + 5,  Queen, 1 * 8 + 5,  Pawn }
-
-}; // opening1
-
-Color const book_t::side = White;
-
-
 ////////////////////////////////////////////////////////////////////////////////////////
 // Fill in the next opening book move if available.
 // 
@@ -1026,6 +1069,7 @@ Bool check_book(move_t &move)
 // Make the next move in the game
 // 
 void take_turn()
+
 {
     // Turn off the LED move indicators
     direct_write(DEBUG1_PIN, LOW);
@@ -1183,7 +1227,7 @@ void take_turn()
 // 
 void set_game_options()
 {
-    // Set game.options.profiling to True (1) to disable output and profile the engine
+    // Set game.options.profiling to True to disable output and profile the engine
     game.options.profiling = False;
     // game.options.profiling = True;
 
@@ -1196,7 +1240,7 @@ void set_game_options()
     // Set the percentage of moves that might be a mistake
     game.options.mistakes = 0;
 
-    // Set game.options.random to True (1) to use randomness in the game decisions
+    // Set game.options.random to True to use randomness in the game decisions
     // game.options.random = False;
     game.options.random = True;
 
@@ -1211,7 +1255,7 @@ void set_game_options()
  
     // Set the time limit per turn in milliseconds
     // game.options.time_limit = 0;     // for no time limit
-    game.options.time_limit = 10000;
+    game.options.time_limit = 7000;
 
     // Enable or disable opening book moves
     game.options.openbook = True;
@@ -1220,8 +1264,8 @@ void set_game_options()
     // game.options.alpha_beta_pruning = False;
     game.options.alpha_beta_pruning = True;
 
-    // When shuffle_pieces is True we sort the pieces[] array before each turn
-    // so that we process the current side's pieces first.
+    // When shuffle_pieces is True we shuffle the pieces[] array before each turn
+    // so that we process the current side's pieces in random order.
     // game.options.shuffle_pieces = False;
     game.options.shuffle_pieces = True;
 

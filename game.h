@@ -53,6 +53,9 @@ public:
     static long const center_bonus[8][7][2] PROGMEM;
     static long const material_bonus[7][2] PROGMEM;                                
 
+    // True when we should not call check_kings()
+    Bool king_checker;
+
     // The last 'MAX_REPS * 2 - 1' moves are kept to recognize 'MAX_REPS' move repetition
     struct history_t {
     index_t 

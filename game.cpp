@@ -103,6 +103,8 @@ void game_t::init()
     lowest_mem_ply = -1;
     #endif
 
+    king_checker = False;
+
     hist_count = 0;
 
     stats.init();
