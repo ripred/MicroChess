@@ -431,20 +431,47 @@ Bool add_to_history(move_t const &move)
 }   // add_to_history()
 
 
-// display a Piece's color and type
-void show_piece(Piece const p)
-{
-    Piece const type = getType(p);
-    Color const side = getSide(p);
+void say_check() {
+    printf(Debug1, "check");
+}
 
-    if (White == side) {
-        printf(Debug1, "White");
+
+void say_mate() {
+    printf(Debug1, "mate");
+}
+
+
+void show_side(Color const side)
+{
+    if (side) { printf(Debug1, "White"); } else { printf(Debug1, "Black"); }
+}
+
+
+void show_check(Color const side, Bool const mate /* = False */)
+{
+    extern print_t print_level;
+
+    if (Debug1 < print_level) { return; }
+
+    show_side(side);
+
+    if (mate) {
+        say_mate();
+        Serial.write("!\n");
     }
     else {
-        printf(Debug1, "Black");
+        Serial.write(" is in ");
+        say_check();
     }
+}
 
-    switch (type) {
+
+// display a Piece's color and type
+void show_piece(Piece const piece)
+{
+    show_side(getSide(piece));
+
+    switch (getType(piece)) {
         case  Empty: printf(Debug1, " Empty");  break;
         case   Pawn: printf(Debug1, " Pawn");  break;
         case   Rook: printf(Debug1, " Rook");  break;
@@ -452,11 +479,12 @@ void show_piece(Piece const p)
         case Bishop: printf(Debug1, " Bishop");  break;
         case  Queen: printf(Debug1, " Queen");  break;
         case   King: printf(Debug1, " King");  break;
-        default:     printf(Debug1, "bad type %d\n", type); 
+        default:     
+            printf(Debug1, "bad type %d\n", getType(piece)); 
             break;
     }
 
-} // show_piece(Piece const p) 
+} // show_piece(Piece const piece)
 
 
 // debug function to display all of the point_t's in the game.pieces[game.piece_count] list:

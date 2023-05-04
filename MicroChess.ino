@@ -1057,7 +1057,7 @@ void take_turn()
 
     Bool const whites_turn = (White == game.turn) ? True : False;
     Bool book_supplied = False;
-    move_t move;
+    move_t move = { -1, -1, 0 };
 
     // See if we have an opening book move and return it if so
     if (game.options.openbook && check_book(move)) {
@@ -1094,48 +1094,30 @@ void take_turn()
 
     show_move(move);
 
+    // Make the move:
+    move_t scratch = { -1, -1, 0 };
+    piece_gen_t gen(scratch);
+    gen.evaluating = False;
+    gen.callme = consider_move;
+
+    if (whites_turn) {
+        gen.move = wmove;
+    }
+    else {
+        gen.move = bmove;
+    }
+
     // Save the number of pieces in the game before we make the move
     // in order to see if any pieces were taken
     index_t const piece_count = game.piece_count;
 
-    // Make the move:
-    move_t dummy;
+    gen.init(board, game);
+    make_move(gen);
 
-    if (whites_turn) {
-        piece_gen_t gen(wmove, dummy, dummy, consider_move, False);
-        gen.piece_index = game.find_piece(wmove.from);
-        gen.col = wmove.from % 8;
-        gen.row = wmove.from / 8;
-        gen.piece = board.get(gen.col + gen.row * 8);
-        gen.type = getType(gen.piece);
-        gen.side = getSide(gen.piece);
-        gen.whites_turn = True;
-        make_move(gen);
-
-        // Check for move repetition
-        if ((PLAYING == game.state) && add_to_history(wmove)) {
-            game.state = WHITE_3_MOVE_REP;
-        }
+    // Check for move repetition
+    if ((PLAYING == game.state) && add_to_history(gen.move)) {
+        game.state = whites_turn ? WHITE_3_MOVE_REP : BLACK_3_MOVE_REP;
     }
-    else {
-        piece_gen_t gen(bmove, dummy, dummy, consider_move, False);
-        gen.piece_index = game.find_piece(bmove.from);
-        gen.col = bmove.from % 8;
-        gen.row = bmove.from / 8;
-        gen.piece = board.get(gen.col + gen.row * 8);
-        gen.type = getType(gen.piece);
-        gen.side = getSide(gen.piece);
-        gen.whites_turn = False;
-        make_move(gen);
-
-        // Check for move repetition
-        if ((PLAYING == game.state) && add_to_history(bmove)) {
-            game.state = BLACK_3_MOVE_REP;
-        }
-    }
-
-    // Set a flag if we took a piece
-    Bool const piece_taken = piece_count != game.piece_count;
 
     if (game.last_was_en_passant) {
         printf(Debug1, " - en passant capture ")
@@ -1155,16 +1137,21 @@ void take_turn()
 
     printnl(Debug1);
 
+    auto show_check = [](Color const side) -> void {
+        show_side(side);
+        printf(Debug1, " King is in check!\n");
+    };
+
     // Announce if either King is in check
     if (game.white_king_in_check) {
-        printf(Debug1, "White King is in check!\n");
+        show_check(White);
         // if (whites_turn) {
         //     game.state = BLACK_CHECKMATE;
         // }
     }
 
     if (game.black_king_in_check) {
-        printf(Debug1, "Black King is in check!\n");
+        show_check(Black);
         // if (!whites_turn) {
         //     game.state = WHITE_CHECKMATE;
         // }
@@ -1179,7 +1166,7 @@ void take_turn()
     game.move_num++;
 
     // Delete any soft-deleted pieces for real
-    if (piece_taken) {
+    if (piece_count != game.piece_count) {
         for (index_t i = 0; i < game.piece_count; i++) {
             if (-1 == game.pieces[i].x) {
                 game.pieces[i] = game.pieces[--game.piece_count];
@@ -1660,12 +1647,7 @@ void show()
     printrep(Debug1, ' ', 7);
     printf(Debug1, "Board value: %s ", str_score);
     if (0 != game.last_move.value) {
-        if (game.last_move.value < 0) {
-            printf(Debug1, "Black");
-        }
-        else {
-            printf(Debug1, "White");
-        }
+        show_side(game.last_move.value > 0);
         printf(Debug1, "'s favor");
     }
 

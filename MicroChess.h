@@ -257,21 +257,39 @@ class piece_gen_t {
             num_wmoves : 4,     // The number of white moves available
             num_bmoves : 4;     // The number of white moves available
 
-    piece_gen_t(move_t &m, move_t &wb, move_t &bb, generator_t *cb, Bool const eval) :
-        move(m), wbest(wb), bbest(bb), callme(cb), evaluating(eval), cutoff(False), nocall(False), terminal(False)
-    {
+    void inline init(board_t const &board, game_t &game) {
         piece = board.get(move.from);
         type = getType(piece);
         side = getSide(piece);
         col = move.from % 8;
         row = move.from / 8;
+        piece_index = game.find_piece(move.from);
+        whites_turn = (White == side);
+        cutoff = False;
+        nocall = False;
+        terminal = False;
+        num_wmoves = 0;
+        num_bmoves = 0;
+    }
+
+    piece_gen_t(move_t &m) : move(m), wbest(m), bbest(m) 
+    {
+        init(board, game);
+    }
+
+    piece_gen_t(move_t &m, move_t &wb, move_t &bb, generator_t *cb, Bool const eval) :
+        move(m), wbest(wb), bbest(bb), callme(cb), evaluating(eval)
+    {
+        init(board, game);
     }
 
 };  // piece_gen_t
 
 
 // Display a piece, or a move, the piece list, or a time duration
-extern void     show_piece(Piece const p);
+extern void     show_side(Color const side);
+extern void     show_check(Color const side, Bool const mate = False);
+extern void     show_piece(Piece const piece);
 extern void     show_move(move_t const &move, Bool const align = False);
 extern void     show_pieces();
 extern void     show_time(uint32_t ms);
