@@ -224,6 +224,7 @@ long make_move(piece_gen_t & gen)
     // i.e: Don't make the move whatever it is
     gen.move.value = gen.whites_turn ? MIN_VALUE : MAX_VALUE;
 
+
     /// Step 1: Identify the piece being moved
 
     vars.to_col = uint8_t(gen.move.to % 8);
@@ -261,11 +262,11 @@ long make_move(piece_gen_t & gen)
 
         if (gen.whites_turn) {
             game.black_king_in_check = True;
-            gen.move.value = (0 == game.ply) ? MIN_VALUE : MAX_VALUE;
+            gen.move.value = /* (0 == game.ply) ? MIN_VALUE : */ MAX_VALUE;
         }
         else {
             game.white_king_in_check = True;
-            gen.move.value = (0 == game.ply) ? MAX_VALUE : MIN_VALUE;
+            gen.move.value = /* (0 == game.ply) ? MAX_VALUE : */ MIN_VALUE;
         }
 
         show_check();
@@ -476,18 +477,18 @@ long make_move(piece_gen_t & gen)
                             }
                         }
 
-                        // if (vars.king_taken) {
-                        //     if (game.white_king_in_check || game.black_king_in_check) {
-                        //         gen.move.value = (gen.whites_turn ? MIN_VALUE : MAX_VALUE);
-                        //     }
-                        // }
-
-                        // if (game.white_king_in_check) {
-                        //     gen.move.value = (gen.whites_turn ? MIN_VALUE : MAX_VALUE);
-                        // }
-                        // if (game.black_king_in_check) {
-                        //     gen.move.value = (!gen.whites_turn ? MIN_VALUE : MAX_VALUE);
-                        // }
+                        // We're finished calling into the future moves, and setting the new alpha and beta edges.
+                        // Now make sure this move didn't place our king in check
+                        if (gen.whites_turn) {
+                            if (game.white_king_in_check) {
+                                gen.move.value = MIN_VALUE;
+                            }
+                        }
+                        else {
+                            if (game.black_king_in_check) {
+                                gen.move.value = MAX_VALUE;
+                            }
+                        }
 
                         if (game.ply > 0) {
                             game.white_king_in_check = vars.white_king_in_check;
@@ -1258,7 +1259,8 @@ void set_game_options()
     game.options.time_limit = 7000;
 
     // Enable or disable opening book moves
-    game.options.openbook = True;
+    game.options.openbook = False;
+    // game.options.openbook = True;
 
     // Enable or disable alpha-beta pruning
     // game.options.alpha_beta_pruning = False;
@@ -1580,11 +1582,13 @@ void loop() {}
 
 
 void show_header(Bool const dev) {
-    if (dev) {
-        printf(Debug1, "   0  1  2  3  4  5  6  7")
-    }
-    else {
-        printf(Debug1, "   A  B  C  D  E  F  G  H")
+    if (Debug1 >= game.options.print_level) {
+        if (dev) {
+            Serial.print("   0  1  2  3  4  5  6  7");
+        }
+        else {
+            Serial.print("   A  B  C  D  E  F  G  H");
+        }
     }
 }
 
@@ -1595,6 +1599,9 @@ void show()
 {
     static char constexpr icons[] PROGMEM = "pnbrqkPNBRQK";
     static Bool constexpr dev = True;
+
+    if (game.options.print_level < Debug1) { return; }
+
     index_t constexpr offset = 0;
 
     show_header(!dev);
