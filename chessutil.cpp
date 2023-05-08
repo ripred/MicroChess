@@ -464,6 +464,59 @@ void show_stats() {
 
 
 ////////////////////////////////////////////////////////////////////////////////////////
+// Check for any received serial data
+// 
+// Note: Sanitized stack
+Bool check_serial()
+{
+    // Stack Management
+    // DECLARE ALL LOCAL VARIABLES USED IN THIS CONTEXT HERE AND
+    // DO NOT MODIFY ANYTHING BEFORE CHECKING THE AVAILABLE STACK
+    Bool moved;
+    Bool digits;
+    char movestr[5];
+    index_t i;
+
+    //  Check for low stack space
+    if (check_mem(CHOOSE)) { return False; }
+
+    // Now we can alter local variables! 😎 
+
+    moved = False;
+
+    if (Serial.available() == 5) {
+        digits = True;
+        for (i = 0; i < 5; i++) {
+            movestr[i] = Serial.read();
+            if (i < 4) {
+                if ((movestr[i] >= '0') && (movestr[i] <= '7')) {
+                    movestr[i] -= '0';
+                }
+                else {
+                    digits = False;
+                }
+            }
+        }
+
+        if (digits) {
+            game.supplied = { index_t(movestr[0] + movestr[1] * 8), index_t(movestr[2] + movestr[3] * 8), 0L };
+            game.user_supplied = True;
+
+            printf(Debug1, "User move: ");
+            show_move(game.supplied);
+            printnl(Debug1);
+
+            moved = True;
+        }
+    }
+    else while (Serial.available()) { Serial.read(); }
+
+    return moved;
+
+} // check_serial()
+
+
+////////////////////////////////////////////////////////////////////////////////////////
 // Fill in the next opening book move if available.
 // 
 // returns True if there is a move or False otherwise

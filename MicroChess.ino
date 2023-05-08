@@ -10,14 +10,18 @@
  * TODO:
  * 
  *  [ ] 
- *  [ ] Fix problems with:
- *      [+] King's in check not being detected or reported correctly
- *      [ ] King's not reacting when in check
- *      [ ] 
- * 
  *  [ ] Add awareness of other Arduino's on the I2C bus acting as slave devices
  *      and add the ability to parallel process to moves between all available
  *      CPU's!
+ *  [ ] Change to use true printf, stdin, stdout and stderr so we don't copy the fmt buffer
+ *  [ ] Add tests that prove that the same moves are chosen when alpha-beta
+ *      pruning is enabled that are chosen when it is disabled and running in brute force?
+ *  [ ] Add optional use of I2C serial RAM to create transposition tables for
+ *      moves that have already been searced during this turn.
+ *  [+] Fix problems with:
+ *      [+] King's in check not being detected or reported correctly
+ *      [+] King's not reacting when in check
+ *  [+] Change skip logic to use the same percentage based logic as the mistakes logic
  *  [+] Fix alpha-beta bug!
  *  [+] Finish enabling the en-passant pawn move generation.
  *  [+] Add a function to display times over 1000 ms as minutes, seconds, and ms
@@ -30,12 +34,6 @@
  *      worth MAX_VALUE.
  *  [+] Change to have two sets of option_t in the game, one for each player in order to test
  *      option settings against each other
- * 
- *  [ ] Change to use true printf, stdin, stdout and stderr so we don't copy the fmt buffer
- *  [ ] Add tests that prove that the same moves are chosen when alpha-beta
- *      pruning is enabled that are chosen when it is disabled and running in brute force?
- *  [ ] Add optional use of I2C serial RAM to create transposition tables for
- *      moves that have already been searced during this turn.
  * 
  * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
  * 
@@ -429,7 +427,7 @@ long make_move(piece_gen_t & gen)
                     direct_write(DEBUG2_PIN, LOW);
                 }
 
-                if (!(game.options.randskip && game.ply > 1) || random(2)) {
+                if ((0 != game.options.randskip) || (random(100) > game.options.randskip)) {
                     // Explore The Future! (plies)
                     game.ply++;
                     game.turn = !game.turn;
@@ -681,59 +679,6 @@ long evaluate(piece_gen_t &gen)
     return score;
 
 }   // evaluate(...)
-
-
-////////////////////////////////////////////////////////////////////////////////////////
-// Check for any received serial data
-// 
-// Note: Sanitized stack
-Bool check_serial()
-{
-    // Stack Management
-    // DECLARE ALL LOCAL VARIABLES USED IN THIS CONTEXT HERE AND
-    // DO NOT MODIFY ANYTHING BEFORE CHECKING THE AVAILABLE STACK
-    Bool moved;
-    Bool digits;
-    char movestr[5];
-    index_t i;
-
-    //  Check for low stack space
-    if (check_mem(CHOOSE)) { return False; }
-
-    // Now we can alter local variables! 😎 
-
-    moved = False;
-
-    if (Serial.available() == 5) {
-        digits = True;
-        for (i = 0; i < 5; i++) {
-            movestr[i] = Serial.read();
-            if (i < 4) {
-                if ((movestr[i] >= '0') && (movestr[i] <= '7')) {
-                    movestr[i] -= '0';
-                }
-                else {
-                    digits = False;
-                }
-            }
-        }
-
-        if (digits) {
-            game.supplied = { index_t(movestr[0] + movestr[1] * 8), index_t(movestr[2] + movestr[3] * 8), 0L };
-            game.user_supplied = True;
-
-            printf(Debug1, "User move: ");
-            show_move(game.supplied);
-            printnl(Debug1);
-
-            moved = True;
-        }
-    }
-    else while (Serial.available()) { Serial.read(); }
-
-    return moved;
-
-} // check_serial()
 
 
 ////////////////////////////////////////////////////////////////////////////////////////
@@ -1153,13 +1098,7 @@ void show_game_options() {
         printf(Always, "n\n");
     }
 
-    printf(Always, "Skip: ");
-    if (game.options.randskip) {
-        printf(Always, "y\n");
-    }
-    else {
-        printf(Always, "n\n");
-    }
+    printf(Always, "Skip: %d%%\n", game.options.randskip);
 
     // Enable random seed when program is debugged.
     // Disable random seed to reproduce issues or to profile.
@@ -1203,7 +1142,7 @@ void set_game_options()
 
     // Set the time limit per turn in milliseconds
     // game.options.time_limit = 0;     // for no time limit
-    game.options.time_limit = 1000;
+    game.options.time_limit = 5000;
 
     // Set whether we play continuously or not
     // game.options.continuous = False;

@@ -290,6 +290,7 @@ extern void     set_led_strip(index_t const flash = -1);
 
 extern Bool     timeout();
 
+extern Bool     check_serial();
 extern Bool     check_book();
 
 extern void     check_kings();

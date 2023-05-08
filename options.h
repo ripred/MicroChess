@@ -25,7 +25,7 @@ public:
                  continuous : 1,    // True if we play games continuously one after another
                   integrate : 1,    // Integrate recursive return values when True
                    openbook : 1,    // Use opening book when True
-                   randskip : 1,    // Randomly skip ply depths when True
+                   randskip : 8,    // Randomly skip ply depths percentage
              shuffle_pieces : 1,    // True if we want to process the pieces in a random order
                 white_human : 1,    // Flags indicating if white player is human or not
                 black_human : 1,    // Flags indicating if black player is human or not
@@ -60,7 +60,7 @@ public:
         continuous(False),
         integrate(True),
         openbook(False),
-        randskip(False),
+        randskip(0),
         shuffle_pieces(True),
         white_human(False),
         black_human(False),
