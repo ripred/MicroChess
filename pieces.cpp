@@ -36,9 +36,7 @@ index_t check_fwd(piece_gen_t &gen, index_t const col, index_t const row) {
     if (!isValidPos(col, row)) { return 0; }
     gen.move.to = col + row * 8;
     if (!isEmpty(board.get(gen.move.to))) { return 0; }
-    if (!gen.nocall) {
-        gen.callme(gen);
-    }
+    gen.callme(gen);
     return 1;
 };
 
@@ -89,9 +87,7 @@ index_t add_pawn_moves(piece_gen_t &gen) {
             // Check diagonal piece
             op = board.get(gen.move.to);
             if (!isEmpty(op) && getSide(op) != gen.side) {
-                if (!gen.nocall) {
-                    gen.callme(gen);
-                }
+                gen.callme(gen);
                 count++;
             }
 
@@ -105,9 +101,7 @@ index_t add_pawn_moves(piece_gen_t &gen) {
             //         op = board.get(last_move_to_col + gen.row * 8);
             //         if (Pawn == getType(op) && getSide(op) != gen.side) {
             //             gen.move.to = to_col + (gen.row + (gen.whites_turn ? -1 : 1)) * 8;
-            //             if (!gen.nocall) {
-            //                 gen.callme(gen);
-            //             }
+            //             gen.callme(gen);
             //             count++;
             //         }
             //     }
@@ -153,15 +147,11 @@ index_t gen_moves(piece_gen_t &gen, offset_t const * const ptr, index_t const nu
             other_piece = board.get(gen.move.to);
 
             if (isEmpty(other_piece)) {
-                if (!gen.nocall) {
-                    gen.callme(gen);
-                }
+                gen.callme(gen);
                 count++;
             }
             else if (getSide(other_piece) != gen.side) {
-                if (!gen.nocall) {
-                    gen.callme(gen);
-                }
+                gen.callme(gen);
                 count++;
                 break;
             }
@@ -255,9 +245,7 @@ index_t add_king_moves(piece_gen_t &gen) {
             if (empty_knight && empty_bishop) {
                 // We can castle on the King's side
                 gen.move.to = 2 + gen.row * 8;
-                if (!gen.nocall) {
-                    gen.callme(gen);
-                }
+                gen.callme(gen);
                 count++;
             }
         }
@@ -271,9 +259,7 @@ index_t add_king_moves(piece_gen_t &gen) {
             if (empty_knight && empty_bishop && empty_queen) {
                 // We can castle on the Queens's side
                 gen.move.to = 6 + gen.row * 8;
-                if (!gen.nocall) {
-                    gen.callme(gen);
-                }
+                gen.callme(gen);
                 count++;
             }
         }

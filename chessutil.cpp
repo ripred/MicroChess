@@ -14,6 +14,55 @@
 #include <ctype.h>
 #include <stdint.h>
 
+////////////////////////////////////////////////////////////////////////////////////////
+// Opening book moves (if enabled)
+book_t const opening1[] = {
+    { 6 * 8 + 4,   Pawn, 5 * 8 + 4, Empty },
+    { 7 * 8 + 5, Bishop, 4 * 8 + 2, Empty },
+    { 7 * 8 + 3,  Queen, 5 * 8 + 5, Empty },
+    { 5 * 8 + 5,  Queen, 1 * 8 + 5,  Pawn }
+
+}; // opening1
+
+Color const book_t::side = White;
+
+
+piece_gen_t::piece_gen_t(move_t &m) :
+    move(m),
+    wbest(m),
+    bbest(m)
+{
+    init(board, game);
+}
+
+
+piece_gen_t::piece_gen_t(move_t &m, move_t &wb, move_t &bb, generator_t *cb, Bool const eval) :
+    move(m),
+    wbest(wb),
+    bbest(bb),
+    callme(cb),
+    evaluating(eval)
+{
+    init(board, game);
+}
+
+
+void inline piece_gen_t::init(board_t const &board, game_t &game) {
+    piece = board.get(move.from);
+    type = getType(piece);
+    side = getSide(piece);
+    col = move.from % 8;
+    row = move.from / 8;
+    piece_index = game.find_piece(move.from);
+    whites_turn = (White == side);
+    cutoff = False;
+    num_wmoves = 0;
+    num_bmoves = 0;
+}
+
+
+// Utility functions
+
 // get the Type of a Piece
 Piece getType(Piece b)
 {
@@ -165,19 +214,19 @@ const char* ftostr(double const value, int const dec, char * const buff)
 // Check for a timeout during a turn
 Bool timeout() {
     if (0 == game.options.time_limit) {
-        game.last_was_timeout1 = False;
-        game.last_was_timeout2 = False;
+        game.timeout1 = False;
+        game.timeout2 = False;
         return False;
     }
 
-    // We have TWO timeout flags; last_was_timeout1 and last_was_timeout2
+    // We have TWO timeout flags; timeout1 and timeout2
     // 2 is set as soon at the timeout happens regardless of ply level
     // 1 is set when then timeout happens only for ply levels > 1 so that
     // we always evaluate all moves for ply level 0 and 1 and only timeout
     // for ply levels >= 2.
 
     // Set the true timeout flag regardless of ply level
-    game.last_was_timeout2 = game.stats.move_stats.duration() >= game.options.time_limit;
+    game.timeout2 = game.stats.move_stats.duration() >= game.options.time_limit;
 
     // Set the other timeout flag ONLY if we are above ply level 1*
     // NOTE: in order to truly set the game.white_king_in_check or the
@@ -188,13 +237,13 @@ Bool timeout() {
     // from being made that place a king in check. So we must allow both ply
     // level 0 and 1 to complete before we allow a timeout to stop the
     // evaluations:
-    game.last_was_timeout1 = game.last_was_timeout2 && (game.ply > 1);
+    game.timeout1 = game.timeout2 && (game.ply > MIN_PLIES);
 
-    if (game.last_was_timeout2) {
+    if (game.timeout2) {
         show_timeout();
     }
 
-    return game.last_was_timeout1;
+    return game.timeout1;
 
 } // timeout()
 
@@ -245,6 +294,60 @@ void direct_write(index_t const pin, Bool const value) {
 }
 
 
+// Static function used to implement the visitor-pattern
+// when checking for either king's check state
+static void visitor(piece_gen_t &gen) {
+    Piece const piece = board.get(gen.move.to);
+    if (King == getType(piece)) {
+        // This is a King; See which side it belongs to
+        if (White == getSide(piece)) {
+            game.white_king_in_check = True;
+        }
+        else {
+            game.black_king_in_check = True;
+        }
+    }
+}
+
+
+// Enumerate over all available moves and set the game.white_king_in_check
+// and game.black_king_in_check flags accordingly
+void check_kings() {
+    game.white_king_in_check = False;
+    game.black_king_in_check = False;
+
+    // Walk through the game.pieces[] list and set the king-in-check flags if necessary
+    for (index_t i = 0; i < game.piece_count; i++) {
+        if (-1 == game.pieces[i].x) { continue; }
+
+        // Construct a move_t object with the starting location
+        move_t move = { index_t(game.pieces[i].x + game.pieces[i].y * 8), -1, 0 };
+        piece_gen_t gen(move, move, move, visitor, False);
+        gen.move.value = gen.whites_turn ? MIN_VALUE : MAX_VALUE;
+
+        if (Empty == gen.type) { continue; }
+
+        // Evaluate the moves for this Piece Type and get the highest value move
+        switch (gen.type) {
+            case   Pawn:    add_pawn_moves(gen);    break;
+            case Knight:    add_knight_moves(gen);  break;
+            case Bishop:    add_bishop_moves(gen);  break;
+            case   Rook:    add_rook_moves(gen);    break;
+            case  Queen:    add_queen_moves(gen);   break;
+            case   King:    add_king_moves(gen);    break;
+            default: printf(Always, "bad type: line %d\n", __LINE__);   break;
+        }
+
+        // If both king's are in check then there's nothing else for us to do
+        if (game.white_king_in_check && game.black_king_in_check) {
+            return;
+        }
+
+    } // for each piece on both sides
+
+} // check_kings()
+
+
 void show_low_memory() {
     direct_write(DEBUG1_PIN, HIGH);
 
@@ -266,32 +369,33 @@ void show_timeout() {
 void show_check() {
     direct_write(DEBUG4_PIN, HIGH);
 
-} // show_quiescent_search()
+} // show_check()
 
 
 #ifdef ENA_MEM_STATS
 
-// void show_memory_stats1() {
-//     // the amount of memory used as reported by the compiler
-//     int const prg_ram = 938;
+void show_memory_stats1() {
+    // the amount of memory used as reported by the compiler
+    int const prg_ram = 938;
 
-//     printf(Debug1, "== Memory Usage By Function and Ply Levels ==\n");
+    printf(Debug1, "== Memory Usage By Function and Ply Levels ==\n");
 
-//     for (index_t i = 0; i <= game.options.max_max_ply; i++) {
-//         printf(Debug1, "freemem[choose_best_move][ply %d] = %4d\n", i, game.freemem[CHOOSE][i].mem - prg_ram);
-//         printf(Debug1, "freemem[ piece move gen ][ply %d] = %4d\n", i, game.freemem[ADD_MOVES][i].mem - prg_ram);
-//         printf(Debug1, "freemem[ consider_move  ][ply %d] = %4d\n", i, game.freemem[CONSIDER][i].mem - prg_ram);
-//         printf(Debug1, "freemem[    make_move   ][ply %d] = %4d. Diff = %d\n", 
-//             i, 
-//             game.freemem[MAKE][i].mem   - prg_ram, 
-//             game.freemem[CHOOSE][i].mem - game.freemem[MAKE][i].mem);
+    for (index_t i = 0; i <= game.options.max_max_ply; i++) {
+        printf(Debug1, "freemem[choose_best_move][ply %d] = %4d\n", i, game.freemem[CHOOSE][i].mem - prg_ram);
+        printf(Debug1, "freemem[ piece move gen ][ply %d] = %4d\n", i, game.freemem[ADD_MOVES][i].mem - prg_ram);
+        printf(Debug1, "freemem[ consider_move  ][ply %d] = %4d\n", i, game.freemem[CONSIDER][i].mem - prg_ram);
+        printf(Debug1, "freemem[    make_move   ][ply %d] = %4d. Diff = %d\n", 
+            i, 
+            game.freemem[MAKE][i].mem   - prg_ram, 
+            game.freemem[CHOOSE][i].mem - game.freemem[MAKE][i].mem);
     
-//         printnl(Debug1);
-//     }
+        printnl(Debug1);
+    }
 
-//     printnl(Debug1);
+    printnl(Debug1);
 
-// } // show_memory_stats1()
+} // show_memory_stats1()
+
 
 void show_memory_stats2() {
     // the amount of memory used as reported by the compiler
@@ -360,6 +464,41 @@ void show_stats() {
 
 
 ////////////////////////////////////////////////////////////////////////////////////////
+// Fill in the next opening book move if available.
+// 
+// returns True if there is a move or False otherwise
+Bool check_book()
+{
+    static index_t index = 0;
+
+    if (!game.options.openbook) { return False; }
+
+    if (game.turn != book_t::side) {
+        return False;
+    }
+
+    if ((index * 2) != game.move_num) {
+        return False;
+    }
+
+    if (index < index_t(ARRAYSZ(opening1))) {
+        if ((getType(board.get(opening1[index].from)) == opening1[index].type1) && 
+            (getType(board.get(opening1[index].to  )) == opening1[index].type2)) {
+                game.supplied = { 
+                    index_t(opening1[index].from), index_t(opening1[index].to), 0L };
+                game.book_supplied = True;
+                game.supply_valid = False;
+                index++;
+                return True;
+            }
+    }
+
+    return False;
+
+} // check_book()
+
+
+////////////////////////////////////////////////////////////////////////////////////////
 // see if a move would violate the move repetition rule
 // 
 // returns True if the move would violate the rule and end the game, otherwise False
@@ -399,7 +538,7 @@ Bool would_repeat(move_t move)
 
     return result;
 
-}   // would_repeat(move_t const move)
+}   // would_repeat(move_t move)
 
 
 ////////////////////////////////////////////////////////////////////////////////////////
@@ -443,27 +582,49 @@ void say_mate() {
 
 void show_side(Color const side)
 {
-    if (side) { printf(Debug1, "White"); } else { printf(Debug1, "Black"); }
+    if (White == side) { printf(Debug1, "White"); } else { printf(Debug1, "Black"); }
 }
 
 
 void show_check(Color const side, Bool const mate /* = False */)
 {
-    extern print_t print_level;
+    if (game.options.print_level >= Debug1) {
+        show_side(side);
 
-    if (Debug1 < print_level) { return; }
+        if (mate) {
+            say_mate();
+        }
+        else {
+            Serial.write(" is in ");
+            say_check();
+        }
 
-    show_side(side);
-
-    if (mate) {
-        say_mate();
-        Serial.write("!\n");
+        Serial.write("! ");
     }
-    else {
-        Serial.write(" is in ");
-        say_check();
+
+} // show_check()
+
+
+void show_check_status() {
+    // auto show_check = [](Color const side) -> void {
+    //     show_side(side);
+    //     printf(Debug1, " King is in check!\n");
+    // };
+
+    // Announce if either King is in check
+    if (game.white_king_in_check) {
+        show_check(White);
     }
-}
+
+    if (game.black_king_in_check) {
+        show_check(Black);
+    }
+
+    printnl(Debug1);
+    if (game.white_king_in_check || game.black_king_in_check) { 
+        printnl(Debug1);
+    }
+} // show_check_status()
 
 
 // display a Piece's color and type
@@ -500,8 +661,8 @@ void show_pieces()
             printf(Debug1, "    game.pieces[%2d] = Empty", i);
         }
         else {
-            Piece  const p = board.get(col + row * 8);
-            printf(Debug1, "    game.pieces[%2d] = %2d, %2d (%2d): ", i, col, row, col + row * 8);
+            Piece  const p = board.get(col + row * 8u);
+            printf(Debug1, "    game.pieces[%2d] = %2d, %2d (%2d): ", i, col, row, col + row * 8u);
             show_piece(p);
         }
 
@@ -542,7 +703,7 @@ void show_move(move_t const &move, Bool const align /* = False */)
         printf(Debug1, " value: %s", str_value);
     }
 
-} // show_move(move_t const &move)
+} // show_move(move_t const &move, Bool const align)
 
 
 void show_time(uint32_t ms)
@@ -571,48 +732,6 @@ void show_time(uint32_t ms)
         printf(Debug1, "%ld ms", ms);
     }
 }
-
-
-// functions to convert the board contents to and from a 64-byte ascii string
-// void to_string(char * const out)
-// {
-//     char const icons[] = "pnbrqkPNBRQK";
-
-//     for (index_t i = 0; i < index_t(BOARD_SIZE); i++) {
-//         Piece const piece = board.get(i);
-//         index_t const x = i % 8;
-//         index_t const y = i / 8;
-//         char const c = isEmpty(piece) ? 
-//             ((y ^ x) & 1 ? '.' : '*') :
-//             icons[((getSide(piece) * 6) + getType(piece) - 1)];
-//         out[i] = c;
-//     }
-
-// } // to_string(char * const out)
-
-
-// void from_string(char const * const in)
-// {
-//     char const icons[] = "pnbrqkPNBRQK";
-//     game.piece_count = 0;
-
-//     for (index_t i = 0; i < index_t(BOARD_SIZE); i++) {
-//         char const c = in[i];
-//         char const * const ptr = strchr(icons, c);
-//         if (nullptr != ptr) {
-//             index_t const row = i / 8;
-//             index_t const ndx = ptr - icons;
-//             Color const side = ndx < 6 ? Black : White;
-//             Piece const type = ndx % 6;
-//             Bool const moved = (Pawn == type && 
-//                 ((White == side && 1 == row) || 
-//                  (Black == side && 6 == row))) ? True : False;
-//             board.set(i, makeSpot(type, side, moved, False));
-//             game.pieces[game.piece_count++] = { index_t(i % 8), index_t(i / 8) };
-//         }
-//     }
-
-// } // from_string(char const * const in)
 
 
 ////////////////////////////////////////////////////////////////////////////////////////

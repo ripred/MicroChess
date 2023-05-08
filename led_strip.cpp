@@ -54,12 +54,12 @@ void set_led_strip(index_t const flash /* = -1 */)
 
     for (vars.y = 0; vars.y < 8; vars.y++) {
         for (vars.x = 0; vars.x < 8; vars.x++) {
-            vars.board_index = vars.x + vars.y * 8;
+            vars.board_index = vars.x + vars.y * 8u;
             vars.piece = board.get(vars.board_index);
             vars.type = getType(vars.piece);
             vars.side = getSide(vars.piece);
             vars.ex = 7 - vars.x;
-            vars.led_index = BOARD_SIZE - (((vars.y & 1) ? vars.ex : vars.x) + vars.y * 8) - 1;
+            vars.led_index = BOARD_SIZE - (((vars.y & 1) ? vars.ex : vars.x) + vars.y * 8u) - 1;
 
             static index_t constexpr values_per_led  = index_t(3);
             static index_t constexpr values_per_side = index_t(sizeof(piece_colors) / 2);

@@ -29,7 +29,7 @@ void board_t::init() {
     clear();
 
     uint8_t pieces[8] = { Rook, Knight, Bishop, Queen, King, Bishop, Knight, Rook };
-    for (int piece = 0; piece < 8; piece++) {
+    for (index_t piece = 0; piece < 8; piece++) {
         board.set(piece, pieces[piece]);
         board.set(8 + piece, Pawn);
         board.set(48 + piece, Pawn);

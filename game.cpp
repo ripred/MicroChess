@@ -80,7 +80,7 @@ index_t game_t::find_piece(index_t const index)
             continue;
         }
         else {
-            index_t const board_index = pieces[piece_index].x + pieces[piece_index].y * 8;
+            index_t const board_index = pieces[piece_index].x + pieces[piece_index].y * 8u;
             if (board_index == index) {
                 return piece_index;
             }
@@ -103,21 +103,21 @@ void game_t::init()
     lowest_mem_ply = -1;
     #endif
 
-    king_checker = False;
+    stats.init();
 
     hist_count = 0;
-
-    stats.init();
 
     white_taken_count = 0;
     black_taken_count = 0;
 
-    last_move = { -1, -1, 0 };
+    last_was_pawn_promotion = False;
     last_was_en_passant = False;
     last_was_castle = False;
-    last_was_timeout1 = False;
-    last_was_timeout2 = False;
-    last_was_pawn_promotion = False;
+
+    timeout1 = False;
+    timeout2 = False;
+
+    last_move = { -1, -1, 0 };
 
     white_king_in_check = False;
     black_king_in_check = False;
@@ -130,16 +130,81 @@ void game_t::init()
 
     ply = 0;
 
-    wking = 60;
-    bking =  4;
+    // Set the location of the two kings
+    wking = 7 * 8 + 4;
+    bking = 0 * 8 + 4;
 
     alpha = MIN_VALUE;
     beta  = MAX_VALUE;
 
+    book_supplied = False;
     user_supplied = False;
-    user = { -1, -1, 0 };
+    supply_valid = False;
+    supplied = { -1, -1, 0 };
 
 } // game_t::init()
+
+
+////////////////////////////////////////////////////////////////////////////////////////
+// Sort the game.pieces[] array by player side
+void game_t::sort_pieces(Color const side)
+{
+    if (White == side) {
+        // lambda comparator to sort game.pieces[] by White and then Black
+        auto compare = [](const void *a, const void *b) -> int {
+            point_t const piece_a = *((point_t*) a);
+            point_t const piece_b = *((point_t*) b);
+            Color   const side_a = getSide(board.get(piece_a.x + piece_a.y * 8));
+            Color   const side_b = getSide(board.get(piece_b.x + piece_b.y * 8));
+            return (side_a == side_b) ? 0 : ((side_a < side_b) ? +1 : -1);
+        };
+
+        qsort(pieces, piece_count, sizeof(point_t), compare);
+    }
+    else {
+        // lambda comparator to sort game.pieces[] by Black and then White
+        auto compare = [](const void *a, const void *b) -> int {
+            point_t const piece_a = *((point_t*) a);
+            point_t const piece_b = *((point_t*) b);
+            Color   const side_a = getSide(board.get(piece_a.x + piece_a.y * 8));
+            Color   const side_b = getSide(board.get(piece_b.x + piece_b.y * 8));
+            return (side_a == side_b) ? 0 : ((side_a > side_b) ? +1 : -1);
+        };
+
+        qsort(pieces, piece_count, sizeof(point_t), compare);
+    }
+
+} // game_t::sort_pieces(Color const side)
+
+
+// Shuffle the top side game.pieces[] array
+// NOTE: This expects the game.pieces[] array to be sorted
+//       with the current player's pieces at the top
+void game_t::shuffle_pieces(index_t const shuffle_count)
+{
+    // Count the number of pieces at the top on the same side and shuffle them
+    index_t count = 0;
+    for (count = 0; (count + 1) < piece_count; count++) {
+        index_t const index1 = pieces[count].x + pieces[count].y * 8u;
+        index_t const index2 = pieces[count + 1].x + pieces[count + 1].y * 8u;
+        if (getSide(board.get(index1)) != getSide(board.get(index2))) {
+            break;
+        }
+    }
+
+    // Shuffle the pieces
+    if (count > 1) {
+        for (index_t i = 0; i < shuffle_count; i++) {
+            index_t r1 = random(count);
+            index_t r2 = random(count);
+            if (r1 == r2) { continue; }
+            point_t const tmp = pieces[r1];
+            pieces[r1] = pieces[r2];
+            pieces[r2] = tmp;
+        }
+    }
+
+} // game_t::shuffle(...)
 
 
 ////////////////////////////////////////////////////////////////////////////////////////

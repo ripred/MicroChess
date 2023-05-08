@@ -30,7 +30,7 @@ private:
 
 public:
 
-    index_t     maxply;
+    index_t     depth;
 
     // Constructor
     movetime_t();

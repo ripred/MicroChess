@@ -17,6 +17,10 @@ move_t::move_t() {
 }
 
 
-move_t::move_t(index_t f, index_t t, long v) : from(f), to(t), value(v) {
+move_t::move_t(index_t f, index_t t, long v) :
+    from(f),
+    to(t),
+    value(v)
+{
 
 }

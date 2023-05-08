@@ -33,17 +33,21 @@ enum : uint32_t {
 };
 
 enum {
-    VERSION_MAJOR      =  1,    // The major sofware revision number
-    VERSION_MINOR      = 51,    // The minor sofware revision number
+    VERSION_MAJOR      =  1,    // Major sofware revision number
+    VERSION_MINOR      = 70,    // Minor sofware revision number
 
-    MAX_REPS           =  3,    // the max number of times a pair of moves can be repeated
+    MIN_PLIES          =  1,    // Minimum number of plies to examine before allowing a timeout
 
-    MAX_PIECES         = 32,    // max number of pieces in game.pieces[]
+    SHUFFLE            = 10,    // Number of times we swap entries in the pieces[] array when shuffling
 
-    NUM_BITS_PT        =  4,    // bits per field in point_t struct
-    NUM_BITS_SPOT      =  7,    // bits per field in move_t struct
+    MAX_REPS           =  3,    // Max number of times a pair of moves can be repeated
 
-    LED_STRIP_PIN      =  6,    // The pin used for the LED strip for the board
+    MAX_PIECES         = 32,    // Max number of pieces in game.pieces[]
+
+    NUM_BITS_PT        =  4,    // Bits per field in point_t struct
+    NUM_BITS_SPOT      =  8,    // Bits per field in move_t struct
+
+    LED_STRIP_PIN      =  6,    // Pin used for the LED strip for the board
     DEBUG1_PIN         =  5,    // Output debug LED pins
     DEBUG2_PIN         =  4,
     DEBUG3_PIN         =  3,
@@ -163,6 +167,7 @@ extern void     show_low_memory();
 extern void     show_quiescent_search();
 extern void     show_timeout();
 extern void     show_check();
+extern void     show_check_status();
 
 extern char const * ftostr(double const value, int const dec, char * const buff);
 extern char const * addCommas(long int value);
@@ -247,8 +252,6 @@ class piece_gen_t {
                   side : 1,     // The side the piece is for: White or Black
            whites_turn : 1,     // True when this move is for White's side
                 cutoff : 1,     // True if we have reached the alpha or beta cutoff
-                nocall : 1,     // Don't call the callback, just count the moves
-              terminal : 1,     // True when this piece has no moves
                    col : 3,     // The column of the piece being moved
                    row : 3,     // The row of the piece being moved
            piece_index : 5,     // The index into the pieces list of the piece being evaluated
@@ -257,31 +260,11 @@ class piece_gen_t {
             num_wmoves : 4,     // The number of white moves available
             num_bmoves : 4;     // The number of white moves available
 
-    void inline init(board_t const &board, game_t &game) {
-        piece = board.get(move.from);
-        type = getType(piece);
-        side = getSide(piece);
-        col = move.from % 8;
-        row = move.from / 8;
-        piece_index = game.find_piece(move.from);
-        whites_turn = (White == side);
-        cutoff = False;
-        nocall = False;
-        terminal = False;
-        num_wmoves = 0;
-        num_bmoves = 0;
-    }
+    void init(board_t const &board, game_t &game);
 
-    piece_gen_t(move_t &m) : move(m), wbest(m), bbest(m) 
-    {
-        init(board, game);
-    }
-
-    piece_gen_t(move_t &m, move_t &wb, move_t &bb, generator_t *cb, Bool const eval) :
-        move(m), wbest(wb), bbest(bb), callme(cb), evaluating(eval)
-    {
-        init(board, game);
-    }
+//    piece_gen_t();
+    piece_gen_t(move_t &m);
+    piece_gen_t(move_t &m, move_t &wb, move_t &bb, generator_t *cb, Bool const eval);
 
 };  // piece_gen_t
 
@@ -307,6 +290,9 @@ extern void     set_led_strip(index_t const flash = -1);
 
 extern Bool     timeout();
 
+extern Bool     check_book();
+
+extern void     check_kings();
 extern void     consider_move(piece_gen_t &gen);
 extern long     make_move(piece_gen_t & gen);
 extern long     evaluate(piece_gen_t & gen);

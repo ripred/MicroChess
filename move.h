@@ -11,15 +11,13 @@
 
 ////////////////////////////////////////////////////////////////////////////////////////
 // an entry in a move list
-struct move_t 
+class move_t 
 {
     public:
     int8_t    from : NUM_BITS_SPOT,     // the index into the board the move starts at
                 to : NUM_BITS_SPOT;     // the index into the board the move finishes at
-
     int32_t  value;                     // the value of the move
 
-    public:
     move_t();
     move_t(index_t f, index_t t, long v);
 

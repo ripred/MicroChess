@@ -32,7 +32,7 @@ void movetime_t::init()
     count = 0;
     running = False;
     moves_per_sec = 0.0;
-    maxply = 0;
+    depth = 0;
 }
 
 
@@ -58,7 +58,11 @@ void movetime_t::end()
         dur = stop - start;
         running = False;
 
-        if (0 != dur && 0 != count) {
+        if ((0 != count) && (0 == dur)) {
+            dur = 1;
+        }
+
+        if ((0 != dur) && (0 != count)) {
             moves_per_sec = double(count) / (double(dur) / 1000.0);
         }
     }
