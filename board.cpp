@@ -50,22 +50,4 @@ Piece board_t::get(unsigned char index) const
 void board_t::set(unsigned char index, Piece const piece) 
 {
     board.set(index, piece);
-}    
-
-
-
-
-
-// Piece board_t::get(index_t const index) const 
-// {
-//     return board[index];
-
-// } // board_t::get(index_t const index)
-
-
-// void board_t::set(index_t const index, Piece const piece)
-// {
-//     board[index] = piece;
-
-// } // board_t::set(index_t const index, Piece const piece)
-
+}

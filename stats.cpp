@@ -109,43 +109,52 @@ double movetime_t::moveps() const
  * 
  */
 
-// constructor:
+
+// Constructor:
 stat_t::stat_t() {
     init();
 }
 
-// init method
+
+// Init method
 void stat_t::init() {
     game_stats.init();
     move_stats.init();
 }
 
-// increase the number of moves evaluated
+
+// Increase the number of moves evaluated
 void stat_t::inc_moves_count() {
     game_stats.increment();
     move_stats.increment();
 }
 
-// start the game timers and clear out the game counts
+
+// Start the game timers and clear out the game counts
 void stat_t::start_game_stats() {
     game_stats.begin();
 }
 
-// stop the game timers and calc the game stats
+
+// Stop the game timers and calc the game stats
 void stat_t::stop_game_stats() {
     game_stats.end();
 }
 
-// start the move timers and clear out the move counts
+
+// Start the move timers and clear out the move counts
 void stat_t::start_move_stats() {
     move_stats.begin();
 }
 
+
+// Get the number of moves evaluated so far
 uint32_t stat_t::move_count_so_far() const {
     return move_stats.counter();
 }
 
-// stop the move timers and calc the move stats
+
+// Stop the move timers and calc the move stats
 void stat_t::stop_move_stats() {
     move_stats.end();
 }

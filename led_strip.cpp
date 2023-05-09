@@ -6,7 +6,6 @@
  * MicroChess LED Strp Functions
  * 
  */
-
 #include <Arduino.h>
 #include <stdint.h>
 #include <FastLED.h>
@@ -22,12 +21,12 @@ void init_led_strip() {
 }
 
 static uint8_t constexpr piece_colors[12*3] PROGMEM = {
-//      King         Pawn          Knight        Bishop        Rook          Queen
-//   R,  G,  B,    R,  G,  B,    R,  G,  B,    R,  G,  B,    R,  G,  B,    R,  G,  B
-     0, 16,  0,    8,  0,  0,    8,  8,  0,    0,  0,  8,    8,  0,  8,    0,  8,  8,     // Black
-     0, 16,  0,   16,  0,  0,   16, 16,  0,    0,  0, 16,   16,  0, 16,    0, 16, 16      // White
-    //  0,  0,  0,    0,  0,  0,    0,  0,  0,    0,  0,  0,    0,  0,  0,    0, 99,  0,     // Black
-    //  0,  0,  0,    0,  0,  0,    0,  0,  0,    0,  0,  0,    0,  0,  0,    0, 99,  0      // White
+  //    King         Pawn          Knight        Bishop        Rook          Queen
+  // R,  G,  B,      R,  G,  B,      R,  G,  B,      R,  G,  B,      R,  G,  B,      R,  G,  B
+     0, 16,  0,      8,  0,  0,      8,  8,  0,      0,  0,  8,      8,  0,  8,      0,  8,  8,     // Black
+     0, 16,  0,     16,  0,  0,     16, 16,  0,      0,  0, 16,     16,  0, 16,      0, 16, 16      // White
+  // 0,  0,  0,      0,  0,  0,      0,  0,  0,      0,  0,  0,      0,  0,  0,      0, 99,  0,     // Black
+  // 0,  0,  0,      0,  0,  0,      0,  0,  0,      0,  0,  0,      0,  0,  0,      0, 99,  0      // White
 };
 
 void set_led_strip(index_t const flash /* = -1 */)
@@ -45,6 +44,7 @@ void set_led_strip(index_t const flash /* = -1 */)
         led_index : 6,
                ex : 6;
     } vars;
+
     index_t clr;
 
     //  Check for low stack space

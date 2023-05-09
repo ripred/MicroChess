@@ -34,9 +34,7 @@ enum : uint32_t {
 
 enum {
     VERSION_MAJOR      =  1,    // Major sofware revision number
-    VERSION_MINOR      = 70,    // Minor sofware revision number
-
-    MIN_PLIES          =  1,    // Minimum number of plies to examine before allowing a timeout
+    VERSION_MINOR      = 72,    // Minor sofware revision number
 
     SHUFFLE            = 10,    // Number of times we swap entries in the pieces[] array when shuffling
 
@@ -169,8 +167,8 @@ extern void     show_timeout();
 extern void     show_check();
 extern void     show_check_status();
 
-extern char const * ftostr(double const value, int const dec, char * const buff);
-extern char const * addCommas(long int value);
+extern char    *ftostr(double const value, int const dec, char * const buff);
+extern char    *addCommas(long int value);
 extern void     printrep(print_t const level, char const c, index_t repeat);
 extern void     printnl(print_t const level, index_t repeat= 1);
 extern int      debug(char const * const fmt, ...);
@@ -208,21 +206,17 @@ enum state_t : uint8_t {
 #include "game.h"
 #include "conv.h"
 
-extern game_t game;
-
 
 ////////////////////////////////////////////////////////////////////////////////////////
 // A structure to represent an opening move or sequences of moves
 struct book_t {
-    static Color const side;
     uint8_t const
         from : 6,  // the starting location
-       type1 : 3,  // the expected starting piece
-          to : 6,  // the ending location
-       type2 : 3;  // the expected ending piece
+          to : 6;  // the ending location
     
-    book_t(index_t const f, Piece const t1, index_t const t, Piece const t2) :
-        from(f), type1(t1), to(t), type2(t2) {}
+    static Color const side;
+
+    book_t(index_t const f, index_t const t) : from(f), to(t) {}
 };
 
 
@@ -248,23 +242,27 @@ class piece_gen_t {
     // The function to call for each move to be evaluated
     generator_t * callme;
 
-    uint8_t evaluating : 1,     // True if we are just evaluating the move
-                  side : 1,     // The side the piece is for: White or Black
-           whites_turn : 1,     // True when this move is for White's side
-                cutoff : 1,     // True if we have reached the alpha or beta cutoff
-                   col : 3,     // The column of the piece being moved
-                   row : 3,     // The row of the piece being moved
-           piece_index : 5,     // The index into the pieces list of the piece being evaluated
-                  type : 3,     // The Type of the Piece: [Empty|Pawn|Knight|Rook|Bishop|Queen|King]
+    uint8_t 
                  piece : 6,     // The Piece being moved
-            num_wmoves : 4,     // The number of white moves available
-            num_bmoves : 4;     // The number of white moves available
+            evaluating : 1,     // True if we are just evaluating the move
+                  side : 1,     // The side the piece is for: White or Black
 
-    void init(board_t const &board, game_t &game);
+            num_wmoves : 5,     // The number of white moves available
+                  type : 3,     // The Type of the Piece: [Empty|Pawn|Knight|Rook|Bishop|Queen|King]
 
-//    piece_gen_t();
+                   col : 3,     // The column of the piece being moved
+           whites_turn : 1,     // True when this move is for White's side
+                   row : 3,     // The row of the piece being moved
+                cutoff : 1,     // True if we have reached the alpha or beta cutoff
+
+            num_bmoves : 5,     // The number of white moves available
+           piece_index : 5;     // The index into the pieces list of the piece being evaluated
+
     piece_gen_t(move_t &m);
+
     piece_gen_t(move_t &m, move_t &wb, move_t &bb, generator_t *cb, Bool const eval);
+
+    void init(board_t const &board, game_t const &game);
 
 };  // piece_gen_t
 
@@ -295,11 +293,11 @@ extern Bool     check_book();
 
 extern void     check_kings();
 extern void     consider_move(piece_gen_t &gen);
-extern long     make_move(piece_gen_t & gen);
-extern long     evaluate(piece_gen_t & gen);
-extern Bool     would_repeat(move_t const move);
+extern long     make_move(piece_gen_t &gen);
+extern long     evaluate(piece_gen_t &gen);
+extern Bool     would_repeat(move_t const &move);
 extern Bool     add_to_history(move_t const &move);
-extern void     choose_best_moves(Color const who, move_t &wbest, move_t &bbest, generator_t const callback);
+extern void     choose_best_moves(move_t &wbest, move_t &bbest, generator_t const callback);
 extern void     check_kings();
 
 extern index_t  add_pawn_moves(piece_gen_t &gen);

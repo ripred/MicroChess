@@ -19,6 +19,7 @@ class move_t
     int32_t  value;                     // the value of the move
 
     move_t();
+
     move_t(index_t f, index_t t, long v);
 
 };  // move_t

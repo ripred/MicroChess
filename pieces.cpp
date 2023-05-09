@@ -3,9 +3,8 @@
  * 
  * the MicroChess project: https://github.com/ripred/MicroChess
  * 
- * move generation for all pieces
+ * Move generation functions for all pieces
  * 
- * Note: Sanitized stack
  */
 #include <Arduino.h>
 #include <avr/pgmspace.h>

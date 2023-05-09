@@ -4,7 +4,7 @@
  * the MicroChess project: https://github.com/ripred/MicroChess
  * 
  * version 1.0.0
- * written March 2023 - Trent M. Wyatt
+ * written March thru May 2023 - Trent M. Wyatt
  * 
  * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
  * TODO:
@@ -77,6 +77,11 @@ void consider_move(piece_gen_t &gen)
         return;
     }
 
+    // If this is a supplied move that has already been validated then just return:
+    if (game.supply_valid) {
+        return;
+    }
+
     // See if the destination is a king, and if so then don't really make the move
     // or evaluate it; Just return MAX or MIN value depending on whose side it is:
     if (getType(board.get(gen.move.to)) == King) {
@@ -95,10 +100,6 @@ void consider_move(piece_gen_t &gen)
     }
 
     // See if the move came from the user or from an opening book:
-    if (game.supply_valid) {
-        return;
-    }
-
     if (game.book_supplied || game.user_supplied) {
         if ((gen.move.from == game.supplied.from) && (gen.move.to == game.supplied.to)) {
             game.supply_valid = True;
@@ -121,15 +122,8 @@ void consider_move(piece_gen_t &gen)
         make_move(gen);
     }
 
-    // See which faze of the game we are in: opening, middle, or closing and
-    // possibly alter the value of the move depending on which faze of the
-    // game we are in
-    faze_t faze = faze_t(game.piece_count / 8);
-    if (faze > OPENING) {
-        faze = OPENING;
-    }
-
-    if (faze == CLOSING) {
+    // See if we are in the end game
+    if (game.piece_count <= 12) {
         if (Pawn == gen.piece) {
             // Reward any moves involving a Pawn at this point
             gen.move.value += (gen.whites_turn ? +5000 : -5000);
@@ -215,33 +209,38 @@ long make_move(piece_gen_t & gen)
     // DECLARE ALL LOCAL VARIABLES USED IN THIS CONTEXT HERE AND
     // DO NOT MODIFY ANYTHING BEFORE CHECKING THE AVAILABLE STACK
     struct local_t {
-        uint8_t              to_col : 3,
-                             to_row : 3,
-                      book_supplied : 1,
-                      user_supplied : 1,
-                       supply_valid : 1,
+        uint8_t
                                  op : 6,
-                              otype : 3,
-                              oside : 1,
-            last_was_pawn_promotion : 1,
-                last_was_en_passant : 1,
-                white_king_in_check : 1,
-                black_king_in_check : 1,
-                    last_was_castle : 1,
-                          quiescent : 1,
+                      book_supplied : 1,
+                      user_supplied : 1,    //  8
+
                          board_rook : 6,
-                     captured_piece : 6,
+            last_was_pawn_promotion : 1,
+                last_was_en_passant : 1,    // 16
+
                         place_piece : 6,
+                white_king_in_check : 1,
+                black_king_in_check : 1,    // 24
+
+                     captured_piece : 6,
+                    last_was_castle : 1,
+                          quiescent : 1,    // 32
+
+                             to_col : 3,
+                       supply_valid : 1,
+                             to_row : 3,
+                              oside : 1,    // 40
+
                               wking : 6,
                               bking : 6,
                   white_taken_count : 5, 
-                  black_taken_count : 5;
+                  black_taken_count : 5,
+                              otype : 3;    // 65 bits (9 bytes)
     } vars;
 
+    index_t taken_index, captured, castly_rook, hist_count;
     game_t::history_t history[MAX_REPS * 2 - 1];
-    move_t last_move, wbest, bbest;
-    index_t hist_count;
-    index_t taken_index, captured, castly_rook;
+    move_t  last_move, wbest, bbest;
     int32_t recurse_value;
 
     //  Check for low stack space
@@ -369,6 +368,7 @@ long make_move(piece_gen_t & gen)
 
     // If the piece being moved is a King
     if (King == gen.type) {
+        // Update this side's king location
         ((White == gen.side) ? game.wking : game.bking) = gen.move.to;
 
         // Get the horizontal distance the king is
@@ -394,7 +394,8 @@ long make_move(piece_gen_t & gen)
         }
     }
 
-    // Step 4: Evaluate the board score after making the move
+
+    /// Step 4: Evaluate the board score after making the move
 
     // Get the value of the current board
     gen.move.value = evaluate(gen);
@@ -427,7 +428,7 @@ long make_move(piece_gen_t & gen)
                     direct_write(DEBUG2_PIN, LOW);
                 }
 
-                if ((0 != game.options.randskip) || (random(100) > game.options.randskip)) {
+                if ((0 == game.options.randskip) || (random(100) > game.options.randskip)) {
                     // Explore The Future! (plies)
                     game.ply++;
                     game.turn = !game.turn;
@@ -476,18 +477,19 @@ long make_move(piece_gen_t & gen)
                         }
                     }
 
-                    // We're finished calling into the future moves, and setting the new alpha and beta edges.
-                    // Now make sure this move didn't place our king in check
-                    if (gen.whites_turn) {
-                        if (game.white_king_in_check) {
-                            gen.move.value = MIN_VALUE;
-                        }
-                    }
-                    else {
-                        if (game.black_king_in_check) {
-                            gen.move.value = MAX_VALUE;
-                        }
-                    }
+                    // We're finished calling into the future moves, and setting the new alpha and
+                    // beta boundaries. Now make sure this move didn't place our king in check
+
+                    // if (gen.whites_turn) {
+                    //     if (game.white_king_in_check) {
+                    //         gen.move.value = MIN_VALUE;
+                    //     }
+                    // }
+                    // else {
+                    //     if (game.black_king_in_check) {
+                    //         gen.move.value = MAX_VALUE;
+                    //     }
+                    // }
 
                     if (game.ply > 0) {
                         game.white_king_in_check = vars.white_king_in_check;
@@ -500,7 +502,7 @@ long make_move(piece_gen_t & gen)
     } // if (gen.evaluating)
 
 
-    // Step 5: If we are just considering the move then put everything back
+    /// Step 5: If we are just considering the move then put everything back
 
     if (gen.evaluating) {
         if (-1 == captured) {
@@ -710,21 +712,19 @@ void choose_best_moves(move_t &wbest, move_t &bbest, generator_t const callback)
         index_t move_count;
         move_t move = { -1, -1, game.turn ? MIN_VALUE : MAX_VALUE };
         piece_gen_t gen(move, wbest, bbest, callback, True);
-        
-        if (PLAYING != game.state || game.user_supplied) { return; }
-    
+
         gen.num_wmoves = 0;
         gen.num_bmoves = 0;
-    
+
         // Turn off the 'King in check' LED
         direct_write(DEBUG4_PIN, LOW);
-    
+
         // Walk through the game.pieces[] list and evaluate the moves for each one
         for (gen.piece_index = 0; gen.piece_index < game.piece_count; gen.piece_index++) {
             if (game.supply_valid || (PLAYING != game.state)) {
                 return;
             }
-    
+
             if (check_serial()) {
                 return;
             }
@@ -749,9 +749,9 @@ void choose_best_moves(move_t &wbest, move_t &bbest, generator_t const callback)
                 // Periodically update the LED strip display and progress indicator if enabled
                 if (game.options.live_update 
                 // && (game.ply < game.options.max_max_ply)
-                && (game.ply <= game.options.maxply)
+                // && (game.ply <= game.options.maxply)
                 ) {
-                    if ((millis() - last_led_update) >= 5) 
+                    if ((millis() - last_led_update) >= 10)
                     {
                         last_led_update = millis();
                         set_led_strip(gen.move.from);
@@ -781,17 +781,17 @@ void choose_best_moves(move_t &wbest, move_t &bbest, generator_t const callback)
                     case  Queen:    move_count = add_queen_moves(gen);          break;
                     case   King:    
                         move_count = add_king_moves(gen);
-                        if (0 == move_count) {
-                            if (White == gen.side && game.white_king_in_check) {
-                                game.state = BLACK_CHECKMATE;
-                                return;
-                            }
+                        // if (0 == move_count) {
+                        //     if (White == gen.side && game.white_king_in_check) {
+                        //         game.state = BLACK_CHECKMATE;
+                        //         return;
+                        //     }
 
-                            if (Black == gen.side && game.black_king_in_check) {
-                                game.state = WHITE_CHECKMATE;
-                                return;
-                            }
-                        }
+                        //     if (Black == gen.side && game.black_king_in_check) {
+                        //         game.state = WHITE_CHECKMATE;
+                        //         return;
+                        //     }
+                        // }
                         break;
                 }
 
@@ -804,7 +804,7 @@ void choose_best_moves(move_t &wbest, move_t &bbest, generator_t const callback)
                 }
     
                 // Check for move timeout if we've finished ply level 1
-                if (game.timeout1 && (game.ply > 0) ) {
+                if (game.timeout1) {
                     break;
                 }
             }
@@ -841,11 +841,9 @@ void choose_best_moves(move_t &wbest, move_t &bbest, generator_t const callback)
 void set_per_side_options() {
     if (game.turn) {
         // White's turn
-        // game.options.integrate = True;
     }
     else {
         // Black's turn
-        // game.options.integrate = False;
     }
 }
 
@@ -923,17 +921,17 @@ void take_turn()
     game.beta  = bmove.value;
 
     Bool const whites_turn = (White == game.turn) ? True : False;
-    move_t move = { -1, -1, 0 };
+    move_t move = { -1, -1, whites_turn ? MIN_VALUE : MAX_VALUE };
 
     // See if we have an opening book move
     check_book();
 
-    // Choose the best moves for both sides
     if (game.options.shuffle_pieces) {
         game.sort_pieces(game.turn);
         game.shuffle_pieces(SHUFFLE);
     }
 
+    // Choose the best moves for both sides
     choose_best_moves(wmove, bmove, consider_move);
 
     // Gather the move statistics for this turn
@@ -1043,7 +1041,7 @@ void show_game_options() {
         word(game.options.seed));
 
     printf(Always, "Plies: M: %d, N: %d, Q: %d, X: %d\n", 
-        MIN_PLIES,
+        game.options.minply,
         game.options.maxply,
         game.options.max_quiescent_ply,
         game.options.max_max_ply);
@@ -1127,7 +1125,7 @@ void set_game_options()
     game.options.max_max_ply = 5;
 
     // Set the max ply level (inclusive) for normal moves
-    game.options.maxply = 2;
+    game.options.maxply = 3;
 
     // Set the percentage of moves that might be a mistake
     game.options.mistakes = 0;
@@ -1157,9 +1155,9 @@ void set_game_options()
     // game.options.shuffle_pieces = False;
     game.options.shuffle_pieces = True;
 
-    // Randomly skip depth plies when True in order to see moves across more pieces before timeouts
-    game.options.randskip = False;
-    // game.options.randskip = True;
+    // Set the percentage of moves we randomly skip at ply depths > 1
+    // game.options.randskip = 0;
+    game.options.randskip = 75;
 
     // Enable or disable opening book moves
     // game.options.openbook = False;
@@ -1216,32 +1214,32 @@ void setup()
     // The baud rate we will be using
     static long constexpr baud_rate = 1000000;
 
-    {
-        // The baud rates we support
-        static uint32_t const baud_rates[] PROGMEM = {
-            300, 600, 750, 1200, 2400, 4800, 9600, 19200, 31250, 38400,
-            57600, 74480, 115200, 230400, 250000, 460800, 500000, 921600
-        };
+    // Send out a message telling the user what baud rate to set their console to
+    // using each baud rate one at a time, so that our message will be seen no
+    // matter what baud rate setting they are currently set to!
+    // {
+    //     // The baud rates we support
+    //     static uint32_t const baud_rates[] PROGMEM = {
+    //         300, 600, 750, 1200, 2400, 4800, 9600, 19200, 31250, 38400,
+    //         57600, 74480, 115200, 230400, 250000, 460800, 500000, 921600
+    //     };
 
-        // Get the value returned when nothing is waiting in the Serial output buffer
-        int const empty_size = Serial.availableForWrite();
+    //     // Get the value returned when nothing is waiting in the Serial output buffer
+    //     int const empty_size = Serial.availableForWrite();
 
-        // Send out a message telling the user what baud rate to set their console to
-        // using each baud rate one at a time, so that our message will be seen no
-        // matter what baud rate setting they are currently set to!
-        for (index_t i = 0; i < index_t(ARRAYSZ(baud_rates)); i++) {
-            Serial.begin(long(pgm_read_dword(&baud_rates[i])));
+    //     for (index_t i = 0; i < index_t(ARRAYSZ(baud_rates)); i++) {
+    //         Serial.begin(long(pgm_read_dword(&baud_rates[i])));
 
-            while (!Serial) {}
+    //         while (!Serial) {}
 
-            printf(Always, "\n%ld bps", baud_rate);
+    //         printf(Always, "\n%ld bps", baud_rate);
 
-            // wait for the bytes to all be sent
-            while (empty_size != Serial.availableForWrite()) {}
+    //         // wait for the bytes to all be sent
+    //         while (empty_size != Serial.availableForWrite()) {}
 
-            Serial.end();
-        }
-    }
+    //         Serial.end();
+    //     }
+    // }
 
     // Initialize the Serial output
     Serial.begin(baud_rate); while (!Serial);
@@ -1389,27 +1387,23 @@ void loop() {}
 
 void show_header(Bool const dev) {
     if (Debug1 >= game.options.print_level) {
-        faze_t faze = faze_t(game.piece_count / 8);
-        if (faze > OPENING) {
-            faze = OPENING;
-        }
-        char const f = "cmo"[faze];
-        Serial.print(f);
-
-        if (dev) {
-            Serial.print("  0  1  2  3  4  5  6  7");
-        }
-        else {
-            Serial.print("  A  B  C  D  E  F  G  H");
+        Serial.write((game.piece_count <= 12) ? '+' : ' ');
+        char const base = (dev ? '0' : 'A');
+        for (index_t i = 0; i < 8; i++) {
+            printrep(Debug1, ' ', 2);
+            Serial.write(base + i);
         }
     }
-}
+
+} // show_header(Bool const dev)
+
 
 static char const icons[] PROGMEM = "pnbrqkPNBRQK";
 
+
 void show_panel1(index_t const y) {
     index_t constexpr row_offset = 0;
-    index_t constexpr col_offset = 4;
+    index_t constexpr col_offset = 5;
 
     printrep(Debug1, ' ', col_offset);
 
@@ -1525,11 +1519,11 @@ void show()
         printnl(Debug1);
     }
 
-    show_header(!dev);
+    show_header(dev);
 
     char str_score[16] = "";
     ftostr(game.last_move.value, 0, str_score);
-    printrep(Debug1, ' ', 8);
+    printrep(Debug1, ' ', 9);
     printf(Debug1, "Board value: %s ", str_score);
     if (0 != game.last_move.value) {
         show_side(game.last_move.value > 0);

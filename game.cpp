@@ -6,12 +6,11 @@
  * MicroChess game_t implementation
  * 
  */
-
 #include <Arduino.h>
 #include "MicroChess.h"
 #include "game.h"
 
-// the game options
+// The game options
 options_t game_t::options;
 
 game_t::game_t()
@@ -41,7 +40,7 @@ void game_t::set_pieces_from_board(board_t &board)
 ////////////////////////////////////////////////////////////////////////////////////////
 // Compare the pieces[] array to the board contents and return False
 // if there are differences or return True if they are the same.
-Bool game_t::compare_pieces_to_board(board_t &board)
+Bool game_t::compare_pieces_to_board(board_t &board) const
 {
     for (index_t index = 0; index < index_t(BOARD_SIZE); index++) {
         Piece   const piece = board.get(index);
@@ -73,7 +72,7 @@ Bool game_t::compare_pieces_to_board(board_t &board)
 // Find the piece index for a given board index.
 // 
 // returns the index into the game.pieces[] array for the specified piece
-index_t game_t::find_piece(index_t const index)
+index_t game_t::find_piece(index_t const index) const
 {
     for (index_t piece_index = 0; piece_index < piece_count; piece_index++) {
         if (!isValidPos(pieces[piece_index].x, pieces[piece_index].y)) {

@@ -1,4 +1,3 @@
-#include "HardwareSerial.h"
 /**
  * chessutil.cpp
  * 
@@ -7,6 +6,7 @@
  * MicroChess utility functions
  * 
  */
+#include "HardwareSerial.h"
 #include <Arduino.h>
 #include <avr/pgmspace.h>
 #include "MicroChess.h"
@@ -14,13 +14,17 @@
 #include <ctype.h>
 #include <stdint.h>
 
+
+extern game_t  game;
+
+
 ////////////////////////////////////////////////////////////////////////////////////////
 // Opening book moves (if enabled)
 book_t const opening1[] = {
-    { 6 * 8 + 4,   Pawn, 5 * 8 + 4, Empty },
-    { 7 * 8 + 5, Bishop, 4 * 8 + 2, Empty },
-    { 7 * 8 + 3,  Queen, 5 * 8 + 5, Empty },
-    { 5 * 8 + 5,  Queen, 1 * 8 + 5,  Pawn }
+    { 6 * 8 + 4,   5 * 8 + 4 },   //   Pawn from E2 to E3
+    { 7 * 8 + 5,   4 * 8 + 2 },   // Bishop from F1 to C4
+    { 7 * 8 + 3,   5 * 8 + 5 },   //  Queen from D1 to F3
+    { 5 * 8 + 5,   1 * 8 + 5 }    //  Queen from F3 to E7 - checkmate
 
 }; // opening1
 
@@ -47,14 +51,14 @@ piece_gen_t::piece_gen_t(move_t &m, move_t &wb, move_t &bb, generator_t *cb, Boo
 }
 
 
-void inline piece_gen_t::init(board_t const &board, game_t &game) {
+void inline piece_gen_t::init(board_t const &board, game_t const &game) {
     piece = board.get(move.from);
     type = getType(piece);
     side = getSide(piece);
     col = move.from % 8;
     row = move.from / 8;
     piece_index = game.find_piece(move.from);
-    whites_turn = (White == side);
+    whites_turn = side;     // same as (White == side)
     cutoff = False;
     num_wmoves = 0;
     num_bmoves = 0;
@@ -150,7 +154,7 @@ Piece makeSpot(Piece type, Piece side, unsigned char moved, unsigned char inChec
 } // makeSpot(Piece type, Piece side, unsigned char moved, unsigned char inCheck)
 
 
-char const * addCommas(long int value) {
+char * addCommas(long int value) {
     static char buff[16];
     snprintf(buff, sizeof(buff), "%ld", value);
 
@@ -171,11 +175,15 @@ void printrep(print_t const level, char const c, index_t repeat) {
     while (repeat--) {
         Serial.write(c);
     }
-}
+
+} // printrep(...)
+
 
 void printnl(print_t const level, index_t repeat /* = 1 */) {
     printrep(level, '\n', repeat);
-}
+
+} // printnl(...)
+
 
 int debug(char const * const progmem, ...) {
     char fmt[128];
@@ -192,7 +200,7 @@ int debug(char const * const progmem, ...) {
 } // debug(char const * const progmem, ...)
 
 
-const char* ftostr(double const value, int const dec, char * const buff)
+char * ftostr(double const value, int const dec, char * const buff)
 {
     static char str[16];
     dtostrf(value, sizeof(str), dec, str);
@@ -237,7 +245,7 @@ Bool timeout() {
     // from being made that place a king in check. So we must allow both ply
     // level 0 and 1 to complete before we allow a timeout to stop the
     // evaluations:
-    game.timeout1 = game.timeout2 && (game.ply > MIN_PLIES);
+    game.timeout1 = game.timeout2 && (game.ply > game.options.minply);
 
     if (game.timeout2) {
         show_timeout();
@@ -535,15 +543,11 @@ Bool check_book()
     }
 
     if (index < index_t(ARRAYSZ(opening1))) {
-        if ((getType(board.get(opening1[index].from)) == opening1[index].type1) && 
-            (getType(board.get(opening1[index].to  )) == opening1[index].type2)) {
-                game.supplied = { 
-                    index_t(opening1[index].from), index_t(opening1[index].to), 0L };
-                game.book_supplied = True;
-                game.supply_valid = False;
-                index++;
-                return True;
-            }
+        game.supplied = { index_t(opening1[index].from), index_t(opening1[index].to), 0L };
+        game.book_supplied = True;
+        game.supply_valid = False;
+        index++;
+        return True;
     }
 
     return False;
@@ -555,17 +559,17 @@ Bool check_book()
 // see if a move would violate the move repetition rule
 // 
 // returns True if the move would violate the rule and end the game, otherwise False
-Bool would_repeat(move_t move) 
+Bool would_repeat(move_t const &move)
 {
     // Stack Management
     // DECLARE ALL LOCAL VARIABLES USED IN THIS CONTEXT HERE AND
     // DO NOT MODIFY ANYTHING BEFORE CHECKING THE AVAILABLE STACK
+    game_t::history_t m;
     index_t total, i;
     Bool result;
-    game_t::history_t m;
 
     //  Check for low stack space
-    if (check_mem(ADD_MOVES)) { return 0; }
+    if (check_mem(ADD_MOVES)) { return False; }
 
     // Now we can alter local variables! 😎 
 
@@ -591,7 +595,7 @@ Bool would_repeat(move_t move)
 
     return result;
 
-}   // would_repeat(move_t move)
+}   // would_repeat(move_t const &move)
 
 
 ////////////////////////////////////////////////////////////////////////////////////////
@@ -606,7 +610,7 @@ Bool add_to_history(move_t const &move)
     Bool result;
 
     //  Check for low stack space
-    if (check_mem(ADD_MOVES)) { return 0; }
+    if (check_mem(ADD_MOVES)) { return False; }
 
     // Now we can alter local variables! 😎 
 
@@ -620,7 +624,7 @@ Bool add_to_history(move_t const &move)
 
     return result;
 
-}   // add_to_history()
+}   // add_to_history(move_t const &move)
 
 
 void say_check() {
@@ -659,11 +663,6 @@ void show_check(Color const side, Bool const mate /* = False */)
 
 
 void show_check_status() {
-    // auto show_check = [](Color const side) -> void {
-    //     show_side(side);
-    //     printf(Debug1, " King is in check!\n");
-    // };
-
     // Announce if either King is in check
     if (game.white_king_in_check) {
         show_check(White);
@@ -677,6 +676,7 @@ void show_check_status() {
     if (game.white_king_in_check || game.black_king_in_check) { 
         printnl(Debug1);
     }
+
 } // show_check_status()
 
 
@@ -792,14 +792,14 @@ void show_time(uint32_t ms)
 #include <unistd.h>
 
 
-#ifdef __arm__
-// should use uinstd.h to define sbrk but Due causes a conflict
-extern "C" char* sbrk(int incr);
-#else  // __ARM__
-extern char *__brkval;
-#endif  // __arm__
-
 int freeMemory() {
+    #ifdef __arm__
+    // should use uinstd.h to define sbrk but Due causes a conflict
+    extern "C" char* sbrk(int incr);
+    #else  // __ARM__
+    extern char *__brkval;
+    #endif  // __arm__
+
     char top;
     #ifdef __arm__
     return &top - reinterpret_cast<char*>(sbrk(0));

@@ -6,11 +6,9 @@
  * MicroChess move_t implementation
  * 
  */
-
 #include <Arduino.h>
 #include "MicroChess.h"
 #include "move.h"
-
 
 move_t::move_t() {
 
