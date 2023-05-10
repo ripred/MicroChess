@@ -99,8 +99,6 @@ class game_t
     // The supplied move if book_supplied := True or user_supplied != True
     move_t      supplied;
 
-
-
     // static, pre-computed tables for bonus values
     static long const center_bonus[8][7][2] PROGMEM;
     static long const  material_bonus[7][2] PROGMEM;
@@ -109,7 +107,8 @@ class game_t
     // The amount of free memory at critical junctions and ply levels
     struct {
         uint16_t mem : 12;
-    } freemem[4][5];
+
+    } freemem[8];
 
     uint16_t   lowest_mem;
     index_t    lowest_mem_ply;

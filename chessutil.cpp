@@ -302,6 +302,15 @@ void direct_write(index_t const pin, Bool const value) {
 }
 
 
+#if 0
+
+void check_kings() {
+    game.white_king_in_check = inCheck(board.get(game.wking));
+    game.black_king_in_check = inCheck(board.get(game.bking));
+}
+
+#else
+
 // Static function used to implement the visitor-pattern
 // when checking for either king's check state
 static void visitor(piece_gen_t &gen) {
@@ -321,6 +330,9 @@ static void visitor(piece_gen_t &gen) {
 // Enumerate over all available moves and set the game.white_king_in_check
 // and game.black_king_in_check flags accordingly
 void check_kings() {
+    // Bool const wcheck = inCheck(board.get(game.wking));
+    // Bool const bcheck = inCheck(board.get(game.bking));
+
     game.white_king_in_check = False;
     game.black_king_in_check = False;
 
@@ -348,13 +360,23 @@ void check_kings() {
 
         // If both king's are in check then there's nothing else for us to do
         if (game.white_king_in_check && game.black_king_in_check) {
+            // if (wcheck != game.white_king_in_check || bcheck != game.black_king_in_check) {
+            //     printf(Debug1, "check mismatch at line %d\n", __LINE__);
+            //     while (1) {}
+            // }
             return;
         }
 
     } // for each piece on both sides
 
+    // if (wcheck != game.white_king_in_check || bcheck != game.black_king_in_check) {
+    //     printf(Debug1, "check mismatch at line %d\n", __LINE__);
+    //     while (1) {}
+    // }
+
 } // check_kings()
 
+#endif
 
 void show_low_memory() {
     direct_write(DEBUG1_PIN, HIGH);

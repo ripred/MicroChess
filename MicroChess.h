@@ -38,6 +38,8 @@ enum {
 
     SHUFFLE            = 10,    // Number of times we swap entries in the pieces[] array when shuffling
 
+    END_COUNT          = 12,    // Number of pieces we drop below to go into "end game" mode
+
     MAX_REPS           =  3,    // Max number of times a pair of moves can be repeated
 
     MAX_PIECES         = 32,    // Max number of pieces in game.pieces[]

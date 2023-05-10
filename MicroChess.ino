@@ -39,6 +39,7 @@
  * 
  */
 #include <Arduino.h>
+#include <Wire.h>
 #include "MicroChess.h"
 
 ////////////////////////////////////////////////////////////////////////////////////////
@@ -87,11 +88,11 @@ void consider_move(piece_gen_t &gen)
     if (getType(board.get(gen.move.to)) == King) {
         if (gen.whites_turn) {
             game.white_king_in_check = True;
-            gen.move.value = MIN_VALUE;
+            gen.move.value = MAX_VALUE;
         }
         else {
             game.black_king_in_check = True;
-            gen.move.value = MAX_VALUE;
+            gen.move.value = MIN_VALUE;
         }
 
         show_check();
@@ -122,8 +123,13 @@ void consider_move(piece_gen_t &gen)
         make_move(gen);
     }
 
+    if (Pawn == gen.piece) {
+        // Reward any moves involving a Pawn slightly
+        gen.move.value += (gen.whites_turn ? +10 : -10);
+    }
+
     // See if we are in the end game
-    if (game.piece_count <= 12) {
+    if (game.piece_count <= END_COUNT) {
         if (Pawn == gen.piece) {
             // Reward any moves involving a Pawn at this point
             gen.move.value += (gen.whites_turn ? +5000 : -5000);
@@ -710,7 +716,7 @@ void choose_best_moves(move_t &wbest, move_t &bbest, generator_t const callback)
     else {
         static uint32_t last_led_update;
         index_t move_count;
-        move_t move = { -1, -1, game.turn ? MIN_VALUE : MAX_VALUE };
+        move_t move = { -1, -1, 0 };
         piece_gen_t gen(move, wbest, bbest, callback, True);
 
         gen.num_wmoves = 0;
@@ -739,7 +745,7 @@ void choose_best_moves(move_t &wbest, move_t &bbest, generator_t const callback)
                 gen.piece = board.get(gen.move.from);
                 gen.type = getType(gen.piece);
                 gen.side = getSide(gen.piece);
-                gen.whites_turn = White == gen.side;
+                gen.whites_turn = gen.side; // same as White == gen.side
                 gen.move.value = gen.whites_turn ? MIN_VALUE : MAX_VALUE;
     
                 if (Empty == gen.type) {
@@ -920,7 +926,7 @@ void take_turn()
     game.alpha = wmove.value;
     game.beta  = bmove.value;
 
-    Bool const whites_turn = (White == game.turn) ? True : False;
+    Bool const whites_turn = game.turn; // same as (White == game.turn) ? True : False;
     move_t move = { -1, -1, whites_turn ? MIN_VALUE : MAX_VALUE };
 
     // See if we have an opening book move
@@ -1125,7 +1131,10 @@ void set_game_options()
     game.options.max_max_ply = 5;
 
     // Set the max ply level (inclusive) for normal moves
-    game.options.maxply = 3;
+    game.options.maxply = 4;
+
+    // Set the minimum ply level required to complete for a turn
+    game.options.minply = 3;
 
     // Set the percentage of moves that might be a mistake
     game.options.mistakes = 0;
@@ -1140,7 +1149,7 @@ void set_game_options()
 
     // Set the time limit per turn in milliseconds
     // game.options.time_limit = 0;     // for no time limit
-    game.options.time_limit = 5000;
+    game.options.time_limit = 1000;
 
     // Set whether we play continuously or not
     // game.options.continuous = False;
@@ -1383,11 +1392,11 @@ void setup()
 void loop() {}
 
 
-/// Display board functions
+/// Board display functions
 
 void show_header(Bool const dev) {
     if (Debug1 >= game.options.print_level) {
-        Serial.write((game.piece_count <= 12) ? '+' : ' ');
+        Serial.write((game.piece_count <= END_COUNT) ? '+' : ' ');
         char const base = (dev ? '0' : 'A');
         for (index_t i = 0; i < 8; i++) {
             printrep(Debug1, ' ', 2);
@@ -1404,10 +1413,13 @@ static char const icons[] PROGMEM = "pnbrqkPNBRQK";
 void show_panel1(index_t const y) {
     index_t constexpr row_offset = 0;
     index_t constexpr col_offset = 5;
+    Piece piece, ptype;
+    char str[16];
+    Color pside;
 
     printrep(Debug1, ' ', col_offset);
 
-    // display the extra status info on certain lines:
+    // Display the extra status info on certain lines:
     switch (y) {
         // display the last move made if available
         case row_offset + 0:
@@ -1420,26 +1432,21 @@ void show_panel1(index_t const y) {
             }
             break;
 
-        // display the time spent on the last move
+        // Display the time spent on the last move
         case row_offset + 1:
             if (0 == game.stats.move_stats.duration()) break;
             if (0 != game.stats.move_stats.counter()) {
-                char str_time[16] = "";
-                ftostr(game.stats.move_stats.duration(), 0, str_time);
-
-                char str_moves[16] = "";
-                ftostr(game.stats.move_stats.counter(), 0, str_moves);
-                printf(Debug1, "%s moves in ", str_moves);
+                ftostr(game.stats.move_stats.counter(), 0, str);
+                printf(Debug1, "%s moves in ", str);
 
                 show_time(game.stats.move_stats.duration());
 
-                char str_moves_per_sec[16] = "";
-                ftostr(game.stats.move_stats.moveps(), 2, str_moves_per_sec);
-                printf(Debug1, " (%s moves/sec)", str_moves_per_sec);
+                ftostr(game.stats.move_stats.moveps(), 2, str);
+                printf(Debug1, " (%s moves/sec)", str);
             }
             break;
 
-        // display the total game time so far
+        // Display the total game time so far
         case row_offset + 2:
             if (game.move_num > 0) {
                 printf(Debug1, "Game time: ");
@@ -1447,7 +1454,7 @@ void show_panel1(index_t const y) {
             }
             break;
 
-        // display the max ply depth we were able to reach
+        // Display the max ply depth we were able to reach
         case row_offset + 3:
             if (game.move_num > 0) {
                 printf(Debug1, "Max ply depth reached: %d", game.stats.move_stats.depth);
@@ -1471,10 +1478,10 @@ void show_panel1(index_t const y) {
         // Display the pieces taken by White
         case row_offset + 6:
             printf(Debug1, "Taken 1: ");
-            for (int i = 0; i < game.white_taken_count; i++) {
-                Piece const piece = game.taken_by_white[i].piece;
-                Piece const ptype = getType(piece);
-                Color const pside = getSide(piece);
+            for (index_t i = 0; i < game.white_taken_count; i++) {
+                piece = game.taken_by_white[i].piece;
+                ptype = getType(piece);
+                pside = getSide(piece);
                 printf(Debug1, "%c ", pgm_read_byte(&icons[(pside * 6) + ptype - 1]));
             }
             break;
@@ -1482,10 +1489,10 @@ void show_panel1(index_t const y) {
         // Display the pieces taken by Black
         case row_offset + 7:
             printf(Debug1, "Taken 2: ");
-            for (int i = 0; i < game.black_taken_count; i++) {
-                Piece const piece = game.taken_by_black[i].piece;
-                Piece const ptype = getType(piece);
-                Color const pside = getSide(piece);
+            for (index_t i = 0; i < game.black_taken_count; i++) {
+                piece = game.taken_by_black[i].piece;
+                ptype = getType(piece);
+                pside = getSide(piece);
                 printf(Debug1, "%c ", pgm_read_byte(&icons[(pside * 6) + ptype - 1]));
             }
             break;
