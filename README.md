@@ -14,13 +14,13 @@ Currently it displays the game board using an LED strip arranged in an 8x8 grid.
 
 &nbsp;
 
-Example LED Strip Board (while thinking):
+Example LED Strip Board (while profiling):
 
 ![LED Strip Game Board](MicroChessSmall.gif)
 
 &nbsp;
 
-Example Serial Console Output:
+Example Serial Console Output during 4-move Opening Book Checkmate:
 
 ![Console Output](MicroChessConsole2.gif)
 
