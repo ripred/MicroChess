@@ -14,6 +14,14 @@ Currently it displays the game board using an LED strip arranged in an 8x8 grid.
 
 &nbsp;
 
+Example LED Strip Board (while thinking):
+
 ![LED Strip Game Board](MicroChessSmall.gif)
+
+&nbsp;
+
+Example Serial Console Output:
+
+![Console Output](MicroChessConsole2.gif)
 
 &nbsp;
