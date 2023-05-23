@@ -5,3 +5,7 @@ MicroChess is an embedded chess engine designed to run with only 2K of RAM and 3
 [Reddit Discusson](https://www.reddit.com/r/arduino/comments/11q4916/so_you_want_to_build_a_chess_engine/?utm_source=share&utm_medium=web2x&context=3)
 
 &nbsp;
+
+![LED Strip Game Board](MicroChessSmall.gif)
+
+&nbsp;
