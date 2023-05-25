@@ -1,5 +1,5 @@
 # MicroChess
-MicroChess is an embedded chess engine designed to run with only 2K of RAM and 32K of flash, complete with en passant capture and castling. 
+MicroChess is an embedded chess engine designed to run with only 2K of RAM and 32K of flash, complete with en passant capture, castling, and quiescent searches. 
 
 The design includes use of the minimax/maximin algorithm complete with alpha-beta pruning and culling. The project is designed to teach the theory and practical implementation of a complete turn-based game engine suitable for a range of games including chess and checkers. 
 
