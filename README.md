@@ -13,7 +13,6 @@ Currently it displays the game board using an LED strip arranged in an 8x8 grid.
 [Reddit Discusson](https://www.reddit.com/r/arduino/comments/11q4916/so_you_want_to_build_a_chess_engine/?utm_source=share&utm_medium=web2x&context=3)
 
 &nbsp;
-
 Example LED Strip Board (while profiling):
 
 ![LED Strip Game Board](MicroChessSmall.gif)
