@@ -200,6 +200,22 @@ int debug(char const * const progmem, ...) {
 } // debug(char const * const progmem, ...)
 
 
+
+#if ARDUINO_ARCH_RENESAS 
+
+#include <stdio.h>
+
+char *dtostrf (double val, signed char width, unsigned char prec, char *sout) {
+  char fmt[20];
+  sprintf(fmt, "%%%d.%df", width, prec);
+  sprintf(sout, fmt, val);
+  return sout;
+}
+
+#endif
+
+// This function wraps the dtostrf(...) function combined with
+// adding commas to the resulting string to delineate thousands positions.
 char * ftostr(double const value, int const dec, char * const buff)
 {
     static char str[16];
@@ -228,10 +244,11 @@ Bool timeout() {
     }
 
     // We have TWO timeout flags; timeout1 and timeout2
-    // 2 is set as soon at the timeout happens regardless of ply level
+    // 2 is set as soon as the timeout happens regardless of ply level
     // 1 is set when then timeout happens only for ply levels > 1 so that
     // we always evaluate all moves for ply level 0 and 1 and only timeout
-    // for ply levels >= 2.
+    // for ply levels >= 2. This is necessary in order to allow the other 
+    // side to determine if the king is in check after the initial move.
 
     // Set the true timeout flag regardless of ply level
     game.timeout2 = game.stats.move_stats.duration() >= game.options.time_limit;
@@ -281,9 +298,11 @@ Bool check_mem(index_t const
 
 
 void direct_write(index_t const pin, Bool const value) {
+#if not ARDUINO_ARCH_RENESAS 
     if (!value)
     {
         if (pin > 1 && pin < 8 ) {
+  
             bitClear (PORTD, pin);    // == digitalWrite(pin,LOW) for pins 2-6
         }
         else {
@@ -299,6 +318,29 @@ void direct_write(index_t const pin, Bool const value) {
             bitSet (PORTB, (pin-8));   // == digitalWrite(pin,HIGH) for pins 8-12
         }
     }    
+
+#else
+
+    if (!value)
+    {
+        if (pin > 1 && pin < 8 ) {
+            digitalWrite(pin, LOW);
+        }
+        else {
+            digitalWrite(pin, LOW);
+        }
+    }
+    else
+    {
+        if (pin > 1 && pin < 8 ) {
+            digitalWrite(pin, HIGH);
+        }
+        else {
+            digitalWrite(pin, HIGH);
+        }
+    }    
+
+#endif // #if not ARDUINO_ARCH_RENESAS
 }
 
 
@@ -817,7 +859,7 @@ void show_time(uint32_t ms)
 int freeMemory() {
     #ifdef __arm__
     // should use uinstd.h to define sbrk but Due causes a conflict
-    extern "C" char* sbrk(int incr);
+    // extern "C" { char* sbrk(int incr); }
     #else  // __ARM__
     extern char *__brkval;
     #endif  // __arm__

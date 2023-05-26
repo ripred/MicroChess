@@ -39,7 +39,7 @@
  * 
  */
 #include <Arduino.h>
-#include <Wire.h>
+// #include <Wire.h>
 #include "MicroChess.h"
 
 ////////////////////////////////////////////////////////////////////////////////////////
@@ -1128,13 +1128,13 @@ void set_game_options()
     // game.options.profiling = True;
 
     // Set the ultimate maximum ply level (incl)
-    game.options.max_max_ply = 5;
+    game.options.max_max_ply = 4;
 
     // Set the max ply level (inclusive) for normal moves
-    game.options.maxply = 4;
+    game.options.maxply = 2;
 
     // Set the minimum ply level required to complete for a turn
-    game.options.minply = 3;
+    game.options.minply = 1;
 
     // Set the percentage of moves that might be a mistake
     game.options.mistakes = 0;
@@ -1149,7 +1149,7 @@ void set_game_options()
 
     // Set the time limit per turn in milliseconds
     // game.options.time_limit = 0;     // for no time limit
-    game.options.time_limit = 1000;
+    game.options.time_limit = 3000;
 
     // Set whether we play continuously or not
     // game.options.continuous = False;
@@ -1191,7 +1191,7 @@ void set_game_options()
         uint8_t const total_passes = random(23, 87);
         uint32_t some_bits = 1234567890;
 
-        randomSeed(random());
+        randomSeed(random(0, LONG_MAX));
 
         for (uint8_t pass = 0; pass < total_passes; pass++) {
             for (uint8_t pin = 0; pin < ARRAYSZ(pins); pin++) {
