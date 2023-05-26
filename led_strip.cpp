@@ -8,8 +8,10 @@
  */
 #include <Arduino.h>
 #include <stdint.h>
-#include <FastLED.h>
 #include "MicroChess.h"
+
+#if not ARDUINO_ARCH_RENESAS 
+#include <FastLED.h>
 
 FASTLED_USING_NAMESPACE
 
@@ -80,3 +82,13 @@ void set_led_strip(index_t const flash /* = -1 */)
     FastLED.show();
 
 } // set_led_strip()
+
+#else
+
+// dummy stubs
+
+void init_led_strip() { }
+void set_led_strip(index_t const /* flash = -1 */) { }
+
+#endif // #if not ARDUINO_ARCH_RENESAS 
+

@@ -178,7 +178,7 @@ index_t add_knight_moves(piece_gen_t &gen) {
 
     // Now we can alter local variables! 😎 
 
-    return gen_moves(gen, pgm_get_far_address(knight_offsets), ARRAYSZ(knight_offsets), 1);
+    return gen_moves(gen, (offset_t *) pgm_get_far_address(knight_offsets), ARRAYSZ(knight_offsets), 1);
 
 } // add_knight_moves(piece_gen_t &gen)
 
@@ -193,7 +193,7 @@ index_t add_rook_moves(piece_gen_t &gen) {
 
     // Now we can alter local variables! 😎 
 
-    return gen_moves(gen, pgm_get_far_address(rook_offsets), ARRAYSZ(rook_offsets), 7);
+    return gen_moves(gen, (offset_t *) pgm_get_far_address(rook_offsets), ARRAYSZ(rook_offsets), 7);
 
 } // add_rook_moves(piece_gen_t &gen)
 
@@ -208,7 +208,7 @@ index_t add_bishop_moves(piece_gen_t &gen) {
 
     // Now we can alter local variables! 😎 
 
-    return gen_moves(gen, pgm_get_far_address(bishop_offsets), ARRAYSZ(bishop_offsets), 7);
+    return gen_moves(gen, (offset_t *) pgm_get_far_address(bishop_offsets), ARRAYSZ(bishop_offsets), 7);
 
 } // add_bishop_moves(piece_gen_t &gen)
 
@@ -231,8 +231,8 @@ index_t add_king_moves(piece_gen_t &gen) {
     // Count the number of available moves
     count = 0;
 
-    count += gen_moves(gen, pgm_get_far_address(rook_offsets), ARRAYSZ(rook_offsets), 1);
-    count += gen_moves(gen, pgm_get_far_address(bishop_offsets), ARRAYSZ(bishop_offsets), 1);
+    count += gen_moves(gen, (offset_t *) pgm_get_far_address(rook_offsets), ARRAYSZ(rook_offsets), 1);
+    count += gen_moves(gen, (offset_t *) pgm_get_far_address(bishop_offsets), ARRAYSZ(bishop_offsets), 1);
 
     // check for castling
     if (!hasMoved(gen.piece)) {
