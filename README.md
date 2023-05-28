@@ -3,7 +3,7 @@ MicroChess is an embedded chess engine designed to run with only 2K of RAM and 3
 
 The design includes use of the minimax/maximin algorithm complete with alpha-beta pruning and culling. The project is designed to teach the theory and practical implementation of a complete turn-based game engine suitable for a range of games including chess and checkers. 
 
-Keeping under 2K of memory the game is capable of looking up to 6 ply levels, or turns, ahead. The source code is fully available and can be used as the base for many creative projects. 
+Keeping under 2K of memory, the game is capable of looking up to 6 ply levels, or turns, ahead. The source code is fully available and can be used as the base for many creative projects. 
 
 All of the heavy lifting has been done and the code can be used as-is or modified to support additional inputs or outputs. 
 
