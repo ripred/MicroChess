@@ -97,8 +97,8 @@ enum print_t : uint8_t {
 #define     getbit(_A, _B)     ((char*)(_A))[(_B) / 8] &   (0x80 >> ((_B) % 8))
 
 // The max and min range for piece values
-#define     MAX_VALUE       ((long const)(LONG_MAX/2))
-#define     MIN_VALUE       ((long const)(0 - MAX_VALUE))
+#define     MAX_VALUE       ((long)(LONG_MAX/2))
+#define     MIN_VALUE       ((long)(0 - MAX_VALUE))
 
 // The number of locations on the game board
 static index_t constexpr BOARD_SIZE = 64u;

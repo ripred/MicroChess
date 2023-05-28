@@ -10,7 +10,7 @@
 #include <stdint.h>
 #include "MicroChess.h"
 
-#if not ARDUINO_ARCH_RENESAS 
+#if not ARDUINO_ARCH_RENESAS && not ESP32
 #include <FastLED.h>
 
 FASTLED_USING_NAMESPACE

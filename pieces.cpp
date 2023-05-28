@@ -7,7 +7,11 @@
  * 
  */
 #include <Arduino.h>
+
+#ifndef ESP32
 #include <avr/pgmspace.h>
+#endif
+
 #include <stdint.h>
 #include "MicroChess.h"
 

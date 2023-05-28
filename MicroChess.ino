@@ -39,8 +39,9 @@
  * 
  */
 #include <Arduino.h>
-// #include <Wire.h>
+#include <math.h>
 #include "MicroChess.h"
+// #include <Wire.h>
 
 ////////////////////////////////////////////////////////////////////////////////////////
 // The game board
@@ -457,7 +458,7 @@ long make_move(piece_gen_t & gen)
                                     gen.cutoff = True;
                                 }
                                 else {
-                                    game.alpha = max(game.alpha, gen.move.value);
+                                    game.alpha = max((long) game.alpha, (long) gen.move.value);
                                 }
                             }
                             else {
@@ -474,7 +475,7 @@ long make_move(piece_gen_t & gen)
                                     gen.cutoff = True;
                                 }
                                 else {
-                                    game.beta = min(game.beta, gen.move.value);
+                                    game.beta = min((long) game.beta, (long) gen.move.value);
                                 }
                             }
                             else {
@@ -1174,7 +1175,7 @@ void set_game_options()
 
     // Set the maximum ply level to continue if a move takes a piece
     // The quiescent search depth is based off of the max ply level
-    game.options.max_quiescent_ply = min(game.options.maxply + 1, game.options.max_max_ply);
+    game.options.max_quiescent_ply = min((long) game.options.maxply + 1, (long) game.options.max_max_ply);
 
     // set the 'live update' flag
     // game.options.live_update = False;
@@ -1196,17 +1197,29 @@ void set_game_options()
         for (uint8_t pass = 0; pass < total_passes; pass++) {
             for (uint8_t pin = 0; pin < ARRAYSZ(pins); pin++) {
                 pinMode(pins[pin], INPUT);
-                some_bits ^= digitalRead(pins[pin]) << (analogRead(A2) % 42u);                
+        #ifndef ESP32
+            some_bits ^= digitalRead(pins[pin]) << (analogRead(A2) % 42u);
+        #else
+            some_bits ^= digitalRead(pins[pin]) << (analogRead(2) % 42u);
+        #endif
             }
         }
         uint8_t bits = (game.options.seed >> 11) & 0xFF;
         game.options.seed += 
             bits +
-            (uint32_t(analogRead(A0)) << 24) +
-            (uint32_t(analogRead(A1)) << 16) +
-            (uint32_t(analogRead(A2)) << 17) +
-            (uint32_t(analogRead(A3)) << 11) +
-            uint32_t(analogRead(A4)) +
+        #ifndef ESP32
+        (uint32_t(analogRead(A0)) << 24) +
+        (uint32_t(analogRead(A1)) << 16) +
+        (uint32_t(analogRead(A2)) << 17) +
+        (uint32_t(analogRead(A3)) << 11) +
+        uint32_t(analogRead(A4)) +
+        #else
+        (uint32_t(analogRead(2)) << 24) +
+        (uint32_t(analogRead(2)) << 16) +
+        (uint32_t(analogRead(2)) << 17) +
+        (uint32_t(analogRead(2)) << 11) +
+        uint32_t(analogRead(2)) +
+        #endif
             uint32_t(micros());
 
         game.options.seed += some_bits;        
@@ -1221,7 +1234,11 @@ void set_game_options()
 void setup()
 {
     // The baud rate we will be using
+    #ifndef ESP32
     static long constexpr baud_rate = 1000000;
+    #else
+    static long constexpr baud_rate = 115200;
+    #endif
 
     // Send out a message telling the user what baud rate to set their console to
     // using each baud rate one at a time, so that our message will be seen no
@@ -1258,6 +1275,7 @@ void setup()
     init_led_strip();
 
     // Initialize the LED indicators
+    #ifndef ESP32
     static uint8_t constexpr pins[] = { DEBUG4_PIN, DEBUG1_PIN, DEBUG2_PIN, DEBUG3_PIN };
     for (uint8_t pin : pins) {
         pinMode(pin, OUTPUT);
@@ -1265,6 +1283,7 @@ void setup()
         delay(200);
         direct_write(pin,  LOW);
     }
+    #endif
 
     // Initialize the continuous game statistics
     uint32_t state_totals[6] = { 0, 0, 0, 0, 0, 0 };

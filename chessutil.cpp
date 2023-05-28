@@ -8,7 +8,11 @@
  */
 #include "HardwareSerial.h"
 #include <Arduino.h>
+
+#ifndef ESP32
 #include <avr/pgmspace.h>
+#endif
+
 #include "MicroChess.h"
 #include <stdarg.h>
 #include <ctype.h>
@@ -34,8 +38,7 @@ Color const book_t::side = White;
 piece_gen_t::piece_gen_t(move_t &m) :
     move(m),
     wbest(m),
-    bbest(m)
-{
+    bbest(m) {
     init(board, game);
 }
 
@@ -45,8 +48,7 @@ piece_gen_t::piece_gen_t(move_t &m, move_t &wb, move_t &bb, generator_t *cb, Boo
     wbest(wb),
     bbest(bb),
     callme(cb),
-    evaluating(eval)
-{
+    evaluating(eval) {
     init(board, game);
 }
 
@@ -202,16 +204,13 @@ int debug(char const * const progmem, ...) {
 
 
 #if ARDUINO_ARCH_RENESAS 
-
 #include <stdio.h>
-
 char *dtostrf (double val, signed char width, unsigned char prec, char *sout) {
   char fmt[20];
   sprintf(fmt, "%%%d.%df", width, prec);
   sprintf(sout, fmt, val);
   return sout;
 }
-
 #endif
 
 // This function wraps the dtostrf(...) function combined with
@@ -297,8 +296,9 @@ Bool check_mem(index_t const
 } // check_mem(index_t const level)
 
 
+#ifndef ESP32
 void direct_write(index_t const pin, Bool const value) {
-#if not ARDUINO_ARCH_RENESAS 
+    #if not ARDUINO_ARCH_RENESAS
     if (!value)
     {
         if (pin > 1 && pin < 8 ) {
@@ -318,9 +318,7 @@ void direct_write(index_t const pin, Bool const value) {
             bitSet (PORTB, (pin-8));   // == digitalWrite(pin,HIGH) for pins 8-12
         }
     }    
-
-#else
-
+    #else
     if (!value)
     {
         if (pin > 1 && pin < 8 ) {
@@ -339,10 +337,12 @@ void direct_write(index_t const pin, Bool const value) {
             digitalWrite(pin, HIGH);
         }
     }    
+    #endif // #if not ARDUINO_ARCH_RENESAS
 
-#endif // #if not ARDUINO_ARCH_RENESAS
-}
-
+} // direct_write(index_t const pin, Bool const value)
+#else
+void direct_write(index_t const /* pin */, Bool const /* value */) { }
+#endif
 
 #if 0
 
@@ -855,9 +855,11 @@ void show_time(uint32_t ms)
 // runtime memory usage functions
 #include <unistd.h>
 
-
+#ifdef ESP32
+int freeMemory() { return 0; }
+#else
 int freeMemory() {
-    #ifdef __arm__
+    #ifdef __arm__ 
     // should use uinstd.h to define sbrk but Due causes a conflict
     // extern "C" { char* sbrk(int incr); }
     #else  // __ARM__
@@ -873,3 +875,4 @@ int freeMemory() {
     return __brkval ? &top - __brkval : &top - __malloc_heap_start;
     #endif  // __arm__
 }
+#endif
