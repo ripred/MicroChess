@@ -9,6 +9,8 @@ All of the heavy lifting has been done and the code can be used as-is or modifie
 
 Currently it displays the game board using an LED strip arranged in an 8x8 grid. It also outputs the game board in ASCII to the serial debug console. The game plays itself for both sides and accepts moves via the serial port at any time so it can be easily played against or controlled by another serial device. 
 
+Note that it's a work in progress so it changes often.
+
 &nbsp;
 [Reddit Discusson](https://www.reddit.com/r/arduino/comments/11q4916/so_you_want_to_build_a_chess_engine/?utm_source=share&utm_medium=web2x&context=3)
 
