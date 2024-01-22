@@ -14,8 +14,7 @@ packages:
     url: https://github.com/earlephilhower/arduino-pico/releases/download/global/package_rp2040_index.json
 
 libraries:
-  - "SoftwareSerial"
-  - "ArduinoJson"
+  - "FastLED"
 
 compile:
   platforms:
