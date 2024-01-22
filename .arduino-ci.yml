@@ -13,9 +13,6 @@ packages:
   rp2040:rp2040:
     url: https://github.com/earlephilhower/arduino-pico/releases/download/global/package_rp2040_index.json
 
-libraries:
-  - "FastLED"
-
 compile:
   platforms:
     - uno
@@ -23,3 +20,6 @@ compile:
     # - esp32
     # - esp8266
     # - rpipico
+
+libraries:
+  - "FastLED"
