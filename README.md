@@ -1,3 +1,9 @@
+[![Arduino CI](https://github.com/ripred/MicroChess/workflows/Arduino%20CI/badge.svg)](https://github.com/marketplace/actions/arduino_ci)
+[![Arduino-lint](https://github.com/ripred/MicroChess/actions/workflows/arduino-lint.yml/badge.svg)](https://github.com/ripred/MicroChess/actions/workflows/arduino-lint.yml)
+![code size:](https://img.shields.io/github/languages/code-size/ripred/MicroChess)
+[![GitHub release](https://img.shields.io/github/release/ripred/MicroChess.svg?maxAge=3600)](https://github.com/ripred/MicroChess/releases)
+[![License: MIT](https://img.shields.io/badge/license-MIT-green.svg)](https://github.com/ripred/MicroChess/blob/master/LICENSE)
+
 # MicroChess
 MicroChess is an embedded chess engine designed to run with only 2K of RAM and 32K of program flash, complete with en passant capture, castling, and quiescent searches. 
 
