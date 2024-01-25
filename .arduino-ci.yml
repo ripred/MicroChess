@@ -21,9 +21,9 @@ compile:
     # - esp8266
     # - rpipico
 
-libraries:
-  - "FastLED"
-
 files:
   exclude:
     - "led_strip.cpp"
+
+libraries:
+  - "FastLED"
