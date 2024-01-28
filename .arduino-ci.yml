@@ -20,6 +20,8 @@ compile:
     # - esp32
     # - esp8266
     # - rpipico
+  libraries:
+    - "FastLED"
 
 files:
   exclude:
