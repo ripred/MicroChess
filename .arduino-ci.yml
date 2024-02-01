@@ -25,3 +25,6 @@ compile:
   files:
     exclude:
       - "led_strip.cpp"
+
+libraries:
+  - "FastLED"
