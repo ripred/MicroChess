@@ -221,7 +221,6 @@ char * ftostr(double const value, int const dec, char * const buff)
     dtostrf(value, sizeof(str), dec, str);
     char *p = str;
     while (isspace(*p)) p++;
-    // char const * const begin = p;
     while (isdigit(*p) || ('-' == *p)) p++;
 
     char tmp[24];

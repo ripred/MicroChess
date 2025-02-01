@@ -1,15 +1,21 @@
 /**
- * ArduinoChess.ino
+ * MicroChess.ino
  * 
  * the MicroChess project: https://github.com/ripred/MicroChess
  * 
  * version 1.0.0
  * written March thru May 2023 - Trent M. Wyatt
  * 
+ * version 1.0.7
+ * February 2025 - Trent M. Wyatt
+ *    Fixed en-passant capture!
+ * 
  * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
  * TODO:
  * 
  *  [ ] 
+ *  [ ] Remove all of the stacking sanitizing. Go back to initializing variables where they are declared!!
+ *  
  *  [ ] Add awareness of other Arduino's on the I2C bus acting as slave devices
  *      and add the ability to parallel process to moves between all available
  *      CPU's!
@@ -1132,7 +1138,7 @@ void set_game_options()
     game.options.max_max_ply = 4;
 
     // Set the max ply level (inclusive) for normal moves
-    game.options.maxply = 2;
+    game.options.maxply = 3;
 
     // Set the minimum ply level required to complete for a turn
     game.options.minply = 1;
@@ -1150,7 +1156,7 @@ void set_game_options()
 
     // Set the time limit per turn in milliseconds
     // game.options.time_limit = 0;     // for no time limit
-    game.options.time_limit = 3000;
+    game.options.time_limit = 5000;
 
     // Set whether we play continuously or not
     // game.options.continuous = False;
@@ -1167,7 +1173,7 @@ void set_game_options()
 
     // Set the percentage of moves we randomly skip at ply depths > 1
     // game.options.randskip = 0;
-    game.options.randskip = 75;
+    game.options.randskip = 95;
 
     // Enable or disable opening book moves
     // game.options.openbook = False;
@@ -1268,7 +1274,8 @@ void setup()
     // }
 
     // Initialize the Serial output
-    Serial.begin(baud_rate); while (!Serial);
+    Serial.begin(115200);
+    delay(400);
     printnl(Debug1, 40);
 
     // Initialize the LED strip
@@ -1291,6 +1298,7 @@ void setup()
     uint32_t black_wins = 0;
 
     set_game_options();
+    delay(1000);
     show_game_options();
 
     // Play a game until it is over

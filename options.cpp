@@ -12,18 +12,18 @@
 
 options_t::options_t() : 
     max_max_ply(4),
-    random(False), 
     max_quiescent_ply(4),
+    maxply(2),
+    minply(1),
+    random(False), 
     live_update(False),
 
-    maxply(2),
     profiling(False), 
     continuous(False),
     integrate(True),
     openbook(False),
     shuffle_pieces(True),
 
-    minply(1),
     white_human(False),
     black_human(False),
     alpha_beta_pruning(True),

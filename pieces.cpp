@@ -33,6 +33,7 @@ static offset_t const bishop_offsets[4] PROGMEM = {
     { -1, -1 }, { -1,  1 }, {  1, -1 }, {  1,  1 }
 };
 
+extern game_t game;
 
 // Function to check for forward moves
 index_t check_fwd(piece_gen_t &gen, index_t const col, index_t const row) {
@@ -49,7 +50,7 @@ index_t add_pawn_moves(piece_gen_t &gen) {
     // DECLARE ALL LOCAL VARIABLES USED IN THIS CONTEXT HERE AND
     // DO NOT MODIFY ANYTHING BEFORE CHECKING THE AVAILABLE STACK
     index_t to_col, to_row, count, i;
-    // index_t last_move_to_col, last_move_to_row, last_move_from_row;
+    index_t last_move_to_col, last_move_to_row, last_move_from_row;
     Piece op;
 
     //  Check for low stack space
@@ -109,6 +110,25 @@ index_t add_pawn_moves(piece_gen_t &gen) {
             //         }
             //     }
             // }
+
+            // Check for en-passant candidate move
+            last_move_from_row = game.last_move.from / 8;
+            last_move_to_col   = game.last_move.to % 8;
+            last_move_to_row   = game.last_move.to / 8;
+
+            if (last_move_to_col == to_col && last_move_to_row == gen.row) {
+                // Ensure that the enemy pawn moved exactly two squares (a two-square jump)
+                if (abs(int(last_move_from_row) - int(last_move_to_row)) == 2) {
+                    op = board.get(last_move_to_col + gen.row * 8);
+                    // Verify that the enemy pawn is indeed a pawn and of the opposite side.
+                    if (Pawn == getType(op) && getSide(op) != gen.side) {
+                        // Generate candidate move: the destination square is where the pawn would land after capturing en-passant.
+                        gen.move.to = to_col + (gen.row + (gen.whites_turn ? -1 : +1)) * 8;
+                        gen.callme(gen);
+                        count++;
+                    }
+                }
+            }
         }
     }
 
