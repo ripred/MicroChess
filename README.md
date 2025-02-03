@@ -19,6 +19,8 @@ Currently it displays the game board using an LED strip arranged in an 8x8 grid.
 
 Note that it's a work in progress so it changes often.
 
+Update: The en-passant capture bug has been fixed!
+
 &nbsp;
 [Reddit Discusson](https://www.reddit.com/r/arduino/comments/11q4916/so_you_want_to_build_a_chess_engine/?utm_source=share&utm_medium=web2x&context=3)
 
