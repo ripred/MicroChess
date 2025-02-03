@@ -23,7 +23,7 @@ Note that it's a work in progress so it changes often.
 [Reddit Discusson](https://www.reddit.com/r/arduino/comments/11q4916/so_you_want_to_build_a_chess_engine/?utm_source=share&utm_medium=web2x&context=3)
 
 &nbsp;
-Example LED Strip Board (while profiling):
+Example LED Strip Board (while profiling ~ 900 moves/sec):
 
 ![LED Strip Game Board](MicroChessSmall.gif)
 
