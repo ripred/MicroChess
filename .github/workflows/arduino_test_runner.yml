@@ -15,7 +15,12 @@ jobs:
           ruby-version: '3.1' # Or your preferred version
 
       - name: Install arduino_ci gem
-        run: gem install arduino_ci
+        run: |
+          gem install arduino_ci
+          echo "::add-path::$(ruby -e 'print Gem.bindir')"
+
+      - name: Verify arduino_ci installation
+        run: arduino_ci --version
 
       - name: Run Arduino CI tests
         run: arduino_ci
