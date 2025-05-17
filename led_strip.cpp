@@ -66,7 +66,12 @@ void set_led_strip(index_t const flash /* = -1 */)
             static index_t constexpr values_per_led  = index_t(3);
             static index_t constexpr values_per_side = index_t(sizeof(piece_colors) / 2);
 
-            clr = (vars.type * values_per_led) + (vars.side * values_per_side);
+            // There are only six color definitions per side in piece_colors.
+            // Piece type values range from 0 (Empty) to 6 (King) so using the
+            // raw type value would index beyond the table for Kings.
+            // Mod the type by six to keep the index within bounds.
+            clr = ((vars.type % 6) * values_per_led) +
+                  (vars.side * values_per_side);
 
             leds[vars.led_index] = (Empty == vars.type) ? 
                 // empty spots
