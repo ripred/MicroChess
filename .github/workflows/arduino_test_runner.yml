@@ -3,14 +3,19 @@ name: Minimal Arduino CI Test
 on:
   push:
     branches: [ main ]
+  pull_request:
 
 jobs:
   build:
     runs-on: ubuntu-latest
     steps:
+      - uses: actions/checkout@v3
       - uses: ruby/setup-ruby@v1
         with:
           ruby-version: '3.1' # Or your preferred version
 
       - name: Install arduino_ci gem
         run: gem install arduino_ci
+
+      - name: Run Arduino CI tests
+        run: arduino_ci
