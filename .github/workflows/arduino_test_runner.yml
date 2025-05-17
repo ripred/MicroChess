@@ -17,7 +17,7 @@ jobs:
       - name: Install arduino_ci gem
         run: |
           gem install arduino_ci
-          echo "::add-path::$(ruby -e 'print Gem.bindir')"
+          echo "$(ruby -e 'print Gem.bindir')" >> $GITHUB_PATH
 
       - name: Verify arduino_ci installation
         run: arduino_ci --version
