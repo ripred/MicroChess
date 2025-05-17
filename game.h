@@ -92,6 +92,9 @@ class game_t
     // Increasing move number
     uint8_t     move_num;
 
+    // Index of the next opening book move
+    uint8_t     book_index;
+
     // The alpha and beta boundaries of our search envelope
     long        alpha;
     long        beta;

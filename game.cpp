@@ -126,6 +126,7 @@ void game_t::init()
     turn = White;
 
     move_num = 0;
+    book_index = 0;
 
     ply = 0;
 

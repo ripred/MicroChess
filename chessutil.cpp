@@ -593,7 +593,7 @@ Bool check_serial()
 // returns True if there is a move or False otherwise
 Bool check_book()
 {
-    static index_t index = 0;
+    uint8_t &index = game.book_index;
 
     if (!game.options.openbook) { return False; }
 
