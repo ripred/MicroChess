@@ -19,3 +19,9 @@ This project isn’t just a chess engine—it’s a blueprint for building lean,
 
 ## License
 MicroChess is licensed under the MIT License. See the [LICENSE](https://github.com/ripred/MicroChess/blob/main/LICENSE) file for details.
+
+## Bug Fixes
+
+- **LED Strip King Colors**: Kings were sometimes displayed with incorrect LED colors
+  because the color lookup indexed beyond the end of the color table. The index
+  now wraps correctly so both white and black kings use the right colors.
