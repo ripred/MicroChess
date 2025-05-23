@@ -11,31 +11,20 @@ jobs:
     steps:
       - uses: actions/checkout@v3
 
-      - uses: ruby/setup-ruby@v1
+      - name: Set up Ruby
+        uses: ruby/setup-ruby@v1
         with:
           ruby-version: '3.1' # Or your preferred version
 
-      - name: Install Bundler
-        run: gem install bundler
-
-      - name: Create Gemfile
-        run: |
-          echo "source 'https://rubygems.org'" > Gemfile
-          echo "gem 'arduino_ci'" >> Gemfile
+      - name: Check connectivity to rubygems.org
+        run: curl -I https://rubygems.org
         shell: bash
 
-      - name: Verify Gemfile creation
-        run: cat Gemfile
-
-      - name: Install dependencies
-        run: bundle check || bundle install
-        shell: bash
+      - name: Install arduino_ci gem globally
+        run: gem install arduino_ci
 
       - name: Verify arduino_ci installation
-        run: bundle exec arduino_ci --version
-        shell: bash
+        run: arduino_ci --version
 
       - name: Run Arduino CI tests
-        run: bundle exec arduino_ci
-        shell: bash
-        
+        run: arduino_ci
