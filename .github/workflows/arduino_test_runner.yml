@@ -28,7 +28,7 @@ jobs:
         run: cat Gemfile
 
       - name: Install dependencies
-        run: bundle install
+        run: bundle check || bundle install
         shell: bash
 
       - name: Verify arduino_ci installation
@@ -38,3 +38,4 @@ jobs:
       - name: Run Arduino CI tests
         run: bundle exec arduino_ci
         shell: bash
+        
