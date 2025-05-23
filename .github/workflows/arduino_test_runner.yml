@@ -10,17 +10,24 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
+
       - uses: ruby/setup-ruby@v1
         with:
           ruby-version: '3.1' # Or your preferred version
 
-      - name: Install arduino_ci gem
+      - name: Install Bundler
+        run: gem install bundler
+
+      - name: Create Gemfile
         run: |
-          gem install arduino_ci
-          echo "PATH=$(ruby -e 'print Gem.bindir'):\$PATH" >> $GITHUB_ENV
-      
+          echo "source 'https://rubygems.org'" > Gemfile
+          echo "gem 'arduino_ci'" >> Gemfile
+
+      - name: Install dependencies
+        run: bundle install
+
       - name: Verify arduino_ci installation
-        run: arduino_ci --version
-      
+        run: bundle exec arduino_ci --version
+
       - name: Run Arduino CI tests
-        run: arduino_ci
+        run: bundle exec arduino_ci
