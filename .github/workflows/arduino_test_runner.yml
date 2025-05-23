@@ -22,12 +22,19 @@ jobs:
         run: |
           echo "source 'https://rubygems.org'" > Gemfile
           echo "gem 'arduino_ci'" >> Gemfile
+        shell: bash
+
+      - name: Verify Gemfile creation
+        run: cat Gemfile
 
       - name: Install dependencies
         run: bundle install
+        shell: bash
 
       - name: Verify arduino_ci installation
         run: bundle exec arduino_ci --version
+        shell: bash
 
       - name: Run Arduino CI tests
         run: bundle exec arduino_ci
+        shell: bash
