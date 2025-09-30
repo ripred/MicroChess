@@ -1239,12 +1239,14 @@ void set_game_options()
 // Display the statistics for the game and start another game.
 void setup()
 {
+#if not ARDUINO_AVR_PROMICRO
     // The baud rate we will be using
-    #ifndef ESP32
+    #if not ESP32
     static long constexpr baud_rate = 1000000;
     #else
     static long constexpr baud_rate = 115200;
     #endif
+#endif
 
     // Send out a message telling the user what baud rate to set their console to
     // using each baud rate one at a time, so that our message will be seen no
