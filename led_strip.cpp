@@ -10,7 +10,7 @@
 #include <stdint.h>
 #include "MicroChess.h"
 
-#if not ARDUINO_ARCH_RENESAS && not ESP32
+#if not ARDUINO_ARCH_RENESAS && not ESP32 && not ARDUINO_AVR_PROMICRO
 #include <FastLED.h>
 
 FASTLED_USING_NAMESPACE
@@ -95,5 +95,4 @@ void set_led_strip(index_t const flash /* = -1 */)
 void init_led_strip() { }
 void set_led_strip(index_t const /* flash = -1 */) { }
 
-#endif // #if not ARDUINO_ARCH_RENESAS 
-
+#endif // #if not ARDUINO_ARCH_RENESAS && not ESP32
