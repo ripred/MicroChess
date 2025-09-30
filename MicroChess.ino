@@ -415,7 +415,7 @@ long make_move(piece_gen_t & gen)
 
     // Control the percentage of moves that the engine makes a mistake on
     if (0 != game.options.mistakes) {
-        if (random(100) <= game.options.mistakes) {
+        if (random(100) <= (unsigned) game.options.mistakes) {
             gen.move.value -= gen.whites_turn ? +5000 : -5000;
         }
     }
@@ -441,7 +441,7 @@ long make_move(piece_gen_t & gen)
                     direct_write(DEBUG2_PIN, LOW);
                 }
 
-                if ((0 == game.options.randskip) || (random(100) > game.options.randskip)) {
+                if ((0 == game.options.randskip) || (random(100) > (unsigned) game.options.randskip)) {
                     // Explore The Future! (plies)
                     game.ply++;
                     game.turn = !game.turn;
@@ -1130,6 +1130,9 @@ void show_game_options() {
 // Set all of the options for the game
 void set_game_options()
 {
+    game.options.white_human = false;
+    game.options.black_human = false;
+    
     // Set game.options.profiling to True to disable output and profile the engine
     game.options.profiling = False;
     // game.options.profiling = True;
@@ -1239,7 +1242,7 @@ void set_game_options()
 // Display the statistics for the game and start another game.
 void setup()
 {
-#if not ARDUINO_AVR_PROMICRO
+#if not ARDUINO_AVR_PROMICRO && not TEENSYDUINO
     // The baud rate we will be using
     #if not ESP32
     static long constexpr baud_rate = 1000000;

@@ -208,6 +208,10 @@ enum state_t : uint8_t {
 #include "game.h"
 #include "conv.h"
 
+// Add for non-AVR builds
+#ifndef pgm_get_far_address
+  #define pgm_get_far_address(x) ((uintptr_t)(&(x)))
+#endif
 
 ////////////////////////////////////////////////////////////////////////////////////////
 // A structure to represent an opening move or sequences of moves

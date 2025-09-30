@@ -53,7 +53,7 @@ piece_gen_t::piece_gen_t(move_t &m, move_t &wb, move_t &bb, generator_t *cb, Boo
 }
 
 
-void inline piece_gen_t::init(board_t const &board, game_t const &game) {
+void /*inline*/ piece_gen_t::init(board_t const &board, game_t const &game) {
     piece = board.get(move.from);
     type = getType(piece);
     side = getSide(piece);
