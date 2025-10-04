@@ -922,7 +922,7 @@ void take_turn()
     move_t wmove = { -1, -1, MIN_VALUE };
     move_t bmove = { -1, -1, MAX_VALUE };
 
-    // Reset the flags for this turn
+    // Gather the move statistics for this turn
     game.stats.start_move_stats();
     game.stats.move_stats.depth = 0;
 
@@ -936,16 +936,55 @@ void take_turn()
     Bool const whites_turn = game.turn; // same as (White == game.turn) ? True : False;
     move_t move = { -1, -1, whites_turn ? MIN_VALUE : MAX_VALUE };
 
-    // See if we have an opening book move
-    check_book();
+    // Handle human player input if applicable
+    Bool is_human_turn = (whites_turn && game.options.white_human) || (!whites_turn && game.options.black_human);
+    if (is_human_turn) {
+        Bool valid_input = False;
+        while (!valid_input) {
+            // Prompt the user
+            show_side(whites_turn ? White : Black);
+            printf(Debug1, "'s turn. Enter move as 4 digits col1row1col2row2 (0-7, rows 7-0 bottom to top): ");
 
-    if (game.options.shuffle_pieces) {
-        game.sort_pieces(game.turn);
-        game.shuffle_pieces(SHUFFLE);
+            // Poll for input
+            while (!check_serial()) {
+                delay(100);  // Non-blocking wait to avoid CPU spin
+            }
+
+            // Proceed to generation to validate the supplied move
+            // See if we have an opening book move (for AI fallback if needed, but skip for human)
+            check_book();  // Optional, but keep if book can override invalid human moves; remove if pure human
+
+            if (game.options.shuffle_pieces) {
+                game.sort_pieces(game.turn);
+                game.shuffle_pieces(SHUFFLE);
+            }
+
+            // Choose the best moves (this will validate supplied via consider_move)
+            choose_best_moves(wmove, bmove, consider_move);
+
+            // Check if the supplied move was valid (matched a legal generated move)
+            if (game.supply_valid) {
+                valid_input = True;
+            } else {
+                printf(Debug1, "Invalid move - try again.\n");
+                // Reset supplied flags for next attempt
+                game.user_supplied = False;
+                game.supplied = { -1, -1, 0L };
+            }
+        }
+    } else {
+        // Non-human (AI) path - original logic
+        // See if we have an opening book move
+        check_book();
+
+        if (game.options.shuffle_pieces) {
+            game.sort_pieces(game.turn);
+            game.shuffle_pieces(SHUFFLE);
+        }
+
+        // Choose the best moves for both sides
+        choose_best_moves(wmove, bmove, consider_move);
     }
-
-    // Choose the best moves for both sides
-    choose_best_moves(wmove, bmove, consider_move);
 
     // Gather the move statistics for this turn
     game.stats.stop_move_stats();
@@ -1021,7 +1060,7 @@ void take_turn()
     // Delete any soft-deleted pieces for real
     if (piece_count != game.piece_count) {
         for (index_t i = 0; i < game.piece_count; i++) {
-            if (-1 == game.pieces[i].x) {
+            if (game.pieces[i].x == -1) {
                 game.pieces[i] = game.pieces[--game.piece_count];
                 break;
             }
