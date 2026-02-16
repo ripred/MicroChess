@@ -11,8 +11,6 @@
 #ifndef MICROCHESS_INCL
 #define MICROCHESS_INCL
 
-#pragma pack(0)
-
 #include <Arduino.h>
 #include <inttypes.h>
 #include <stddef.h>
@@ -36,7 +34,7 @@ enum : uint32_t {
 
 enum {
     VERSION_MAJOR = 1,    // Major software revision number
-    VERSION_MINOR = 90,    // Minor software revision number
+    VERSION_MINOR = 91,    // Minor software revision number
 
     SHUFFLE = 10,    // Number of times we swap entries in the pieces[] array when shuffling
 
