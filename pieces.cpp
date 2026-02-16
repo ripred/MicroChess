@@ -260,28 +260,30 @@ index_t add_king_moves(piece_gen_t &gen) {
 
     // check for castling
     if (!hasMoved(gen.piece)) {
-        // check King's side (right-hand side from white's view)
+        // check King's side: king e->g (col 4->6), rook h-file (col 7)
+        // intermediate squares f,g (cols 5,6) must be empty
         rook = board.get(7 + gen.row * 8);
-        empty_knight = isEmpty(board.get(1 + gen.row * 8));
-        empty_bishop = isEmpty(board.get(2 + gen.row * 8));
+        empty_bishop = isEmpty(board.get(5 + gen.row * 8));
+        empty_knight = isEmpty(board.get(6 + gen.row * 8));
         if (!isEmpty(rook) && !hasMoved(rook)) {
-            if (empty_knight && empty_bishop) {
+            if (empty_bishop && empty_knight) {
                 // We can castle on the King's side
-                gen.move.to = 2 + gen.row * 8;
+                gen.move.to = 6 + gen.row * 8;
                 gen.callme(gen);
                 count++;
             }
         }
 
-        // check Queen's side (left-hand side from white's view)
+        // check Queen's side: king e->c (col 4->2), rook a-file (col 0)
+        // intermediate squares b,c,d (cols 1,2,3) must be empty
         rook = board.get(0 + gen.row * 8);
         if (!isEmpty(rook) && !hasMoved(rook)) {
-             empty_queen = isEmpty(board.get(4 + gen.row * 8));
-            empty_knight = isEmpty(board.get(6 + gen.row * 8));
-            empty_bishop = isEmpty(board.get(5 + gen.row * 8));
+            empty_knight = isEmpty(board.get(1 + gen.row * 8));
+            empty_bishop = isEmpty(board.get(2 + gen.row * 8));
+            empty_queen  = isEmpty(board.get(3 + gen.row * 8));
             if (empty_knight && empty_bishop && empty_queen) {
-                // We can castle on the Queens's side
-                gen.move.to = 6 + gen.row * 8;
+                // We can castle on the Queen's side
+                gen.move.to = 2 + gen.row * 8;
                 gen.callme(gen);
                 count++;
             }
