@@ -43,24 +43,24 @@ class spot_t {
 };  // spot_t
 
 
-class board_t1 {
-    private:
-    struct row_t {
-        spot_t  cols[8];
-    } rows[8];
-
-    public:
-    Piece get(unsigned char index) const 
-    {
-        return *((Piece*) &rows[index / 8].cols[index % 8]);
-    }
-
-    void set(unsigned char index, Piece const piece) 
-    {
-        rows[index / 8].cols[index % 8] = piece;
-    }    
-
-};  // board_t1
+// class board_t1 {
+//     private:
+//     struct row_t {
+//         spot_t  cols[8];
+//     } rows[8];
+//
+//     public:
+//     Piece get(unsigned char index) const
+//     {
+//         return *((Piece*) &rows[index / 8].cols[index % 8]);
+//     }
+//
+//     void set(unsigned char index, Piece const piece)
+//     {
+//         rows[index / 8].cols[index % 8] = piece;
+//     }
+//
+// };  // board_t1
 
 
 class board_t2 {
