@@ -9,7 +9,7 @@
 #include "HardwareSerial.h"
 #include <Arduino.h>
 
-#ifndef ESP32
+#if not ESP32 && not TEENSYDUINO
 #include <avr/pgmspace.h>
 #endif
 
@@ -256,7 +256,7 @@ Bool timeout() {
     // game.black_king_in_check flags correctly WE CANNOT RELY ON THE FACT
     // THAT BOTH SIDES ARE EVALUATED DURING PLY 0. This only evaluates if
     // the king is in check from the outermost level and stops the responses
-    // to any moves from being evaluated and tis is necessary to stop moves
+    // to any moves from being evaluated and this is necessary to stop moves
     // from being made that place a king in check. So we must allow both ply
     // level 0 and 1 to complete before we allow a timeout to stop the
     // evaluations:
@@ -295,7 +295,7 @@ Bool check_mem(index_t const
 } // check_mem(index_t const level)
 
 
-#ifndef ESP32
+#if not ESP32 && not TEENSYDUINO
 void direct_write(index_t const pin, Bool const value) {
     #if not ARDUINO_ARCH_RENESAS
     if (!value)

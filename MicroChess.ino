@@ -10,6 +10,11 @@
  * February 2025 - Trent M. Wyatt
  *    Fixed en-passant capture!
  * 
+ * version 1.0.9
+ * September 2025 - Trent M. Wyatt
+ *    - Fixed flash size issue on Sparkfun Pro Micro!
+ *    - Now works on Teensy 4.1 !!
+ * 
  * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
  * TODO:
  * 
@@ -1169,6 +1174,9 @@ void show_game_options() {
 // Set all of the options for the game
 void set_game_options()
 {
+//  game.options.print_level = None;     // The verbosity setting for the level of output
+    game.options.print_level = Everything;
+
     game.options.white_human = false;
     game.options.black_human = false;
     
@@ -1177,10 +1185,10 @@ void set_game_options()
     // game.options.profiling = True;
 
     // Set the ultimate maximum ply level (incl)
-    game.options.max_max_ply = 4;
+    game.options.max_max_ply = 2;
 
     // Set the max ply level (inclusive) for normal moves
-    game.options.maxply = 3;
+    game.options.maxply = 1;
 
     // Set the minimum ply level required to complete for a turn
     game.options.minply = 1;
@@ -1198,7 +1206,7 @@ void set_game_options()
 
     // Set the time limit per turn in milliseconds
     // game.options.time_limit = 0;     // for no time limit
-    game.options.time_limit = 5000;
+    game.options.time_limit = 10000;
 
     // Set whether we play continuously or not
     // game.options.continuous = False;
@@ -1284,9 +1292,9 @@ void setup()
 #if not ARDUINO_AVR_PROMICRO && not TEENSYDUINO
     // The baud rate we will be using
     #if not ESP32
-    static long constexpr baud_rate = 1000000;
-    #else
     static long constexpr baud_rate = 115200;
+    #else
+    static long constexpr baud_rate = 1000000;
     #endif
 #endif
 
@@ -1318,12 +1326,12 @@ void setup()
     // }
 
     // Initialize the Serial output
-    Serial.begin(115200);
+    Serial.begin(baud_rate);
     delay(400);
     printnl(Debug1, 40);
 
     // Initialize the LED strip
-    init_led_strip();
+//  init_led_strip();
 
     // Initialize the LED indicators
     #ifndef ESP32
