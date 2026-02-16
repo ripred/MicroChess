@@ -14,6 +14,12 @@
  * September 2025 - Trent M. Wyatt
  *    - Fixed flash size issue on Sparkfun Pro Micro!
  *    - Now works on Teensy 4.1 !!
+ *
+ * version 1.9.1
+ * February 2026 - Trent M. Wyatt
+ *    - Fixed critical castling bugs in move generation and execution
+ *    - Fixed evaluate() bug using wrong variable for piece side
+ *    - Removed unnecessary pragma pack directive
  * 
  * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
  * TODO:
@@ -390,22 +396,26 @@ long make_move(piece_gen_t & gen)
         ((White == gen.side) ? game.wking : game.bking) = gen.move.to;
 
         // Get the horizontal distance the king is
-        // moving and see if it is a Castling move
-        if (abs(vars.to_col - (gen.move.from % 8)) > 1) {
-            // see which side we're castling on
-            if (2 == abs(vars.to_col - (gen.move.from % 8))) {
-                // Castle on the King's side
+        // moving and see if it is a Castling move (king moves 2 squares)
+        if (abs(vars.to_col - (gen.move.from % 8)) == 2) {
+            // Use direction to determine which side we're castling on
+            if (vars.to_col > (gen.move.from % 8)) {
+                // Castle on the King's side (king moved right, toward h-file)
+                // Rook goes from h-file (col 7) to f-file (col 5)
                 vars.board_rook = 7 + gen.row * 8u;
                 castly_rook = game.find_piece(vars.board_rook);
-                board.set(vars.board_rook, setMoved(board.get(vars.board_rook), True));
+                board.set(5 + gen.row * 8u, setMoved(board.get(vars.board_rook), True));
+                board.set(vars.board_rook, Empty);
                 game.pieces[castly_rook].x = 5;
                 game.last_was_castle = True;
             }
-            else if (3 == abs(vars.to_col - (gen.move.from % 8))) {
-                // Castle on the Queen's side
+            else {
+                // Castle on the Queen's side (king moved left, toward a-file)
+                // Rook goes from a-file (col 0) to d-file (col 3)
                 vars.board_rook = 0 + gen.row * 8u;
                 castly_rook = game.find_piece(vars.board_rook);
-                board.set(vars.board_rook, setMoved(board.get(vars.board_rook), True));
+                board.set(3 + gen.row * 8u, setMoved(board.get(vars.board_rook), True));
+                board.set(vars.board_rook, Empty);
                 game.pieces[castly_rook].x = 3;
                 game.last_was_castle = True;
             }
@@ -526,9 +536,7 @@ long make_move(piece_gen_t & gen)
         if (-1 == captured) {
             board.set(gen.move.to, vars.op);
         } else {
-            // restore the captured board changes and
-            // set it's "in-check" flag
-            vars.captured_piece = setCheck(vars.captured_piece, True);
+            // restore the captured board changes
             board.set(captured, vars.captured_piece);
 
             // restore the captured piece list changes
@@ -583,15 +591,22 @@ long make_move(piece_gen_t & gen)
         // restore any rook moved during a castle move
         game.last_was_castle = vars.last_was_castle;
         if (-1 != castly_rook) {
-            if (3 == game.pieces[castly_rook].x) {
+            // Clear the rook from its castled position on the board
+            index_t rook_castled_col = game.pieces[castly_rook].x;
+            index_t rook_row = game.pieces[castly_rook].y;
+            Piece rook_piece = board.get(rook_castled_col + rook_row * 8);
+            board.set(rook_castled_col + rook_row * 8, Empty);
+
+            // Restore the rook to its original position
+            if (3 == rook_castled_col) {
                 game.pieces[castly_rook].x = 0;
             }
             else {
                 game.pieces[castly_rook].x = 7;
             }
 
-            board.set((game.pieces[castly_rook].x + game.pieces[castly_rook].y * 8), 
-                setMoved(board.get((game.pieces[castly_rook].x + game.pieces[castly_rook].y * 8)), False));
+            board.set(game.pieces[castly_rook].x + rook_row * 8,
+                setMoved(rook_piece, False));
         }
 
     } // if (gen.evaluating)
@@ -648,7 +663,7 @@ long evaluate(piece_gen_t &gen)
 
         // In-Check Penalty
         if (inCheck(p)) {
-            if (White == ptype) {
+            if (White == pside) {
                 materialTotal -= ptype;
             }
             else {
