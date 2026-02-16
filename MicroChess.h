@@ -223,4 +223,103 @@ enum state_t : uint8_t {
 #define pgm_get_far_address(x) ((uintptr_t)(&(x)))
 #endif
 
+////////////////////////////////////////////////////////////////////////////////////////
+// A structure to represent an opening move or sequences of moves
+struct book_t {
+    uint8_t const
+        from : 6,  // the starting location
+          to : 6;  // the ending location
+
+    static Color const side;
+
+    book_t(index_t const f, index_t const t) : from(f), to(t) {}
+};
+
+
+// define a data type for a callback move generation handler
+typedef void    (generator_t(struct piece_gen_t &gen));
+
+
+// The piece_gen_t type is a parameter passing structure used
+// to speed up the move generation calls for the piece types.
+// This is the structure that is passed to each generator function
+// for each piece type.
+class piece_gen_t {
+    public:
+    // The move_t structure to use. Initially for each piece generator,
+    // only the 'from' field of the move is valid. The generator function
+    // fills in the 'to' field as it generates moves.
+    move_t      & move;
+
+    // The best move found for this piece type so far
+    move_t      & wbest;
+    move_t      & bbest;
+
+    // The function to call for each move to be evaluated
+    generator_t * callme;
+
+    uint8_t
+                 piece : 6,     // The Piece being moved
+            evaluating : 1,     // True if we are just evaluating the move
+                  side : 1,     // The side the piece is for: White or Black
+
+            num_wmoves : 5,     // The number of white moves available
+                  type : 3,     // The Type of the Piece: [Empty|Pawn|Knight|Rook|Bishop|Queen|King]
+
+                   col : 3,     // The column of the piece being moved
+           whites_turn : 1,     // True when this move is for White's side
+                   row : 3,     // The row of the piece being moved
+                cutoff : 1,     // True if we have reached the alpha or beta cutoff
+
+            num_bmoves : 5,     // The number of white moves available
+           piece_index : 5;     // The index into the pieces list of the piece being evaluated
+
+    piece_gen_t(move_t &m);
+
+    piece_gen_t(move_t &m, move_t &wb, move_t &bb, generator_t *cb, Bool const eval);
+
+    void init(board_t const &board, game_t const &game);
+
+};  // piece_gen_t
+
+
+// Display a piece, or a move, the piece list, or a time duration
+extern void     show_side(Color const side);
+extern void     show_check(Color const side, Bool const mate = False);
+extern void     show_piece(Piece const piece);
+extern void     show_move(move_t const &move, Bool const align = False);
+extern void     show_pieces();
+extern void     show_time(uint32_t ms);
+
+// show the game time and move statistics
+extern void     show_stats();
+
+// Show the current memory statistics
+extern Bool     check_mem(index_t const level);
+extern int      freeMemory();
+
+// Control an external LED strip to display the board state
+extern void     init_led_strip();
+extern void     set_led_strip(index_t const flash = -1);
+
+extern Bool     timeout();
+
+extern Bool     check_serial();
+extern Bool     check_book();
+
+extern void     check_kings();
+extern void     consider_move(piece_gen_t &gen);
+extern long     make_move(piece_gen_t &gen);
+extern long     evaluate(piece_gen_t &gen);
+extern Bool     would_repeat(move_t const &move);
+extern Bool     add_to_history(move_t const &move);
+extern void     choose_best_moves(move_t &wbest, move_t &bbest, generator_t const callback);
+
+extern index_t  add_pawn_moves(piece_gen_t &gen);
+extern index_t  add_knight_moves(piece_gen_t &gen);
+extern index_t  add_bishop_moves(piece_gen_t &gen);
+extern index_t  add_rook_moves(piece_gen_t &gen);
+extern index_t  add_queen_moves(piece_gen_t &gen);
+extern index_t  add_king_moves(piece_gen_t &gen);
+
 #endif // MICROCHESS_INCL

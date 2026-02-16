@@ -1035,15 +1035,15 @@ void take_turn()
     }
 
     if (game.last_was_en_passant) {
-        printf(Debug1, " - en passant capture ")
+        printf(Debug1, " - en passant capture ");
     }
 
     if (game.last_was_pawn_promotion) {
-        printf(Debug1, " - pawn promoted ")
+        printf(Debug1, " - pawn promoted ");
     }
 
     if (game.last_was_castle) {
-        printf(Debug1, " - castling ")
+        printf(Debug1, " - castling ");
     }
 
     printnl(Debug1);
@@ -1456,8 +1456,8 @@ void setup()
                 break;
         }
 
-        printf(Debug1, "   White wins: %3ld   Black wins: %3ld\n\n", white_wins, black_wins)
-    
+        printf(Debug1, "   White wins: %3ld   Black wins: %3ld\n\n", white_wins, black_wins);
+
         if (game.options.profiling) {
             // Return to no output when profiling
             game.options.print_level = None;
