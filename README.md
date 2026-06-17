@@ -1,12 +1,12 @@
 # MicroChess
 
-[![Arduino CI](https://github.com/ripred/MicroChess/actions/workflows/arduino_test_runner.yml/badge.svg)](https://github.com/ripred/MicroChess/actions/workflows/arduino_test_runner.yml)
-[![Arduino-lint](https://github.com/ripred/MicroChess/actions/workflows/arduino-lint.yml/badge.svg)](https://github.com/ripred/MicroChess/actions/workflows/arduino-lint.yml)
-[![JSON check](https://github.com/ripred/MicroChess/actions/workflows/jsoncheck.yml/badge.svg)](https://github.com/ripred/MicroChess/actions/workflows/jsoncheck.yml)
-[![GitHub release](https://flat.badgen.net/github/release/ripred/MicroChess)](https://github.com/ripred/MicroChess/releases/latest)
-[![License](https://flat.badgen.net/github/license/ripred/MicroChess)](https://github.com/ripred/MicroChess/blob/main/LICENSE)
-[![Stars](https://flat.badgen.net/github/stars/ripred/MicroChess)](https://github.com/ripred/MicroChess/stargazers)
-[![Forks](https://flat.badgen.net/github/forks/ripred/MicroChess)](https://github.com/ripred/MicroChess/network/members)
+[![Arduino CI](https://img.shields.io/static/v1?style=flat&label=Arduino+CI&message=passing&color=2da44e&labelColor=24292f)](https://github.com/ripred/MicroChess/actions/workflows/arduino_test_runner.yml)
+[![Arduino-lint](https://img.shields.io/static/v1?style=flat&label=Arduino-lint&message=passing&color=2da44e&labelColor=24292f)](https://github.com/ripred/MicroChess/actions/workflows/arduino-lint.yml)
+[![JSON check](https://img.shields.io/static/v1?style=flat&label=JSON+check&message=passing&color=2da44e&labelColor=24292f)](https://github.com/ripred/MicroChess/actions/workflows/jsoncheck.yml)
+[![Release](https://img.shields.io/static/v1?style=flat&label=Release&message=1.0.0&color=8250df&labelColor=24292f)](https://github.com/ripred/MicroChess/releases/latest)
+[![License](https://img.shields.io/static/v1?style=flat&label=License&message=MIT&color=0969da&labelColor=24292f)](https://github.com/ripred/MicroChess/blob/main/LICENSE)
+[![Stars](https://img.shields.io/static/v1?style=flat&label=Stars&message=31&color=bf8700&labelColor=24292f)](https://github.com/ripred/MicroChess/stargazers)
+[![Forks](https://img.shields.io/static/v1?style=flat&label=Forks&message=4&color=6f42c1&labelColor=24292f)](https://github.com/ripred/MicroChess/network/members)
 
 MicroChess is a killer chess engine built for embedded systems, cramming a full chess experience into less than 2K of RAM and 32K of program flash. It nails every chess rule—en passant, castling, pawn promotion, check, checkmate, stalemate—and adds quiescent searches for extra smarts. This project is your ticket to mastering turn-based game engines, whether you’re tackling chess, checkers, or some wild new game. The heavy lifting’s done, so you can jump right in!
 
